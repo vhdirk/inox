@@ -1,0 +1,22 @@
+[package]
+name = "Some"
+version = "0.0.1"
+authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
+
+[[bin]]
+name = "some"
+path = "src/main.rs"
+
+
+[dependencies]
+clap = "*"
+log = "*"
+log4rs ="*"
+net2 = "*"
+nix = "*"
+regex = "*"
+
+
+[dependencies.gtk]
+version = "0.3.0"
+features = ["v3_16"]
