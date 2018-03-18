@@ -19,7 +19,7 @@ extern crate toml;
 use std::fs::{File, DirBuilder};
 use std::io::prelude::*;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use log::LogLevelFilter;
 use log4rs::append::console::ConsoleAppender;
 use log4rs::encode::pattern::PatternEncoder;
@@ -29,9 +29,18 @@ extern crate gtk;
 extern crate gio;
 extern crate glib;
 use gtk::prelude::*;
+use gio::prelude::*;
 
 mod config;
 use config::Config;
+
+mod application;
+use application::SomeApplication;
+
+pub const GTK_APPLICATION_ID: &'static str = "com.github.vhdirk.somemail";
+
+
+
 
 ///
 /// Initializes the logger so that it prints to stdout using log4rs
@@ -50,14 +59,26 @@ fn init_logger() {
 }
 
 
+/// Init Gtk and stuff.
+fn init() {
+    use std::sync::{Once, ONCE_INIT};
+
+    static START: Once = ONCE_INIT;
+
+    START.call_once(|| {
+        init_logger();
+
+        // run initialization here
+        if gtk::init().is_err() {
+            panic!("Failed to initialize GTK.");
+        }
+    });
+}
+
+
 /// Main entry point
 fn main() {
-    init_logger();
-
-    if gtk::init().is_err(){
-        error!("Failed to initialize GTK.");
-        return;
-    }
+    init();
 
     let mut default_config = glib::get_user_config_dir().unwrap();
     default_config.push("some-mail");
@@ -89,12 +110,22 @@ fn main() {
     let conf_location = args.value_of("config")
                         .unwrap_or(default_config.to_str().unwrap())
                         .to_string();
-    let conf_path = Path::new(&conf_location);
 
-    let conf: Config = Config::load(&conf_path);
 
-    // write the config back out.
-    conf.store(&conf_path);
+    let gapp = gtk::Application::new(Some(GTK_APPLICATION_ID),
+                                     gio::ApplicationFlags::FLAGS_NONE).unwrap();
 
-    println!("config: {conf:?}", conf=conf);
+
+
+    gapp.connect_activate(move |gapp| {
+        let conf_path:PathBuf = PathBuf::from(conf_location.to_owned());
+
+        let app = SomeApplication::new(&gapp, &conf_path);
+
+        app.borrow_mut().start();
+    });
+
+    gtk::main();
+
+
 }
