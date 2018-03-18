@@ -1,5 +1,8 @@
 #![feature(custom_attribute)]
 
+use std::rc::Rc;
+use std::cell::RefCell;
+
 #[macro_use]
 extern crate clap;
 use clap::{Arg, App};
@@ -121,11 +124,13 @@ fn main() {
         let conf_path:PathBuf = PathBuf::from(conf_location.to_owned());
 
         let app = SomeApplication::new(&gapp, &conf_path);
-
         app.borrow_mut().start();
     });
 
-    gtk::main();
+    // Run GTK application with command line args
+    let args: Vec<String> = std::env::args().collect();
+    gapp.run(args.as_slice());
 
+    gtk::main();
 
 }
