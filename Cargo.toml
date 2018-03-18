@@ -18,6 +18,7 @@ regex = "*"
 toml = "*"
 serde = "*"
 serde_derive = "*"
+lettre = "*"
 
 gtk         = "0.3.0"
 cairo-rs    = "0.3.0"
