@@ -1,24 +1,33 @@
-#[macro_use] extern crate clap;
+#[macro_use]
+extern crate clap;
 use clap::{Arg, App};
 
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 extern crate log4rs;
 
 extern crate regex;
+
+#[macro_use]
+extern crate serde_derive;
+extern crate toml;
+
+use std::fs::File;
+use std::io::prelude::*;
 
 use std::path::Path;
 use log::LogLevelFilter;
 use log4rs::append::console::ConsoleAppender;
 use log4rs::encode::pattern::PatternEncoder;
-use log4rs::config::{Appender, Config, Logger, Root};
+use log4rs::config::{Appender, Config as LogConfig, Logger, Root};
 
 extern crate gtk;
 extern crate gio;
 extern crate glib;
 use gtk::prelude::*;
 
-const CONFIG: &'static str = "./config/datalogserver.test.xml";
-
+mod config;
+use config::Config;
 
 ///
 /// Initializes the logger so that it prints to stdout using log4rs
@@ -26,7 +35,7 @@ const CONFIG: &'static str = "./config/datalogserver.test.xml";
 fn init_logger() {
     let stdout = ConsoleAppender::builder().build();
 
-    let config = Config::builder()
+    let config = LogConfig::builder()
         .appender(Appender::builder().build("stdout", Box::new(stdout)))
         .build(Root::builder().appender("stdout").build(
             LogLevelFilter::Info,
@@ -35,6 +44,7 @@ fn init_logger() {
 
     let _handle = log4rs::init_config(config).unwrap();
 }
+
 
 /// Main entry point
 fn main() {
@@ -48,7 +58,7 @@ fn main() {
     default_config.push("config");
     default_config.set_extension("toml");
 
-    let matches = App::new("Some")
+    let args = App::new("Some")
         .version("0.0.1")
         .author("Dirk Van Haerenborgh <vhdirk@gmail.com>")
         .about("A MUA based on notmuch. But does some more.")
@@ -58,7 +68,7 @@ fn main() {
                 .long("config")
                 .default_value(default_config.to_str().unwrap())
                 .help(
-                    "The configuration file to load",
+                    "The configuration file to load. Will write the default config to this file if it does not exist.",
                 ),
         )
         .get_matches();
@@ -66,6 +76,24 @@ fn main() {
 
     init_logger();
 
+    let conf_path = args.value_of("config")
+                        .unwrap_or(default_config.to_str().unwrap())
+                        .to_string();
+
+    let mut conf_contents = String::new();
+
+    match File::open(conf_path) {
+        Ok(mut file) => {
+            file.read_to_string(&mut conf_contents);
+        },
+        Err(err) => {
+            conf_contents = config::DEFAULT_CONFIG.to_string();
+        },
+    };
 
 
+    let mut conf: Config  = toml::from_str(&conf_contents).unwrap();
+
+
+    println!("config: {conf:?}", conf=conf);
 }
