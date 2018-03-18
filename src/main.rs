@@ -12,7 +12,7 @@ extern crate regex;
 extern crate serde_derive;
 extern crate toml;
 
-use std::fs::File;
+use std::fs::{File, DirBuilder};
 use std::io::prelude::*;
 
 use std::path::Path;
@@ -55,6 +55,11 @@ fn main() {
 
     let mut default_config = glib::get_user_config_dir().unwrap();
     default_config.push("some-mail");
+
+    DirBuilder::new()
+        .recursive(true)
+        .create(default_config.to_str().unwrap()).unwrap();
+
     default_config.push("config");
     default_config.set_extension("toml");
 
@@ -82,7 +87,7 @@ fn main() {
 
     let mut conf_contents = String::new();
 
-    match File::open(conf_path) {
+    match File::open(&conf_path) {
         Ok(mut file) => {
             file.read_to_string(&mut conf_contents);
         },
@@ -93,6 +98,12 @@ fn main() {
 
 
     let mut conf: Config  = toml::from_str(&conf_contents).unwrap();
+
+
+    // write the config back out.
+    let mut conf_file_out = File::create(conf_path).unwrap();
+    conf_file_out.write_all(toml::to_string(&conf).unwrap().as_bytes());
+    conf_file_out.sync_all();
 
 
     println!("config: {conf:?}", conf=conf);

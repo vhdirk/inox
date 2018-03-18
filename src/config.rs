@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use toml;
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     version: i16,
     debug: DebugConfig,
@@ -12,17 +12,17 @@ pub struct Config {
 }
 
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct DebugConfig {
     dryrun_sending: bool,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct NotMuchConfig {
     config: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct AccountConfig {
     default: bool,
     name: String,
