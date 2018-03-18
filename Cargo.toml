@@ -15,8 +15,19 @@ log4rs ="*"
 net2 = "*"
 nix = "*"
 regex = "*"
+toml = "*"
 
+gtk         = "0.3.0"
+cairo-rs    = "0.3.0"
+gdk         = "0.7.0"
+gdk-sys     = "0.5.0"
+gdk-pixbuf  = "0.3.0"
+gio         = "0.3.0"
+glib        = "0.4.0"
 
-[dependencies.gtk]
-version = "0.3.0"
-features = ["v3_16"]
+[features]
+default = ["gtk/v3_16"]
+gtk_3_10 = ["gtk/v3_10"]
+gtk_3_16 = ["gtk_3_10", "gtk/v3_16"]
+gtk_3_18 = ["gtk_3_16", "gtk/v3_18"] #for CI tools
+gtk_3_20 = ["gtk_3_18", "gtk/v3_20"] #for CI tools

@@ -1,9 +1,7 @@
-#[macro_use]
-extern crate clap;
+#[macro_use] extern crate clap;
 use clap::{Arg, App};
 
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate log;
 extern crate log4rs;
 
 extern crate regex;
@@ -14,10 +12,10 @@ use log4rs::append::console::ConsoleAppender;
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::config::{Appender, Config, Logger, Root};
 
-mod server;
-mod hubclient;
-use server::Server;
-
+extern crate gtk;
+extern crate gio;
+extern crate glib;
+use gtk::prelude::*;
 
 const CONFIG: &'static str = "./config/datalogserver.test.xml";
 
@@ -35,11 +33,21 @@ fn init_logger() {
         ))
         .unwrap();
 
-    let handle = log4rs::init_config(config).unwrap();
+    let _handle = log4rs::init_config(config).unwrap();
 }
 
 /// Main entry point
 fn main() {
+    if gtk::init().is_err(){
+        error!("Failed to initialize GTK.");
+        return;
+    }
+
+    let mut default_config = glib::get_user_config_dir().unwrap();
+    default_config.push("some-mail");
+    default_config.push("config");
+    default_config.set_extension("toml");
+
     let matches = App::new("Some")
         .version("0.0.1")
         .author("Dirk Van Haerenborgh <vhdirk@gmail.com>")
@@ -48,7 +56,7 @@ fn main() {
             Arg::with_name("config")
                 .short("c")
                 .long("config")
-                .default_value(CONFIG)
+                .default_value(default_config.to_str().unwrap())
                 .help(
                     "The configuration file to load",
                 ),
