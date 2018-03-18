@@ -17,6 +17,7 @@ extern crate regex;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+
 extern crate toml;
 
 use std::fs::{File, DirBuilder};
@@ -34,8 +35,8 @@ extern crate glib;
 use gtk::prelude::*;
 use gio::prelude::*;
 
-mod config;
-use config::Config;
+extern crate some_core;
+use some_core::config::Config;
 
 mod application;
 use application::SomeApplication;
@@ -117,8 +118,6 @@ fn main() {
 
     let gapp = gtk::Application::new(Some(GTK_APPLICATION_ID),
                                      gio::ApplicationFlags::FLAGS_NONE).unwrap();
-
-
 
     gapp.connect_activate(move |gapp| {
         let conf_path:PathBuf = PathBuf::from(conf_location.to_owned());

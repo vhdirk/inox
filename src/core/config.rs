@@ -13,6 +13,8 @@ pub struct Config {
     notmuch: NotMuchConfig,
 
     accounts: BTreeMap<String, AccountConfig>,
+    //shortcuts: ShortcutConfig,
+
 }
 
 impl Config{
@@ -97,5 +99,6 @@ dryrun_sending = false
 config =  \"~/.notmuch-config\"
 
 [accounts]
+
 
 ";

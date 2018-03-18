@@ -10,6 +10,7 @@ dependencies = [
  "gio 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtk 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lettre 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log4rs 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",

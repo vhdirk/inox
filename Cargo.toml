@@ -3,9 +3,13 @@ name = "Some"
 version = "0.0.1"
 authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
 
+[lib]
+name = "some_core"
+path = "src/core/lib.rs"
+
 [[bin]]
-name = "some"
-path = "src/main.rs"
+name = "some-gtk"
+path = "src/gtk/main.rs"
 
 
 [dependencies]
@@ -18,6 +22,7 @@ regex = "*"
 toml = "*"
 serde = "*"
 serde_derive = "*"
+lazy_static = "1.0"
 lettre = "*"
 
 gtk         = "0.3.0"

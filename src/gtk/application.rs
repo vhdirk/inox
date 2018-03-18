@@ -9,7 +9,7 @@ use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 
-use config::Config;
+use some_core::config::Config;
 
 
 
@@ -28,13 +28,6 @@ impl SomeApplication{
 
         gapp.add_window(&window);
 
-
-
-            // let conf:
-            //
-            // // write the config back out.
-            // conf.store(&conf_path);
-
         let app = SomeApplication {
             win: window,
             config_file: config_path.to_path_buf(),
@@ -42,6 +35,9 @@ impl SomeApplication{
         };
 
         let me = Rc::new(RefCell::new(app));
+
+        // write the config back out.
+        me.borrow().config.store(&me.borrow().config_file);
 
         return me;
     }
