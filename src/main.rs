@@ -130,7 +130,4 @@ fn main() {
     // Run GTK application with command line args
     let args: Vec<String> = std::env::args().collect();
     gapp.run(args.as_slice());
-
-    gtk::main();
-
 }
