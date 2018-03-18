@@ -1,3 +1,5 @@
+#![feature(custom_attribute)]
+
 #[macro_use]
 extern crate clap;
 use clap::{Arg, App};
@@ -8,6 +10,8 @@ extern crate log4rs;
 
 extern crate regex;
 
+#[macro_use]
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate toml;
@@ -48,6 +52,8 @@ fn init_logger() {
 
 /// Main entry point
 fn main() {
+    init_logger();
+
     if gtk::init().is_err(){
         error!("Failed to initialize GTK.");
         return;
@@ -79,32 +85,16 @@ fn main() {
         .get_matches();
 
 
-    init_logger();
 
-    let conf_path = args.value_of("config")
+    let conf_location = args.value_of("config")
                         .unwrap_or(default_config.to_str().unwrap())
                         .to_string();
+    let conf_path = Path::new(&conf_location);
 
-    let mut conf_contents = String::new();
-
-    match File::open(&conf_path) {
-        Ok(mut file) => {
-            file.read_to_string(&mut conf_contents);
-        },
-        Err(err) => {
-            conf_contents = config::DEFAULT_CONFIG.to_string();
-        },
-    };
-
-
-    let mut conf: Config  = toml::from_str(&conf_contents).unwrap();
-
+    let conf: Config = Config::load(&conf_path);
 
     // write the config back out.
-    let mut conf_file_out = File::create(conf_path).unwrap();
-    conf_file_out.write_all(toml::to_string(&conf).unwrap().as_bytes());
-    conf_file_out.sync_all();
-
+    conf.store(&conf_path);
 
     println!("config: {conf:?}", conf=conf);
 }
