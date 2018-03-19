@@ -8,11 +8,11 @@ use serde;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
-    version: i16,
-    debug: DebugConfig,
-    notmuch: NotMuchConfig,
+    pub version: i16,
+    pub debug: DebugConfig,
+    pub notmuch: NotMuchConfig,
 
-    accounts: BTreeMap<String, AccountConfig>,
+    pub accounts: BTreeMap<String, AccountConfig>,
     //shortcuts: ShortcutConfig,
 
 }
@@ -52,20 +52,20 @@ impl Config{
 
 
 #[derive(Serialize, Deserialize, Debug)]
-struct DebugConfig {
-    dryrun_sending: bool,
+pub struct DebugConfig {
+    pub dryrun_sending: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct NotMuchConfig {
-    config: String,
+pub struct NotMuchConfig {
+    pub config: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct AccountConfig {
-    default: bool,
-    name: String,
-    email: String,
+pub struct AccountConfig {
+    pub default: bool,
+    pub name: String,
+    pub email: String,
 
 
     // "name": "Dirk Van Haerenborgh",
