@@ -9,14 +9,14 @@ use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 
-use some_core::config::Config;
+use some_core::settings::SettingsManager;
 
 
 
 pub struct SomeApplication{
     win: gtk::ApplicationWindow,
     pub config_file: PathBuf,
-    config: Config,
+    settings: SettingsManager,
 
 }
 
@@ -31,13 +31,13 @@ impl SomeApplication{
         let app = SomeApplication {
             win: window,
             config_file: config_path.to_path_buf(),
-            config: Config::load(&config_path.as_path())
+            settings: SettingsManager::new(&config_path.as_path())
         };
 
         let me = Rc::new(RefCell::new(app));
 
         // write the config back out.
-        me.borrow().config.store(&me.borrow().config_file);
+        //me.borrow().config.store(&me.borrow().config_file);
 
         return me;
     }

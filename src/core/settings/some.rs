@@ -33,6 +33,7 @@ impl Config{
 
 
         let mut conf: Config = toml::from_str(&conf_contents).unwrap();
+
         return conf;
     }
 

@@ -36,7 +36,6 @@ use gtk::prelude::*;
 use gio::prelude::*;
 
 extern crate some_core;
-use some_core::config::Config;
 
 mod application;
 use application::SomeApplication;
@@ -114,6 +113,7 @@ fn main() {
     let conf_location = args.value_of("config")
                         .unwrap_or(default_config.to_str().unwrap())
                         .to_string();
+
 
 
     let gapp = gtk::Application::new(Some(GTK_APPLICATION_ID),
