@@ -18,10 +18,11 @@ extern crate regex;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-
 extern crate toml;
 
 extern crate shellexpand;
+
+extern crate notmuch;
 
 use std::fs::{File, DirBuilder};
 use std::io::prelude::*;

@@ -17,11 +17,12 @@ extern crate regex;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-
 extern crate serde_ini;
-
 extern crate toml;
 
 extern crate shellexpand;
 
+extern crate notmuch;
+
 pub mod settings;
+pub mod maildb;

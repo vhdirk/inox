@@ -13,11 +13,11 @@ use serde_ini;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
-    database: DatabaseConfig,
-    user: UserConfig,
-    new: NewConfig,
-    search: SearchConfig,
-    maildir: MailDirConfig
+    pub database: DatabaseConfig,
+    pub user: UserConfig,
+    pub new: NewConfig,
+    pub search: SearchConfig,
+    pub maildir: MailDirConfig
 }
 
 
@@ -59,7 +59,7 @@ impl Config{
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DatabaseConfig {
     #[serde(default = "default_database_path")]
-    path: String
+    pub path: String
 }
 
 fn default_database_path() -> String {
@@ -71,10 +71,10 @@ fn default_database_path() -> String {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserConfig {
     #[serde(default = "default_user_name")]
-    name: String,
+    pub name: String,
     #[serde(default = "default_user_primary_email")]
-    primary_email: String,
-    other_email: String
+    pub primary_email: String,
+    pub other_email: String
 }
 
 
@@ -105,21 +105,21 @@ fn default_user_primary_email() -> String {
 pub struct NewConfig {
     // A  list  of tags that will be added to all messages incorporated by notmuch new.
     #[serde(deserialize_with="parse_csv")]
-    tags: Vec<String>,
+    pub tags: Vec<String>,
 
-    ignore: String
+    pub ignore: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SearchConfig {
     #[serde(deserialize_with="parse_csv")]
-    exclude_tags: Vec<String>
+    pub exclude_tags: Vec<String>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MailDirConfig {
     #[serde(default = "default_maildir_synchronize_flags", deserialize_with="parse_bool")]
-    synchronize_flags: bool
+    pub synchronize_flags: bool
 }
 
 fn default_maildir_synchronize_flags() -> bool {

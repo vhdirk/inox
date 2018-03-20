@@ -26,6 +26,7 @@ serde_derive = "*"
 serde_ini = "*"
 lazy_static = "1.0"
 lettre = "*"
+notmuch = { git = "https://github.com/vhdirk/notmuch-rs", branch = "master" }
 
 gtk         = "0.3.0"
 cairo-rs    = "0.3.0"
@@ -41,3 +42,7 @@ gtk_3_10 = ["gtk/v3_10"]
 gtk_3_16 = ["gtk_3_10", "gtk/v3_16"]
 gtk_3_18 = ["gtk_3_16", "gtk/v3_18"] #for CI tools
 gtk_3_20 = ["gtk_3_18", "gtk/v3_20"] #for CI tools
+
+
+[patch."https://github.com/vhdirk/notmuch-rs"]
+notmuch = { path="../notmuch-rs" }

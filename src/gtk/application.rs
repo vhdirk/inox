@@ -9,14 +9,16 @@ use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 
-use some_core::settings::SettingsManager;
+use notmuch;
+
+use some_core::settings::Settings;
 
 
 
 pub struct SomeApplication{
     win: gtk::ApplicationWindow,
     pub config_file: PathBuf,
-    settings: SettingsManager,
+    settings: Settings,
 
 }
 
@@ -31,7 +33,7 @@ impl SomeApplication{
         let app = SomeApplication {
             win: window,
             config_file: config_path.to_path_buf(),
-            settings: SettingsManager::new(&config_path.as_path())
+            settings: Settings::new(&config_path.as_path())
         };
 
         let me = Rc::new(RefCell::new(app));
@@ -44,6 +46,13 @@ impl SomeApplication{
 
     /// Start the app.
     pub fn start(&mut self) {
+
+        let db = notmuch::Database::open(&self.settings.notmuch_config.database.path, notmuch::DatabaseOpenMode::ReadWrite);
+
+        debug!("opened db {:?}", db);
+
+
+
 
         // utils::setup_text_combo(&self.model_combo, &self.model_store);
         // utils::setup_text_combo(&self.port_combo, &self.port_store);
