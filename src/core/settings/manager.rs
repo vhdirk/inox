@@ -24,7 +24,10 @@ impl SettingsManager{
 
         let some_conf = SomeConfig::load(location);
 
-        let mut notmuch_config_path = PathBuf::from(&some_conf.notmuch.config);
+        let mut notmuch_config_path = PathBuf::from(&some_conf.notmuch.path);
+
+        debug!("Loading notmuch config from {0:?}", notmuch_config_path);
+
         let notmuch_conf = NotMuchConfig::load(&notmuch_config_path);
 
         let settings = SettingsManager {

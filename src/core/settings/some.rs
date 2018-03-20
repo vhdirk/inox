@@ -8,7 +8,10 @@ use serde;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
+
+    #[serde(default = "default_version")]
     pub version: i16,
+
     pub debug: DebugConfig,
     pub notmuch: NotMuchConfig,
 
@@ -27,7 +30,7 @@ impl Config{
                 file.read_to_string(&mut conf_contents);
             },
             Err(err) => {
-                conf_contents = DEFAULT_CONFIG.to_string();
+                conf_contents = "".to_string();
             },
         };
 
@@ -37,15 +40,15 @@ impl Config{
         return conf;
     }
 
-    #[serde(skip_serializing)]
-    pub fn store(self: &Self, location: &Path) -> Result<(), String> {
-        let mut outfile = File::create(location).unwrap();
-        outfile.write_all(toml::to_string(&self).unwrap().as_bytes());
-        outfile.sync_all();
-
-        return Ok(());
-
-    }
+    // #[serde(skip_serializing)]
+    // pub fn store(self: &Self, location: &Path) -> Result<(), String> {
+    //     let mut outfile = File::create(location).unwrap();
+    //     outfile.write_all(toml::to_string(&self).unwrap().as_bytes());
+    //     outfile.sync_all();
+    //
+    //     return Ok(());
+    //
+    // }
 
 }
 
@@ -53,12 +56,14 @@ impl Config{
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DebugConfig {
+    #[serde(default = "default_debug_dryrun_sending")]
     pub dryrun_sending: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NotMuchConfig {
-    pub config: String,
+    #[serde(default = "default_notmuch_config_path")]
+    pub path: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -66,40 +71,17 @@ pub struct AccountConfig {
     pub default: bool,
     pub name: String,
     pub email: String,
-
-
-    // "name": "Dirk Van Haerenborgh",
-    // "email": "dirk.vanhaerenborgh@senso2.me",
-    // "gpgkey": "",
-    // "always_gpg_sign": "false",
-    // "sendmail": "msmtp --read-envelope-from -i -t",
-    // "default": "true",
-    // "save_sent": "false",
-    // "save_sent_to": "\/home\/dvhaeren\/.mail\/sent\/cur\/",
-    // "additional_sent_tags": "",
-    // "save_drafts_to": "\/home\/root\/.mail\/drafts\/",
-    // "signature_separate": "false",
-    // "signature_file": "",
-    // "signature_file_markdown": "",
-    // "signature_default_on": "true",
-    // "signature_attach": "false",
-    // "select_query": ""
 }
 
 
+fn default_version() -> i16 {
+    return 1;
+}
 
-pub const DEFAULT_CONFIG: &'static str = "
+fn default_notmuch_config_path() -> String {
+    return "~/.notmuch-config".to_string();
+}
 
-# version of the config file (for parser)
-version = 1
-
-[debug]
-dryrun_sending = false
-
-[notmuch]
-config =  \"~/.notmuch-config\"
-
-[accounts]
-
-
-";
+fn default_debug_dryrun_sending() -> bool {
+    return false;
+}

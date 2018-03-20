@@ -1,3 +1,4 @@
+#![feature(custom_derive)]
 #![feature(custom_attribute)]
 
 use std::rc::Rc;
@@ -9,7 +10,6 @@ use clap::{Arg, App};
 
 #[macro_use]
 extern crate log;
-extern crate log4rs;
 
 extern crate regex;
 
@@ -21,5 +21,7 @@ extern crate serde_derive;
 extern crate serde_ini;
 
 extern crate toml;
+
+extern crate shellexpand;
 
 pub mod settings;

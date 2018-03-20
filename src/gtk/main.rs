@@ -1,3 +1,4 @@
+#![feature(custom_derive)]
 #![feature(custom_attribute)]
 
 use std::rc::Rc;
@@ -9,7 +10,7 @@ use clap::{Arg, App};
 
 #[macro_use]
 extern crate log;
-extern crate log4rs;
+extern crate env_logger;
 
 extern crate regex;
 
@@ -20,14 +21,12 @@ extern crate serde_derive;
 
 extern crate toml;
 
+extern crate shellexpand;
+
 use std::fs::{File, DirBuilder};
 use std::io::prelude::*;
 
 use std::path::{Path, PathBuf};
-use log::LogLevelFilter;
-use log4rs::append::console::ConsoleAppender;
-use log4rs::encode::pattern::PatternEncoder;
-use log4rs::config::{Appender, Config as LogConfig, Logger, Root};
 
 extern crate gtk;
 extern crate gio;
@@ -43,25 +42,6 @@ use application::SomeApplication;
 pub const GTK_APPLICATION_ID: &'static str = "com.github.vhdirk.somemail";
 
 
-
-
-///
-/// Initializes the logger so that it prints to stdout using log4rs
-///
-fn init_logger() {
-    let stdout = ConsoleAppender::builder().build();
-
-    let config = LogConfig::builder()
-        .appender(Appender::builder().build("stdout", Box::new(stdout)))
-        .build(Root::builder().appender("stdout").build(
-            LogLevelFilter::Info,
-        ))
-        .unwrap();
-
-    let _handle = log4rs::init_config(config).unwrap();
-}
-
-
 /// Init Gtk and stuff.
 fn init() {
     use std::sync::{Once, ONCE_INIT};
@@ -69,7 +49,7 @@ fn init() {
     static START: Once = ONCE_INIT;
 
     START.call_once(|| {
-        init_logger();
+        env_logger::init();
 
         // run initialization here
         if gtk::init().is_err() {
@@ -114,7 +94,7 @@ fn main() {
                         .unwrap_or(default_config.to_str().unwrap())
                         .to_string();
 
-
+    debug!("Using config file {:?}", conf_location);
 
     let gapp = gtk::Application::new(Some(GTK_APPLICATION_ID),
                                      gio::ApplicationFlags::FLAGS_NONE).unwrap();
