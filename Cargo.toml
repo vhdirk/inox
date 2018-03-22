@@ -25,7 +25,8 @@ serde = "*"
 serde_derive = "*"
 serde_ini = "*"
 lazy_static = "1.0"
-lettre = "*"
+vte = "0.3.2"
+
 notmuch = { git = "https://github.com/vhdirk/notmuch-rs", branch = "master" }
 
 gtk         = "0.3.0"
@@ -35,6 +36,8 @@ gdk-sys     = "0.5.0"
 gdk-pixbuf  = "0.3.0"
 gio         = "0.3.0"
 glib        = "0.4.0"
+
+lettre = "*"
 
 [features]
 default = ["gtk/v3_16"]
