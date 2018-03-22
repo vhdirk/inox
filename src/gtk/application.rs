@@ -35,6 +35,10 @@ impl SomeApplication{
         match db_ret {
             Ok(db) => {
                 debug!("opened db {:?}, revision {:?}", db, db.revision());
+
+                let query = db.create_query(&"*".to_string());
+                debug!("query {:?}", query);
+
             },
             Err(err) => {
                 error!("db: failed to open database, please check the manual if everything is set up correctly: {:?}", err);
