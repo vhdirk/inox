@@ -1,6 +1,6 @@
 # Inox
 
->> Mail with Notmuch Rust
+> Mail with Notmuch Rust
 
 An experimental email client based on notmuch, along with other utilities like
 afew and offlineimap.
