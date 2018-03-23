@@ -12,9 +12,13 @@ pub struct Config {
     #[serde(default = "default_version")]
     pub version: i16,
 
+    #[serde(default)]
     pub debug: DebugConfig,
+
+    #[serde(default)]
     pub notmuch: NotMuchConfig,
 
+    #[serde(default)]
     pub accounts: BTreeMap<String, AccountConfig>,
     //shortcuts: ShortcutConfig,
 
@@ -60,10 +64,27 @@ pub struct DebugConfig {
     pub dryrun_sending: bool,
 }
 
+impl Default for DebugConfig {
+    fn default() -> Self {
+        DebugConfig{
+            dryrun_sending: default_debug_dryrun_sending()
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NotMuchConfig {
     #[serde(default = "default_notmuch_config_path")]
     pub path: String,
+}
+
+
+impl Default for NotMuchConfig {
+    fn default() -> Self {
+        NotMuchConfig{
+            path: default_notmuch_config_path()
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
