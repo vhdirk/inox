@@ -35,12 +35,12 @@ extern crate glib;
 use gtk::prelude::*;
 use gio::prelude::*;
 
-extern crate some_core;
+extern crate inox_core;
 
 mod application;
-use application::SomeApplication;
+use application::InoxApplication;
 
-pub const GTK_APPLICATION_ID: &'static str = "com.github.vhdirk.somemail";
+pub const GTK_APPLICATION_ID: &'static str = "com.github.vhdirk.inox";
 
 
 /// Init Gtk and stuff.
@@ -65,7 +65,7 @@ fn main() {
     init();
 
     let mut default_config = glib::get_user_config_dir().unwrap();
-    default_config.push("some-mail");
+    default_config.push("inox");
 
     DirBuilder::new()
         .recursive(true)
@@ -74,10 +74,10 @@ fn main() {
     default_config.push("config");
     default_config.set_extension("toml");
 
-    let args = App::new("Some")
+    let args = App::new("Inox")
         .version("0.0.1")
         .author("Dirk Van Haerenborgh <vhdirk@gmail.com>")
-        .about("A MUA based on notmuch. But does some more.")
+        .about("A mail client with notmuch rust.")
         .arg(
             Arg::with_name("config")
                 .short("c")
@@ -103,7 +103,7 @@ fn main() {
     gapp.connect_activate(move |gapp| {
         let conf_path:PathBuf = PathBuf::from(conf_location.to_owned());
 
-        let app = SomeApplication::new(&gapp, &conf_path);
+        let app = InoxApplication::new(&gapp, &conf_path);
         app.borrow_mut().start();
     });
 

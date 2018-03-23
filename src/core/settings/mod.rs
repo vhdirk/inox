@@ -7,16 +7,16 @@ use std::collections::BTreeMap;
 use toml;
 use serde;
 
-mod some;
+mod inox;
 mod notmuch;
 
-use settings::some::Config as SomeConfig;
+use settings::inox::Config as InoxConfig;
 use settings::notmuch::Config as NotMuchConfig;
 
 
 pub struct Settings{
 
-    pub some_config: SomeConfig,
+    pub inox_config: InoxConfig,
     pub notmuch_config: NotMuchConfig
 
 }
@@ -26,16 +26,16 @@ impl Settings{
 
     pub fn new(location: &Path) -> Self {
 
-        let some_conf = SomeConfig::load(location);
+        let inox_conf = InoxConfig::load(location);
 
-        let mut notmuch_config_path = PathBuf::from(&some_conf.notmuch.path);
+        let mut notmuch_config_path = PathBuf::from(&inox_conf.notmuch.path);
 
         debug!("Loading notmuch config from {0:?}", notmuch_config_path);
 
         let notmuch_conf = NotMuchConfig::load(&notmuch_config_path);
 
         let settings = Settings {
-            some_config: some_conf,
+            inox_config: inox_conf,
             notmuch_config: notmuch_conf
         };
 

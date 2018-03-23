@@ -11,18 +11,18 @@ use gtk::prelude::*;
 
 use notmuch;
 
-use some_core::settings::Settings;
+use inox_core::settings::Settings;
 
 
 
-pub struct SomeApplication{
+pub struct InoxApplication{
     win: gtk::ApplicationWindow,
     pub config_file: PathBuf,
     settings: Settings,
 
 }
 
-impl SomeApplication{
+impl InoxApplication{
 
     pub fn new(gapp: &gtk::Application, config_path: &PathBuf) -> Rc<RefCell<Self>> {
 
@@ -38,7 +38,11 @@ impl SomeApplication{
 
                 let query = db.create_query(&"from:vhdirk@gmail.com".to_string()).unwrap();
 
-                debug!("query {:?} {:?}  {:?}", query, query.count_messages(), query.search_messages());
+                let mut threads = query.search_threads().unwrap();
+                debug!("query {:?} {:?}  {:?} ", query, query.count_threads(), threads);
+
+                let mut thread = threads.next().unwrap();
+                debug!("thread {:?} {:?}", thread.subject(), thread.authors());
 
                 let mut tags = db.all_tags().unwrap();
                 debug!("tags {:?}", &tags.next());
@@ -61,7 +65,7 @@ impl SomeApplication{
 
         // setup the the main application context
 
-        let app = SomeApplication {
+        let app = InoxApplication {
             win: window,
             config_file: config_path.to_path_buf(),
             settings: settings

@@ -1,14 +1,14 @@
 [package]
-name = "Some"
+name = "Inox"
 version = "0.0.1"
 authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
 
 [lib]
-name = "some_core"
+name = "inox_core"
 path = "src/core/lib.rs"
 
 [[bin]]
-name = "some-gtk"
+name = "inox-gtk"
 path = "src/gtk/main.rs"
 
 
