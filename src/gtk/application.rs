@@ -34,10 +34,14 @@ impl SomeApplication{
 
         match db_ret {
             Ok(db) => {
-                debug!("opened db {:?}, revision {:?}", db, db.revision());
+                debug!("opened db {:?}, revision {:?}", settings.notmuch_config.database.path, db.revision());
 
-                let query = db.create_query(&"*".to_string());
-                debug!("query {:?}", query);
+                let query = db.create_query(&"from:vhdirk@gmail.com".to_string()).unwrap();
+
+                debug!("query {:?} {:?}  {:?}", query, query.count_messages(), query.search_messages());
+
+                let mut tags = db.all_tags().unwrap();
+                debug!("tags {:?}", &tags.next());
 
             },
             Err(err) => {
