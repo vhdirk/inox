@@ -14,6 +14,7 @@ use notmuch;
 use inox_core::settings::Settings;
 
 use header::Header;
+use constants;
 
 
 pub struct Application {
@@ -73,11 +74,11 @@ impl Application{
         // Set the headerbar as the title bar widget.
         window.set_titlebar(&header.container);
         // Set the title of the window.
-        window.set_title("Inox");
+        window.set_title(constants::APPLICATION_NAME);
         // Set the window manager class.
-        window.set_wmclass("app-name", "Inox");
+        window.set_wmclass("app-name", constants::APPLICATION_NAME);
         // The icon the app will display.
-        gtk::Window::set_default_icon_name("iconname");
+        gtk::Window::set_default_icon_name(constants::APPLICATION_ICON_NAME);
 
 
 

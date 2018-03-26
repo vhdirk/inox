@@ -9,6 +9,7 @@ use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 
+use constants;
 
 pub struct Header {
     pub container: gtk::HeaderBar
@@ -21,7 +22,7 @@ impl Header {
         let container = gtk::HeaderBar::new();
 
         // Sets the text to display in the title section of the header bar.
-        container.set_title("App Name");
+        container.set_title(constants::APPLICATION_NAME);
         // Enable the window controls within this headerbar.
         container.set_show_close_button(true);
 

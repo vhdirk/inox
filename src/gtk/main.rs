@@ -40,10 +40,10 @@ extern crate inox_core;
 mod application;
 mod main_window;
 mod header;
+mod constants;
 
 use application::Application as InoxApplication;
 
-pub const GTK_APPLICATION_ID: &'static str = "com.github.vhdirk.inox";
 
 
 /// Init Gtk and stuff.
@@ -87,7 +87,7 @@ fn main() {
                 .long("config")
                 .default_value(default_config.to_str().unwrap())
                 .help(
-                    "The configuration file to load. Will write the default config to this file if it does not exist.",
+                    "The configuration file to load.",
                 ),
         )
         .get_matches();
@@ -100,7 +100,7 @@ fn main() {
 
     debug!("Using config file {:?}", conf_location);
 
-    let gapp = gtk::Application::new(Some(GTK_APPLICATION_ID),
+    let gapp = gtk::Application::new(Some(constants::APPLICATION_ID),
                                      gio::ApplicationFlags::FLAGS_NONE).unwrap();
 
     gapp.connect_activate(move |gapp| {
