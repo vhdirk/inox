@@ -13,9 +13,11 @@ use notmuch;
 
 use inox_core::settings::Settings;
 
+use tag_list::TagList;
 
 pub struct MainContent {
     pub container: gtk::Paned,
+    pub tag_list: TagList
     // pub source:    Source,
     // pub preview:   WebView,
 }
@@ -25,20 +27,20 @@ impl MainContent {
     pub fn new() -> Self {
         // Create the Paned container for the main content
         let container = gtk::Paned::new(gtk::Orientation::Horizontal);
-        // let source = Source::new();
+        let tag_list = TagList::new();
 
         // Create a the WebView for the preview pane.
         // let context = WebContext::get_default().unwrap();
         // let preview = WebView::new_with_context(&context);
         //
-        // // Pack it in
-        // container.pack1(&source.container, true, true);
+        // Pack it in
+        container.pack1(&tag_list.container, true, true);
         // container.pack2(&preview, true, true);
         //
         // // Ensure that the two panes get half the size of the paned container.
         // source.container.set_size_request(100, -1);
         // preview.set_size_request(100, -1);
 
-        MainContent { container }
+        MainContent { container, tag_list }
     }
 }

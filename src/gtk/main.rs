@@ -44,6 +44,7 @@ mod application;
 mod header;
 mod constants;
 mod main_content;
+mod tag_list;
 
 use application::Application as InoxApplication;
 
