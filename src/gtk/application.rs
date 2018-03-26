@@ -2,6 +2,8 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, RwLock};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use gio;
 use glib;
@@ -15,11 +17,12 @@ use inox_core::settings::Settings;
 
 use header::Header;
 use constants;
-
+use main_content::MainContent;
 
 pub struct Application {
     pub window: gtk::ApplicationWindow,
     pub header: Header,
+    pub content: MainContent,
 
     pub config_file: PathBuf,
     settings: Settings,
@@ -80,18 +83,25 @@ impl Application{
         // The icon the app will display.
         gtk::Window::set_default_icon_name(constants::APPLICATION_ICON_NAME);
 
+        // Create the content container and all of it's widgets.
+        let content = MainContent::new();
 
+        // Add the content to the window.
+        window.add(&content.container);
 
         // Return our main application state
         Application {
             window,
             header,
+            content,
             config_file: config_path.to_path_buf(),
             settings: settings
         }
     }
 
     pub fn connect_events(&mut self) {
+        // Keep track of whether we are fullscreened or not.
+        let fullscreen = Arc::new(AtomicBool::new(false));
 
         // Programs what to do when the exit button is used.
         self.window.connect_delete_event(move |_, _| {
@@ -102,6 +112,36 @@ impl Application{
 
     }
 
+    /// Handles special functions that should be invoked when certain keys and key combinations
+    /// are pressed on the keyboard.
+    // fn key_events(
+    //     &self,
+    //     current_file: Arc<RwLock<Option<ActiveMetadata>>>,
+    //     fullscreen: Arc<AtomicBool>,
+    // ) {
+    //     // Grab required references beforehand.
+    //     let editor = self.content.source.buff.clone();
+    //     let headerbar = self.header.container.clone();
+    //     let save_button = self.header.save.clone();
+    //
+    //     // Each key press will invoke this function.
+    //     self.window.connect_key_press_event(move |window, gdk| {
+    //         match gdk.get_keyval() {
+    //             // Fullscreen the UI when F11 is pressed.
+    //             key::F11 => if fullscreen.fetch_xor(true, Ordering::SeqCst) {
+    //                 window.unfullscreen();
+    //             } else {
+    //                 window.fullscreen();
+    //             },
+    //             // Save the file when ctrl+s is pressed.
+    //             key if key == 's' as u32 && gdk.get_state().contains(CONTROL_MASK) => {
+    //                 save(&editor, &headerbar, &save_button, &current_file, false);
+    //             }
+    //             _ => (),
+    //         }
+    //         Inhibit(false)
+    //     });
+    // }
 
     /// Start the app.
     pub fn start(&mut self) {

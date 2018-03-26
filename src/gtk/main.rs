@@ -20,6 +20,9 @@ extern crate serde;
 extern crate serde_derive;
 extern crate toml;
 
+#[macro_use]
+extern crate lazy_static;
+
 extern crate shellexpand;
 
 extern crate notmuch;
@@ -38,9 +41,9 @@ use gio::prelude::*;
 extern crate inox_core;
 
 mod application;
-mod main_window;
 mod header;
 mod constants;
+mod main_content;
 
 use application::Application as InoxApplication;
 
