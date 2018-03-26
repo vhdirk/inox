@@ -38,7 +38,10 @@ use gio::prelude::*;
 extern crate inox_core;
 
 mod application;
-use application::InoxApplication;
+mod main_window;
+mod header;
+
+use application::Application as InoxApplication;
 
 pub const GTK_APPLICATION_ID: &'static str = "com.github.vhdirk.inox";
 
@@ -103,8 +106,11 @@ fn main() {
     gapp.connect_activate(move |gapp| {
         let conf_path:PathBuf = PathBuf::from(conf_location.to_owned());
 
-        let app = InoxApplication::new(&gapp, &conf_path);
-        app.borrow_mut().start();
+        let mut app = InoxApplication::new(&gapp, &conf_path);
+
+        app.connect_events();
+        app.start();
+
     });
 
     // Run GTK application with command line args

@@ -27,14 +27,15 @@ serde_ini = "*"
 lazy_static = "1.0"
 vte = "0.3.2"
 notmuch = "*"
+chrono = { version = "0.4", features = ["serde"] }
 
-gtk         = "0.3.0"
-cairo-rs    = "0.3.0"
-gdk         = "0.7.0"
-gdk-sys     = "0.5.0"
-gdk-pixbuf  = "0.3.0"
-gio         = "0.3.0"
-glib        = "0.4.0"
+gtk         = "^0.3.0"
+cairo-rs    = "^0.3.0"
+gdk         = "^0.7.0"
+gdk-sys     = "^0.5.0"
+gdk-pixbuf  = "^0.3.0"
+gio         = "^0.3.0"
+glib        = "^0.4.0"
 
 lettre = "*"
 
