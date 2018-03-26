@@ -49,7 +49,7 @@ use application::Application as InoxApplication;
 
 
 
-/// Init Gtk and stuff.
+/// Init Gtk and logger.
 fn init() {
     use std::sync::{Once, ONCE_INIT};
 
