@@ -43,15 +43,16 @@ impl MainContent {
         // TODO: refresh tag list only when we think it might be needed.
         tag_list.refresh();
 
-        let mut thread_list = ThreadList::new();
+        let mut thread_list = ThreadList::new(dbmanager.clone());
         let mut thread_view = ThreadView::new();
 
+        thread_list.refresh();
 
         thread_container.pack1(&thread_list.container, true, true);
-        thread_container.pack2(&thread_view.container, true, true);
+        thread_container.pack2(&thread_view.container, true, false);
 
         container.pack1(&tag_list.container, true, true);
-        container.pack2(&thread_container, true, true);
+        container.pack2(&thread_container, true, false);
 
         thread_container.set_size_request(100, -1);
         tag_list.container.set_size_request(100, -1);
