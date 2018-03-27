@@ -45,6 +45,8 @@ mod header;
 mod constants;
 mod main_content;
 mod tag_list;
+mod thread_list;
+mod thread_view;
 
 use inox_core::settings::Settings;
 
