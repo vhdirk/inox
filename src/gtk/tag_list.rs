@@ -72,7 +72,6 @@ impl TagList {
         loop {
             match tags.next() {
                 Some(tag) => {
-                    debug!("tags {:?}", tag);
                     self.add_tag(&tag);
                 },
                 None => { break }
