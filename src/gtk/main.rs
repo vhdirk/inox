@@ -46,6 +46,10 @@ mod constants;
 mod main_content;
 mod tag_list;
 
+use inox_core::settings::Settings;
+
+use inox_core::database::Manager as DBManager;
+
 use application::Application as InoxApplication;
 
 
@@ -104,13 +108,23 @@ fn main() {
 
     debug!("Using config file {:?}", conf_location);
 
+    // TODO: read config here
+    // TODO: create DB manager here
+    //
+    // load the settings
+    let conf_path:PathBuf = PathBuf::from(conf_location);
+
+    let settings = Rc::new(Settings::new(&conf_path.as_path()));
+
+    let dbman = DBManager::new(&settings);
+
     let gapp = gtk::Application::new(Some(constants::APPLICATION_ID),
                                      gio::ApplicationFlags::FLAGS_NONE).unwrap();
 
     gapp.connect_activate(move |gapp| {
-        let conf_path:PathBuf = PathBuf::from(conf_location.to_owned());
 
-        let mut app = InoxApplication::new(&gapp, &conf_path);
+
+        let mut app = InoxApplication::new(&gapp, &settings);
 
         app.connect_events();
         app.start();

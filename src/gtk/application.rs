@@ -24,17 +24,14 @@ pub struct Application {
     pub header: Header,
     pub content: MainContent,
 
-    pub config_file: PathBuf,
-    settings: Settings,
+    settings: Rc<Settings>,
 
 }
 
 impl Application{
 
-    pub fn new(gapp: &gtk::Application, config_path: &PathBuf) -> Self {
+    pub fn new(gapp: &gtk::Application, settings: &Rc<Settings>) -> Self {
 
-        // load the settings
-        let settings = Settings::new(&config_path.as_path());
 
         // // open the notmuch database
         // let db_ret = notmuch::Database::open(&settings.notmuch_config.database.path, notmuch::DatabaseMode::ReadWrite);
@@ -94,8 +91,7 @@ impl Application{
             window,
             header,
             content,
-            config_file: config_path.to_path_buf(),
-            settings: settings
+            settings: settings.to_owned()
         }
     }
 

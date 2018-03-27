@@ -16,6 +16,9 @@ use settings::notmuch::Config as NotMuchConfig;
 
 pub struct Settings{
 
+    /// Path where config was loaded from
+    pub config_path: PathBuf,
+
     pub inox_config: InoxConfig,
     pub notmuch_config: NotMuchConfig
 
@@ -35,6 +38,7 @@ impl Settings{
         let notmuch_conf = NotMuchConfig::load(&notmuch_config_path);
 
         let settings = Settings {
+            config_path: location.into(),
             inox_config: inox_conf,
             notmuch_config: notmuch_conf
         };

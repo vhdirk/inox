@@ -25,4 +25,4 @@ extern crate shellexpand;
 extern crate notmuch;
 
 pub mod settings;
-pub mod maildb;
+pub mod database;
