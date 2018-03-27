@@ -14,6 +14,7 @@ use gtk::prelude::*;
 use notmuch;
 
 use inox_core::settings::Settings;
+use inox_core::database::Manager as DBManager;
 
 use header::Header;
 use constants;
@@ -25,12 +26,13 @@ pub struct Application {
     pub content: MainContent,
 
     settings: Rc<Settings>,
+    dbmanager: Rc<DBManager>
 
 }
 
 impl Application{
 
-    pub fn new(gapp: &gtk::Application, settings: &Rc<Settings>) -> Self {
+    pub fn new(gapp: &gtk::Application, settings: Rc<Settings>, dbmanager: Rc<DBManager>) -> Self {
 
 
         // // open the notmuch database
@@ -81,7 +83,7 @@ impl Application{
         gtk::Window::set_default_icon_name(constants::APPLICATION_ICON_NAME);
 
         // Create the content container and all of it's widgets.
-        let content = MainContent::new();
+        let content = MainContent::new(dbmanager.clone());
 
         // Add the content to the window.
         window.add(&content.container);
@@ -91,7 +93,8 @@ impl Application{
             window,
             header,
             content,
-            settings: settings.to_owned()
+            settings: settings.to_owned(),
+            dbmanager: dbmanager.to_owned()
         }
     }
 

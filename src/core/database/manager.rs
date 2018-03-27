@@ -34,6 +34,4 @@ impl Manager {
         notmuch::Database::open(&self.notmuch_db_path, mode)
 
     }
-
-
 }

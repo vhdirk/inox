@@ -116,7 +116,7 @@ fn main() {
 
     let settings = Rc::new(Settings::new(&conf_path.as_path()));
 
-    let dbman = DBManager::new(&settings);
+    let dbman = Rc::new(DBManager::new(&settings));
 
     let gapp = gtk::Application::new(Some(constants::APPLICATION_ID),
                                      gio::ApplicationFlags::FLAGS_NONE).unwrap();
@@ -124,7 +124,7 @@ fn main() {
     gapp.connect_activate(move |gapp| {
 
 
-        let mut app = InoxApplication::new(&gapp, &settings);
+        let mut app = InoxApplication::new(&gapp, (&settings).to_owned(), (&dbman).to_owned());
 
         app.connect_events();
         app.start();
