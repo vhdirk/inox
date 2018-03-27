@@ -93,8 +93,8 @@ impl Application{
             window,
             header,
             content,
-            settings: settings.to_owned(),
-            dbmanager: dbmanager.to_owned()
+            settings: settings.clone(),
+            dbmanager: dbmanager.clone()
         }
     }
 

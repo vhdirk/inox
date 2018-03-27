@@ -123,8 +123,7 @@ fn main() {
 
     gapp.connect_activate(move |gapp| {
 
-
-        let mut app = InoxApplication::new(&gapp, (&settings).to_owned(), (&dbman).to_owned());
+        let mut app = InoxApplication::new(&gapp, settings.clone(), dbman.clone());
 
         app.connect_events();
         app.start();
