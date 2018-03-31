@@ -5,10 +5,6 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 #[macro_use]
-extern crate clap;
-use clap::{Arg, App};
-
-#[macro_use]
 extern crate log;
 
 extern crate regex;

@@ -1,17 +1,10 @@
-#![feature(custom_derive)]
-#![feature(custom_attribute)]
-
-use std::rc::Rc;
-use std::cell::RefCell;
-
+#![feature(proc_macro)]
 #[macro_use]
-extern crate clap;
-use clap::{Arg, App};
+extern crate structopt;
 
 #[macro_use]
 extern crate log;
 extern crate env_logger;
-
 extern crate regex;
 
 #[macro_use]
@@ -19,26 +12,36 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate toml;
-
 #[macro_use]
 extern crate lazy_static;
-
+#[macro_use]
+extern crate relm;
+extern crate relm_attributes;
+#[macro_use]
+extern crate relm_derive;
 extern crate shellexpand;
-
 extern crate notmuch;
-
-use std::fs::{File, DirBuilder};
-use std::io::prelude::*;
-
-use std::path::{Path, PathBuf};
 
 extern crate gtk;
 extern crate gio;
 extern crate glib;
+extern crate gmime;
+
+extern crate inox_core;
+
+use std::rc::Rc;
+use std::cell::RefCell;
+use std::fs::{File, DirBuilder};
+use std::io::prelude::*;
+use std::path::{Path, PathBuf};
+
 use gtk::prelude::*;
 use gio::prelude::*;
 
-extern crate inox_core;
+use structopt::StructOpt;
+use structopt::clap::{App, Arg};
+
+use relm::Widget;
 
 mod application;
 mod header;
@@ -47,13 +50,13 @@ mod main_content;
 mod tag_list;
 mod thread_list;
 mod thread_view;
+mod application_window;
 
 use inox_core::settings::Settings;
-
 use inox_core::database::Manager as DBManager;
-
 use application::Application as InoxApplication;
 
+use application_window::ApplicationWindow;
 
 
 /// Init Gtk and logger.
@@ -72,6 +75,30 @@ fn init() {
     });
 }
 
+#[derive(Debug, StructOpt)]
+struct Args {
+    #[structopt(help="The configuration file to load.")]
+    config: Option<PathBuf>,
+    #[structopt(help="Print help message.")]
+    help: bool,
+}
+
+impl Default for Args{
+    fn default() -> Self {
+        Args{
+            config: Some(default_config_path()),
+            help: false
+        }
+    }
+}
+
+fn default_config_path() -> PathBuf{
+    let mut default_config = glib::get_user_config_dir().unwrap();
+    default_config.push("inox");
+    default_config.push("config");
+    default_config.set_extension("toml");
+    return default_config;
+}
 
 /// Main entry point
 fn main() {
@@ -84,8 +111,7 @@ fn main() {
         .recursive(true)
         .create(default_config.to_str().unwrap()).unwrap();
 
-    default_config.push("config");
-    default_config.set_extension("toml");
+    // let args = Args::from_args();
 
     let args = App::new("Inox")
         .version("0.0.1")
@@ -102,7 +128,7 @@ fn main() {
         )
         .get_matches();
 
-
+    println!("{:?}", args);
 
     let conf_location = args.value_of("config")
                         .unwrap_or(default_config.to_str().unwrap())
@@ -123,13 +149,10 @@ fn main() {
     let gapp = gtk::Application::new(Some(constants::APPLICATION_ID),
                                      gio::ApplicationFlags::FLAGS_NONE).unwrap();
 
-    gapp.connect_activate(move |gapp| {
+    gapp.connect_activate(move |app| {
 
-        let mut app = InoxApplication::new(&gapp, settings.clone(), dbman.clone());
 
-        app.connect_events();
-        app.start();
-
+        let mut appwindow = ApplicationWindow::run((app.to_owned(), settings.clone(), dbman.clone())).unwrap();
     });
 
     // Run GTK application with command line args
