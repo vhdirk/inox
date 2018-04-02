@@ -20,7 +20,7 @@ pub enum HeaderMsg {
 
 
 pub struct HeaderModel {
-    counter: i32,
+    
 }
 
 #[widget]
@@ -31,7 +31,7 @@ impl ::relm::Widget for Header {
 
     fn model() -> HeaderModel {
         HeaderModel {
-            counter: 0,
+
         }
     }
 

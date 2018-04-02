@@ -128,17 +128,12 @@ fn main() {
         )
         .get_matches();
 
-    println!("{:?}", args);
-
     let conf_location = args.value_of("config")
                         .unwrap_or(default_config.to_str().unwrap())
                         .to_string();
 
     debug!("Using config file {:?}", conf_location);
 
-    // TODO: read config here
-    // TODO: create DB manager here
-    //
     // load the settings
     let conf_path:PathBuf = PathBuf::from(conf_location);
 
@@ -150,8 +145,6 @@ fn main() {
                                      gio::ApplicationFlags::FLAGS_NONE).unwrap();
 
     gapp.connect_activate(move |app| {
-
-
         let mut appwindow = ApplicationWindow::run((app.to_owned(), settings.clone(), dbman.clone())).unwrap();
     });
 

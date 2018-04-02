@@ -8,24 +8,55 @@ use glib;
 use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
+use relm_attributes::widget;
 
 use notmuch;
 
 use inox_core::settings::Settings;
 
 
-pub struct ThreadView {
-    pub container: gtk::ListBox,
+// pub struct ThreadView {
+//     pub container: gtk::ListBox,
+//
+// }
+//
+//
+//
+// impl ThreadView {
+//     pub fn new() -> Self {
+//
+//         let container = gtk::ListBox::new();
+//
+//         ThreadView { container }
+//     }
+// }
 
+
+#[derive(Msg)]
+pub enum ThreadViewMsg {
 }
 
 
+pub struct ThreadViewModel {
 
-impl ThreadView {
-    pub fn new() -> Self {
+}
 
-        let container = gtk::ListBox::new();
+#[widget]
+impl ::relm::Widget for ThreadView {
 
-        ThreadView { container }
+    fn model() -> ThreadViewModel {
+        ThreadViewModel {
+
+        }
+    }
+
+    fn update(&mut self, _event: ThreadViewMsg) {
+        // self.label.set_text("");
+    }
+
+    view! {
+        gtk::Box{
+
+        }
     }
 }

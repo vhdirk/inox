@@ -9,6 +9,7 @@ use glib;
 use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
+use relm_attributes::widget;
 
 use notmuch;
 
@@ -17,16 +18,16 @@ use inox_core::database::Manager as DBManager;
 
 use notmuch::DatabaseMode;
 
-pub struct TagList {
-    pub container: gtk::TreeView,
-
-    model: gtk::ListStore,
-
-
-    dbmanager: Rc<DBManager>
-}
-
-
+// pub struct TagList {
+//     pub container: gtk::TreeView,
+//
+//     model: gtk::ListStore,
+//
+//
+//     dbmanager: Rc<DBManager>
+// }
+//
+//
 
 fn append_text_column(tree: &gtk::TreeView, id: i32) {
     let column = gtk::TreeViewColumn::new();
@@ -39,54 +40,83 @@ fn append_text_column(tree: &gtk::TreeView, id: i32) {
 }
 
 
-impl TagList {
-    pub fn new(dbmanager: Rc<DBManager>) -> Self {
+// impl TagList {
+//     pub fn new(dbmanager: Rc<DBManager>) -> Self {
+//
+//         let model = gtk::ListStore::new(&[String::static_type()]);
+//
+//
+//         let container = gtk::TreeView::new_with_model(&model);
+//         container.set_headers_visible(false);
+//         append_text_column(&container, 0);
+//
+//
+//         let mut tl = TagList {
+//             container,
+//             model,
+//             dbmanager,
+//         };
+//
+//         return tl;
+//     }
+//
+//     pub fn refresh(self: &mut Self){
+//
+//         self.model.clear();
+//
+//         let mut dbman = self.dbmanager.clone();
+//
+//         let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
+//
+//         let mut tags = db.all_tags().unwrap();
+//
+//         loop {
+//             match tags.next() {
+//                 Some(tag) => {
+//                     self.add_tag(&tag);
+//                 },
+//                 None => { break }
+//             }
+//         }
+//
+//
+//     }
+//
+//     fn add_tag(self: &mut Self, tag: &String){
+//
+//
+//         let it = self.model.append();
+//         self.model.set_value(&it, 0, &tag.to_value());
+//
+//     }
+//
+// }
 
-        let model = gtk::ListStore::new(&[String::static_type()]);
+#[derive(Msg)]
+pub enum TagListMsg {
+}
 
 
-        let container = gtk::TreeView::new_with_model(&model);
-        container.set_headers_visible(false);
-        append_text_column(&container, 0);
+pub struct TagListModel {
 
+}
 
-        let mut tl = TagList {
-            container,
-            model,
-            dbmanager,
-        };
+#[widget]
+impl ::relm::Widget for TagList {
 
-        return tl;
-    }
+    fn model() -> TagListModel {
+        TagListModel {
 
-    pub fn refresh(self: &mut Self){
-
-        self.model.clear();
-
-        let mut dbman = self.dbmanager.clone();
-
-        let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
-
-        let mut tags = db.all_tags().unwrap();
-
-        loop {
-            match tags.next() {
-                Some(tag) => {
-                    self.add_tag(&tag);
-                },
-                None => { break }
-            }
         }
-
-
     }
 
-    fn add_tag(self: &mut Self, tag: &String){
-
-
-        let it = self.model.append();
-        self.model.set_value(&it, 0, &tag.to_value());
-
+    fn update(&mut self, _event: TagListMsg) {
+        // self.label.set_text("");
     }
 
+    view! {
+        gtk::TreeView{
+
+        }
+    }
 }

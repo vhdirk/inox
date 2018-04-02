@@ -10,13 +10,14 @@ use gtk;
 use gtk::prelude::*;
 
 use relm;
-use relm::UpdateNew;
+use relm::{UpdateNew, ContainerWidget};
 use relm_attributes::widget;
 
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
 use constants;
 use header::Header;
+use main_content::MainContent;
 
 #[derive(Msg)]
 pub enum Msg {
@@ -32,24 +33,19 @@ pub struct MainModel {
 
 
 pub struct ApplicationWindow {
-    // _button: RelmComponent<Button>,
-    // _vbox: RelmContainerComponent<VBox>,
     window: gtk::ApplicationWindow,
+    header: ::relm::Component<Header>,
+    content: ::relm::Component<MainContent>,
     model: MainModel,
 
 }
 
 
-impl ::relm::Update for ApplicationWindow {
-
+impl ::relm::Update for ApplicationWindow
+{
     type Model = MainModel;
     type ModelParam = (gtk::Application, Rc<Settings>, Rc<DBManager>);
     type Msg = Msg;
-
-    // fn model(_: &Relm<Self>, _: ()) -> () {
-    //
-    //
-    // }
 
     fn model(relm: &::relm::Relm<Self>, (gapp, settings, dbmanager): (gtk::Application, Rc<Settings>, Rc<DBManager>)) -> Self::Model {
         Self::Model {
@@ -95,10 +91,16 @@ impl ::relm::Widget for ApplicationWindow {
         // The icon the app will display.
         gtk::Window::set_default_icon_name(constants::APPLICATION_ICON_NAME);
 
+
+        let content = window.add_widget::<MainContent, Self>(relm, ());
+
+
         window.show_all();
         ApplicationWindow {
             window: window,
-            model: model
+            model: model,
+            header: header,
+            content: content
         }
     }
 }
