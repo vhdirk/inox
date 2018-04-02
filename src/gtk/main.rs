@@ -54,7 +54,7 @@ mod application_window;
 
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
-use application::Application as InoxApplication;
+// use application::Application as InoxApplication;
 
 use application_window::ApplicationWindow;
 

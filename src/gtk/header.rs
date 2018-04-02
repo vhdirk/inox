@@ -8,27 +8,42 @@ use glib;
 use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
+use relm_attributes::widget;
 
 use constants;
 
-pub struct Header {
-    pub container: gtk::HeaderBar
+//use self::Msg::*;
+
+#[derive(Msg)]
+pub enum HeaderMsg {
 }
 
 
-impl Header {
-    pub fn new() -> Header {
-        // Creates the main header bar container widget.
-        let container = gtk::HeaderBar::new();
+pub struct HeaderModel {
+    counter: i32,
+}
 
-        // Sets the text to display in the title section of the header bar.
-        container.set_title(constants::APPLICATION_NAME);
-        // Enable the window controls within this headerbar.
-        container.set_show_close_button(true);
+#[widget]
+impl ::relm::Widget for Header {
+    fn init_view(&mut self) {
+        // self.label.set_text("Test");
+    }
 
-        // Returns the header and all of it's state
-        Header {
-            container
+    fn model() -> HeaderModel {
+        HeaderModel {
+            counter: 0,
+        }
+    }
+
+    fn update(&mut self, _event: HeaderMsg) {
+        // self.label.set_text("");
+    }
+
+    view! {
+        #[name="container"]
+        gtk::HeaderBar {
+            title: constants::APPLICATION_NAME,
+            show_close_button: true
         }
     }
 }
