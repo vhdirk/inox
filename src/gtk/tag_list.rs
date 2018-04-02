@@ -9,6 +9,7 @@ use glib;
 use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
+use relm;
 use relm_attributes::widget;
 
 use notmuch;
@@ -94,29 +95,61 @@ fn append_text_column(tree: &gtk::TreeView, id: i32) {
 
 #[derive(Msg)]
 pub enum TagListMsg {
+    ItemSelect
 }
 
+pub struct TagList {
+    model: TagListModel,
+    tree_view: gtk::TreeView,
+    tree_model: gtk::ListStore
+}
 
 pub struct TagListModel {
-
+    relm: ::relm::Relm<TagList>,
+    settings: Rc<Settings>,
+    dbmanager: Rc<DBManager>,
 }
 
-#[widget]
-impl ::relm::Widget for TagList {
 
-    fn model() -> TagListModel {
+impl ::relm::Update for TagList {
+    type Model = TagListModel;
+    type ModelParam = (Rc<Settings>, Rc<DBManager>);
+    type Msg = TagListMsg;
+
+    fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): Self::ModelParam) -> Self::Model {
         TagListModel {
-
+            relm: relm.clone(),
+            settings,
+            dbmanager
         }
     }
 
-    fn update(&mut self, _event: TagListMsg) {
-        // self.label.set_text("");
+    fn update(&mut self, event: Self::Msg) {
+    }
+}
+
+
+impl ::relm::Widget for TagList {
+
+    type Root = gtk::TreeView;
+
+    fn root(&self) -> Self::Root {
+        self.tree_view.clone()
     }
 
-    view! {
-        gtk::TreeView{
+    fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self
+    {
+        let tree_model = gtk::ListStore::new(&[String::static_type()]);
+        let tree_view = gtk::TreeView::new_with_model(&tree_model);
+        tree_view.set_headers_visible(false);
+        append_text_column(&tree_view, 0);
 
+        connect!(relm, tree_view, connect_cursor_changed(_), TagListMsg::ItemSelect);
+
+        TagList {
+            model,
+            tree_view,
+            tree_model,
         }
     }
 }

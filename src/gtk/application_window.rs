@@ -88,11 +88,14 @@ impl ::relm::Widget for ApplicationWindow {
         window.set_title(constants::APPLICATION_NAME);
         // Set the window manager class.
         window.set_wmclass(constants::APPLICATION_CLASS, constants::APPLICATION_NAME);
+
+        window.set_role(constants::APPLICATION_CLASS);
+
         // The icon the app will display.
         gtk::Window::set_default_icon_name(constants::APPLICATION_ICON_NAME);
 
 
-        let content = window.add_widget::<MainContent, Self>(relm, ());
+        let content = window.add_widget::<MainContent, Self>(relm, (model.settings.clone(), model.dbmanager.clone()));
 
 
         window.show_all();

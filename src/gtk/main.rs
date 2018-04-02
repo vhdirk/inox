@@ -43,7 +43,6 @@ use structopt::clap::{App, Arg};
 
 use relm::Widget;
 
-mod application;
 mod header;
 mod constants;
 mod main_content;

@@ -19,16 +19,7 @@ use tag_list::TagList;
 use thread_list::ThreadList;
 use thread_view::ThreadView;
 
-// pub struct MainContent {
-//     pub container: gtk::Paned,
-//     pub tag_list: TagList,
-//
-//     pub thread_list: ThreadList,
-//     pub thread_view: ThreadView
-//
-//     // pub source:    Source,
-//     // pub preview:   WebView,
-// }
+
 
 
 // impl MainContent {
@@ -75,20 +66,31 @@ pub enum MainContentMsg {
 
 
 pub struct MainContentModel {
-
+    relm: ::relm::Relm<MainContent>,
+    ui_orientation: gtk::Orientation,
+    settings: Rc<Settings>,
+    dbmanager: Rc<DBManager>
 }
 
 #[widget]
 impl ::relm::Widget for MainContent {
+    type Model = MainContentModel;
+    type ModelParam = (Rc<Settings>, Rc<DBManager>);
+    type Msg = MainContentMsg;
+
     fn init_view(&mut self) {
         // self.label.set_text("Test");
     }
 
-    fn model() -> MainContentModel {
+    fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): (Rc<Settings>, Rc<DBManager>)) -> MainContentModel {
         MainContentModel {
-
+            relm: relm.clone(),
+            ui_orientation: gtk::Orientation::Horizontal,
+            settings,
+            dbmanager
         }
     }
+
 
     fn update(&mut self, _event: MainContentMsg) {
         // self.label.set_text("");
@@ -97,8 +99,8 @@ impl ::relm::Widget for MainContent {
     view! {
         #[name="container"]
         gtk::Paned(gtk::Orientation::Horizontal) {
-            TagList,
-            gtk::Paned(gtk::Orientation::Horizontal){
+            TagList(self.model.settings.clone(), self.model.dbmanager.clone()),
+            gtk::Paned(self.model.ui_orientation){
                 ThreadList,
                 ThreadView
             }
