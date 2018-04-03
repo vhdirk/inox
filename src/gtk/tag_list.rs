@@ -83,18 +83,13 @@ fn append_text_column(tree: &gtk::TreeView, id: i32) {
 //
 //     }
 //
-//     fn add_tag(self: &mut Self, tag: &String){
-//
-//
-//         let it = self.model.append();
-//         self.model.set_value(&it, 0, &tag.to_value());
-//
-//     }
+
 //
 // }
 
 #[derive(Msg)]
-pub enum TagListMsg {
+pub enum Msg {
+    Refresh,
     ItemSelect
 }
 
@@ -110,11 +105,33 @@ pub struct TagListModel {
     dbmanager: Rc<DBManager>,
 }
 
+impl TagList{
+    fn refresh(&mut self){
+        let mut dbman = self.model.dbmanager.clone();
+        let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
+        let mut tags = db.all_tags().unwrap();
+        loop {
+         match tags.next() {
+             Some(tag) => {
+                 self.add_tag(&tag);
+             },
+             None => { break }
+         }
+        }
+    }
+
+
+    fn add_tag(self: &mut Self, tag: &String){
+        let it = self.tree_model.append();
+        self.tree_model.set_value(&it, 0, &tag.to_value());
+    }
+}
+
 
 impl ::relm::Update for TagList {
     type Model = TagListModel;
     type ModelParam = (Rc<Settings>, Rc<DBManager>);
-    type Msg = TagListMsg;
+    type Msg = Msg;
 
     fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): Self::ModelParam) -> Self::Model {
         TagListModel {
@@ -125,6 +142,12 @@ impl ::relm::Update for TagList {
     }
 
     fn update(&mut self, event: Self::Msg) {
+        match event {
+            Msg::Refresh => self.refresh(),
+            Msg::ItemSelect => ()
+        }
+
+
     }
 }
 
@@ -144,7 +167,7 @@ impl ::relm::Widget for TagList {
         tree_view.set_headers_visible(false);
         append_text_column(&tree_view, 0);
 
-        connect!(relm, tree_view, connect_cursor_changed(_), TagListMsg::ItemSelect);
+        connect!(relm, tree_view, connect_cursor_changed(_), Msg::ItemSelect);
 
         TagList {
             model,

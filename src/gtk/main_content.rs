@@ -15,7 +15,7 @@ use notmuch;
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
 
-use tag_list::TagList;
+use tag_list::{TagList, Msg as TagListMsg};
 use thread_list::ThreadList;
 use thread_view::ThreadView;
 
@@ -80,6 +80,7 @@ impl ::relm::Widget for MainContent {
 
     fn init_view(&mut self) {
         // self.label.set_text("Test");
+        self.taglist.emit(TagListMsg::Refresh);
     }
 
     fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): (Rc<Settings>, Rc<DBManager>)) -> MainContentModel {
@@ -99,6 +100,7 @@ impl ::relm::Widget for MainContent {
     view! {
         #[name="container"]
         gtk::Paned(gtk::Orientation::Horizontal) {
+            #[name="taglist"]
             TagList(self.model.settings.clone(), self.model.dbmanager.clone()),
             gtk::Paned(self.model.ui_orientation){
                 ThreadList,
