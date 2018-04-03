@@ -91,7 +91,7 @@ fn append_text_column(tree: &gtk::TreeView, id: i32) {
 pub enum Msg {
     Refresh,
     SelectionChanged,
-    ItemSelect(String)
+    ItemSelect(Option<String>)
 }
 
 pub struct TagList {
@@ -111,6 +111,7 @@ impl TagList{
         let mut dbman = self.model.dbmanager.clone();
         let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
         let mut tags = db.all_tags().unwrap();
+
         loop {
          match tags.next() {
              Some(tag) => {
@@ -130,12 +131,13 @@ impl TagList{
     fn on_selection_changed(self: &mut Self){
         let (model, iter) = self.tree_view.get_selection().get_selected().unwrap();
 
+
         if(self.tree_model.iter_is_valid(&iter)){
-            self.model.relm.stream().emit(Msg::ItemSelect(model.get_value(&iter, 0).get().unwrap()))
+            let val: String = model.get_value(&iter, 0).get().unwrap();
+            self.model.relm.stream().emit(Msg::ItemSelect(Some(val)));
+        }else{
+            self.model.relm.stream().emit(Msg::ItemSelect(None));
         }
-        debug!("iter: {:?}", model.get_value(&iter, 0));
-
-
     }
 }
 
