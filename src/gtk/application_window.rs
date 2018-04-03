@@ -71,6 +71,25 @@ impl ::relm::Widget for ApplicationWindow {
         self.window.clone()
     }
 
+    fn init_view(&mut self) {
+        // The icon the app will display.
+        gtk::Window::set_default_icon_name(constants::APPLICATION_ICON_NAME);
+
+        self.window.set_default_size(800, 600);
+
+        // Set the headerbar as the title bar widget.
+        self.window.set_titlebar(self.header.widget());
+        // Set the title of the window.
+        self.window.set_title(constants::APPLICATION_NAME);
+        // Set the window manager class.
+        self.window.set_wmclass(constants::APPLICATION_CLASS, constants::APPLICATION_NAME);
+
+        self.window.set_role(constants::APPLICATION_CLASS);
+
+        self.window.show_all();
+
+    }
+
     fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self
     {
         let window = gtk::ApplicationWindow::new(&model.gapp);
@@ -80,25 +99,8 @@ impl ::relm::Widget for ApplicationWindow {
         // Connect the signal `delete_event` to send the `Quit` message.
         connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), gtk::Inhibit(false)));
 
-        window.set_default_size(800, 600);
-
-        // // Set the headerbar as the title bar widget.
-        window.set_titlebar(header.widget());
-        // Set the title of the window.
-        window.set_title(constants::APPLICATION_NAME);
-        // Set the window manager class.
-        window.set_wmclass(constants::APPLICATION_CLASS, constants::APPLICATION_NAME);
-
-        window.set_role(constants::APPLICATION_CLASS);
-
-        // The icon the app will display.
-        gtk::Window::set_default_icon_name(constants::APPLICATION_ICON_NAME);
-
-
         let content = window.add_widget::<MainContent, Self>(relm, (model.settings.clone(), model.dbmanager.clone()));
 
-
-        window.show_all();
         ApplicationWindow {
             window: window,
             model: model,

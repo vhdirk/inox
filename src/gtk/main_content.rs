@@ -73,11 +73,26 @@ pub struct MainContentModel {
     dbmanager: Rc<DBManager>
 }
 
+impl MainContent {
+
+    fn on_tag_changed(self: &mut Self, tag:String){
+
+        debug!("tag: {:?}", tag);
+
+
+    }
+
+}
+
+use self::MainContentMsg::TagSelect;
+use self::TagListMsg::ItemSelect;
+
 #[widget]
 impl ::relm::Widget for MainContent {
     type Model = MainContentModel;
     type ModelParam = (Rc<Settings>, Rc<DBManager>);
     type Msg = MainContentMsg;
+
 
     fn init_view(&mut self) {
         self.thread_container.set_size_request(100, -1);
@@ -99,15 +114,19 @@ impl ::relm::Widget for MainContent {
     }
 
 
-    fn update(&mut self, _event: MainContentMsg) {
-        // self.label.set_text("");
+    fn update(&mut self, event: MainContentMsg) {
+        match event {
+            MainContentMsg::TagSelect(tag) => self.on_tag_changed(tag)
+        }
     }
 
     view! {
         #[name="container"]
         gtk::Paned(gtk::Orientation::Horizontal) {
             #[name="tag_list"]
-            TagList(self.model.settings.clone(), self.model.dbmanager.clone()),
+            TagList((self.model.settings.clone(), self.model.dbmanager.clone())){
+                ItemSelect(ref tag) => TagSelect(tag.clone())
+            },
 
             #[name="thread_container"]
             gtk::Paned(self.model.ui_orientation){
