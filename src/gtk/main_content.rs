@@ -62,6 +62,7 @@ use thread_view::ThreadView;
 
 #[derive(Msg)]
 pub enum MainContentMsg {
+    TagSelect(String)
 }
 
 

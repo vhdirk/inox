@@ -90,7 +90,8 @@ fn append_text_column(tree: &gtk::TreeView, id: i32) {
 #[derive(Msg)]
 pub enum Msg {
     Refresh,
-    ItemSelect
+    SelectionChanged,
+    ItemSelect(String)
 }
 
 pub struct TagList {
@@ -125,6 +126,14 @@ impl TagList{
         let it = self.tree_model.append();
         self.tree_model.set_value(&it, 0, &tag.to_value());
     }
+
+    fn on_selection_changed(self: &mut Self){
+        let (model, iter) = self.tree_view.get_selection().get_selected().unwrap();
+        debug!("iter: {:?}", iter);
+
+            //self.model.rem.stream().emit(Msg::ItemSelect())
+
+    }
 }
 
 
@@ -144,10 +153,9 @@ impl ::relm::Update for TagList {
     fn update(&mut self, event: Self::Msg) {
         match event {
             Msg::Refresh => self.refresh(),
-            Msg::ItemSelect => ()
+            Msg::SelectionChanged => self.on_selection_changed(),
+            Msg::ItemSelect(_) => ()
         }
-
-
     }
 }
 
@@ -167,7 +175,7 @@ impl ::relm::Widget for TagList {
         tree_view.set_headers_visible(false);
         append_text_column(&tree_view, 0);
 
-        connect!(relm, tree_view, connect_cursor_changed(_), Msg::ItemSelect);
+        connect!(relm, tree_view.get_selection(), connect_changed(_), Msg::SelectionChanged);
 
         TagList {
             model,
