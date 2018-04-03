@@ -16,7 +16,7 @@ use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
 
 use tag_list::{TagList, Msg as TagListMsg};
-use thread_list::ThreadList;
+use thread_list::{ThreadList, Msg as ThreadListMsg};
 use thread_view::ThreadView;
 
 
@@ -79,8 +79,13 @@ impl ::relm::Widget for MainContent {
     type Msg = MainContentMsg;
 
     fn init_view(&mut self) {
-        // self.label.set_text("Test");
-        self.taglist.emit(TagListMsg::Refresh);
+        self.thread_container.set_size_request(100, -1);
+        self.tag_list.widget().set_size_request(100, -1);
+        self.thread_list.widget().set_size_request(100, -1);
+        self.thread_view.widget().set_size_request(100, -1);
+
+        self.tag_list.emit(TagListMsg::Refresh);
+        self.thread_list.emit(ThreadListMsg::Update);
     }
 
     fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): (Rc<Settings>, Rc<DBManager>)) -> MainContentModel {
@@ -100,10 +105,14 @@ impl ::relm::Widget for MainContent {
     view! {
         #[name="container"]
         gtk::Paned(gtk::Orientation::Horizontal) {
-            #[name="taglist"]
+            #[name="tag_list"]
             TagList(self.model.settings.clone(), self.model.dbmanager.clone()),
+
+            #[name="thread_container"]
             gtk::Paned(self.model.ui_orientation){
-                ThreadList,
+                #[name="thread_list"]
+                ThreadList(self.model.settings.clone(), self.model.dbmanager.clone()),
+                #[name="thread_view"]
                 ThreadView
             }
         }
