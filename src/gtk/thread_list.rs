@@ -32,7 +32,8 @@ fn append_text_column(tree: &gtk::TreeView, id: i32) {
 #[derive(Msg)]
 pub enum Msg {
     Update,
-    ItemSelect
+    ItemSelect,
+    Refresh(String)
 }
 
 pub struct ThreadList {
@@ -68,9 +69,28 @@ impl ThreadList{
         }
     }
 
+    fn refresh(&mut self, qs: String){
+        self.tree_model.clear();
+
+        let mut dbman = self.model.dbmanager.clone();
+
+        let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
+        let query = db.create_query(&qs).unwrap();
+
+        let mut threads = query.search_threads().unwrap();
+
+        loop {
+            match threads.next() {
+                Some(thread) => {
+                    self.add_thread(&thread);
+                },
+                None => { break }
+            }
+        }
+    }
 
     fn add_thread(self: &mut Self, thread: &notmuch::Thread){
-        debug!("thread {:?} {:?}", thread.subject(), thread.authors());
+        // debug!("thread {:?} {:?}", thread.subject(), thread.authors());
         let it = self.tree_model.append();
         self.tree_model.set_value(&it, 0, &thread.subject().to_value());
     }
@@ -93,7 +113,8 @@ impl ::relm::Update for ThreadList {
     fn update(&mut self, event: Self::Msg) {
         match event {
             Msg::Update => self.update(),
-            Msg::ItemSelect => ()
+            Msg::ItemSelect => (),
+            Msg::Refresh(ref qs) => self.refresh(qs.clone())
         }
     }
 }

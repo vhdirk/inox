@@ -62,7 +62,7 @@ use thread_view::ThreadView;
 
 #[derive(Msg)]
 pub enum MainContentMsg {
-    TagSelect(String)
+    TagSelect(Option<String>)
 }
 
 
@@ -75,11 +75,11 @@ pub struct MainContentModel {
 
 impl MainContent {
 
-    fn on_tag_changed(self: &mut Self, tag:String){
+    fn on_tag_changed(self: &mut Self, tag:Option<String>){
 
         debug!("tag: {:?}", tag);
 
-
+        self.thread_list.emit(ThreadListMsg::Refresh(format!("tag:{}", tag.unwrap()).to_string()));
     }
 
 }
