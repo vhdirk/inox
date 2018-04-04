@@ -21,6 +21,7 @@ extern crate relm_attributes;
 extern crate relm_derive;
 extern crate shellexpand;
 extern crate notmuch;
+extern crate rayon;
 
 extern crate gtk;
 extern crate gio;
@@ -48,6 +49,7 @@ mod constants;
 mod main_content;
 mod tag_list;
 mod thread_list;
+mod thread_list_item;
 mod thread_view;
 mod application_window;
 
