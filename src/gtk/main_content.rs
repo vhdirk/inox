@@ -77,9 +77,17 @@ impl MainContent {
 
     fn on_tag_changed(self: &mut Self, tag:Option<String>){
 
-        debug!("tag: {:?}", tag);
 
-        self.thread_list.emit(ThreadListMsg::Refresh(format!("tag:{}", tag.unwrap()).to_string()));
+        // TODO: build a new query and refresh the thread list.
+
+        let qs = match tag{
+            Some(tag) => format!("tag:{}", tag).to_string(),
+            None => "tag:*".to_string()
+        };
+        debug!("qs: {:?}", qs);
+
+
+        self.thread_list.emit(ThreadListMsg::Refresh(qs));
     }
 
 }
@@ -101,7 +109,8 @@ impl ::relm::Widget for MainContent {
         self.thread_view.widget().set_size_request(100, -1);
 
         self.tag_list.emit(TagListMsg::Refresh);
-        self.thread_list.emit(ThreadListMsg::Update);
+
+        self.on_tag_changed(None);
     }
 
     fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): (Rc<Settings>, Rc<DBManager>)) -> MainContentModel {
