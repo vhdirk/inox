@@ -11,12 +11,12 @@ use gtk::prelude::*;
 use relm_attributes::widget;
 
 use notmuch;
+use notmuch::DatabaseMode;
 
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
 
-use notmuch::DatabaseMode;
-
+use thread_list_item::ThreadListItem;
 
 fn append_text_column(tree: &gtk::TreeView, id: i32) {
     let column = gtk::TreeViewColumn::new();
@@ -31,9 +31,11 @@ fn append_text_column(tree: &gtk::TreeView, id: i32) {
 
 #[derive(Msg)]
 pub enum Msg {
-    Update,
+    // outbound
     ItemSelect,
-    Refresh(String)
+
+    // inbound
+    Update(String)
 }
 
 pub struct ThreadList {
@@ -50,27 +52,8 @@ pub struct ThreadListModel {
 }
 
 impl ThreadList{
-    fn update(&mut self){
-        // self.tree_model.clear();
-        //
-        // let mut dbman = self.model.dbmanager.clone();
-        //
-        // let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
-        // let query = db.create_query(&"from:vhdirk@gmail.com".to_string()).unwrap();
-        //
-        // let mut threads = query.search_threads().unwrap();
-        //
-        // loop {
-        //     match threads.next() {
-        //         Some(thread) => {
-        //             self.add_thread(&thread);
-        //         },
-        //         None => { break }
-        //     }
-        // }
-    }
 
-    fn refresh(&mut self, qs: String){
+    fn update(&mut self, qs: String){
         self.tree_model.clear();
 
         let mut dbman = self.model.dbmanager.clone();
@@ -92,8 +75,10 @@ impl ThreadList{
 
     fn add_thread(self: &mut Self, thread: &notmuch::Thread){
         // debug!("thread {:?} {:?}", thread.subject(), thread.authors());
+        let subject = &thread.subject().clone();
         let it = self.tree_model.append();
-        self.tree_model.set_value(&it, 0, &thread.subject().to_value());
+        self.tree_model.set_value(&it, 0, &subject.to_value());
+
     }
 }
 
@@ -113,9 +98,8 @@ impl ::relm::Update for ThreadList {
 
     fn update(&mut self, event: Self::Msg) {
         match event {
-            Msg::Update => self.update(),
-            Msg::ItemSelect => (),
-            Msg::Refresh(ref qs) => self.refresh(qs.clone())
+            Msg::Update(ref qs) => self.update(qs.clone()),
+            Msg::ItemSelect => ()
         }
     }
 }

@@ -82,12 +82,12 @@ impl MainContent {
 
         let qs = match tag{
             Some(tag) => format!("tag:{}", tag).to_string(),
-            None => "tag:*".to_string()
+            None => "".to_string()
         };
         debug!("qs: {:?}", qs);
 
 
-        self.thread_list.emit(ThreadListMsg::Refresh(qs));
+        self.thread_list.emit(ThreadListMsg::Update(qs));
     }
 
 }

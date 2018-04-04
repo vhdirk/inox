@@ -96,6 +96,7 @@ pub enum Msg {
 
 pub struct TagList {
     model: TagListModel,
+    scrolled_window: gtk::ScrolledWindow,
     tree_view: gtk::TreeView,
     tree_model: gtk::ListStore
 }
@@ -167,23 +168,28 @@ impl ::relm::Update for TagList {
 
 impl ::relm::Widget for TagList {
 
-    type Root = gtk::TreeView;
+    type Root = gtk::ScrolledWindow;
 
     fn root(&self) -> Self::Root {
-        self.tree_view.clone()
+        self.scrolled_window.clone()
     }
 
     fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self
     {
+        let scrolled_window = gtk::ScrolledWindow::new(None, None);
+
         let tree_model = gtk::ListStore::new(&[String::static_type()]);
         let tree_view = gtk::TreeView::new_with_model(&tree_model);
         tree_view.set_headers_visible(false);
         append_text_column(&tree_view, 0);
 
+        scrolled_window.add(&tree_view);
+
         connect!(relm, tree_view.get_selection(), connect_changed(_), Msg::SelectionChanged);
 
         TagList {
             model,
+            scrolled_window,
             tree_view,
             tree_model,
         }
