@@ -51,23 +51,23 @@ pub struct ThreadListModel {
 
 impl ThreadList{
     fn update(&mut self){
-        self.tree_model.clear();
-
-        let mut dbman = self.model.dbmanager.clone();
-
-        let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
-        let query = db.create_query(&"from:vhdirk@gmail.com".to_string()).unwrap();
-
-        let mut threads = query.search_threads().unwrap();
-
-        loop {
-            match threads.next() {
-                Some(thread) => {
-                    self.add_thread(&thread);
-                },
-                None => { break }
-            }
-        }
+        // self.tree_model.clear();
+        //
+        // let mut dbman = self.model.dbmanager.clone();
+        //
+        // let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
+        // let query = db.create_query(&"from:vhdirk@gmail.com".to_string()).unwrap();
+        //
+        // let mut threads = query.search_threads().unwrap();
+        //
+        // loop {
+        //     match threads.next() {
+        //         Some(thread) => {
+        //             self.add_thread(&thread);
+        //         },
+        //         None => { break }
+        //     }
+        // }
     }
 
     fn refresh(&mut self, qs: String){
