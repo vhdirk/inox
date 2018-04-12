@@ -35,6 +35,7 @@ use std::cell::RefCell;
 use std::fs::{File, DirBuilder};
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use gtk::prelude::*;
 use gio::prelude::*;
@@ -145,9 +146,13 @@ fn main() {
     let gapp = gtk::Application::new(Some(constants::APPLICATION_ID),
                                      gio::ApplicationFlags::FLAGS_NONE).unwrap();
 
-    gapp.connect_activate(move |app| {
+    gapp.connect_startup(move |app| {
         let mut appwindow = ApplicationWindow::run((app.to_owned(), settings.clone(), dbman.clone())).unwrap();
     });
+    gapp.connect_activate(|_| {
+
+    });
+
 
     // Run GTK application with command line args
     let args: Vec<String> = std::env::args().collect();

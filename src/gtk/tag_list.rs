@@ -3,6 +3,7 @@ use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use gio;
 use glib;

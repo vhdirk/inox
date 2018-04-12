@@ -20,7 +20,7 @@ pub enum HeaderMsg {
 
 
 pub struct HeaderModel {
-    
+
 }
 
 #[widget]
