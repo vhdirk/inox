@@ -95,12 +95,12 @@ impl ::relm::Widget for ApplicationWindow {
     {
         let window = gtk::ApplicationWindow::new(&model.gapp);
 
-        let header = ::relm::create_component::<Header, Self>(relm, ());
+        let header = ::relm::create_component::<Header>(());
 
         // Connect the signal `delete_event` to send the `Quit` message.
         connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), gtk::Inhibit(false)));
 
-        let content = window.add_widget::<MainContent, Self>(relm, (model.settings.clone(), model.dbmanager.clone()));
+        let content = window.add_widget::<MainContent>((model.settings.clone(), model.dbmanager.clone()));
 
         ApplicationWindow {
             window: window,

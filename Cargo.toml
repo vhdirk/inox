@@ -38,9 +38,9 @@ gdk-pixbuf  = "^0.4.0"
 gio         = "^0.4.0"
 glib        = "^0.5.0"
 gmime       = "*"
-relm = "^0.13.0"
-relm-derive = "^0.13.0"
-relm-attributes = "^0.13.0"
+relm = "^0.14.0"
+relm-derive = "^0.14.0"
+relm-attributes = "^0.14.0"
 
 lettre = "*"
 
