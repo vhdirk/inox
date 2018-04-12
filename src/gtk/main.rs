@@ -147,7 +147,7 @@ fn main() {
                                      gio::ApplicationFlags::FLAGS_NONE).unwrap();
 
     gapp.connect_startup(move |app| {
-        let mut appwindow = ApplicationWindow::run((app.to_owned(), settings.clone(), dbman.clone())).unwrap();
+        let mut _appwindow = ::relm::init::<ApplicationWindow>((app.to_owned(), settings.clone(), dbman.clone()));
     });
     gapp.connect_activate(|_| {
 
