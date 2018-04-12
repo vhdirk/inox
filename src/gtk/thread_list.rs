@@ -2,6 +2,10 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
+use std::sync::mpsc::channel;
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
 use gio;
 use glib;
@@ -42,6 +46,7 @@ pub struct ThreadList {
     model: ThreadListModel,
     scrolled_window: gtk::ScrolledWindow,
     tree_view: gtk::TreeView,
+    tree_filter: gtk::TreeModelFilter,
     tree_model: gtk::ListStore
 }
 
@@ -57,27 +62,42 @@ impl ThreadList{
         self.tree_model.clear();
 
         let mut dbman = self.model.dbmanager.clone();
-
         let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
-        let query = db.create_query(&qs).unwrap();
 
-        let mut threads = query.search_threads().unwrap();
 
-        loop {
-            match threads.next() {
-                Some(thread) => {
-                    self.add_thread(&thread);
-                },
-                None => { break }
-            }
-        }
+
+
+
+        let (sender, receiver) = channel();
+
+        thread::spawn(move || {
+
+            let query = db.create_query(&qs).unwrap();
+
+            let mut threads = query.search_threads().unwrap();
+
+            let thread_list: Vec<notmuch::Thread> = threads.collect();
+            sender.send(thread_list);
+
+        });
+
+        // loop {
+        //     match threads.next() {
+        //         Some(thread) => {
+        //             self.add_thread(&thread);
+        //         },
+        //         None => { break }
+        //     }
+        // }
     }
 
     fn add_thread(self: &mut Self, thread: &notmuch::Thread){
         // debug!("thread {:?} {:?}", thread.subject(), thread.authors());
-        let subject = &thread.subject().clone();
-        let it = self.tree_model.append();
-        self.tree_model.set_value(&it, 0, &subject.to_value());
+        //
+        //
+        let subject = &thread.subject();
+        //let it = self.tree_model.append();
+        //self.tree_model.set_value(&it, 0, &"".to_string().to_value());
 
     }
 }
@@ -118,7 +138,10 @@ impl ::relm::Widget for ThreadList {
         let scrolled_window = gtk::ScrolledWindow::new(None, None);
 
         let tree_model = gtk::ListStore::new(&[String::static_type()]);
-        let tree_view = gtk::TreeView::new_with_model(&tree_model);
+        let tree_filter = gtk::TreeModelFilter::new(&tree_model, None);
+        let tree_view = gtk::TreeView::new_with_model(&tree_filter);
+        // let tree_view = gtk::TreeView::new();
+
         tree_view.set_headers_visible(false);
         append_text_column(&tree_view, 0);
 
@@ -130,6 +153,7 @@ impl ::relm::Widget for ThreadList {
             model,
             scrolled_window,
             tree_view,
+            tree_filter,
             tree_model,
         }
     }
