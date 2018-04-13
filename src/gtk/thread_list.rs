@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::Duration;
 
@@ -12,6 +12,7 @@ use glib;
 use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
+use relm;
 use relm_attributes::widget;
 
 use notmuch;
@@ -39,7 +40,10 @@ pub enum Msg {
     ItemSelect,
 
     // inbound
-    Update(String)
+    Update(String),
+
+    // private
+    AddThreads
 }
 
 pub struct ThreadList {
@@ -64,22 +68,44 @@ impl ThreadList{
         let mut dbman = self.model.dbmanager.clone();
         let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
 
+        let query = db.create_query(&qs).unwrap();
 
+        let mut threads = Arc::new(RwLock::new(query.search_threads().unwrap()));
 
+        let mut thread_list = threads.clone();
 
-
-        let (sender, receiver) = channel();
+        let (tx, rx) = channel();
 
         thread::spawn(move || {
 
-            let query = db.create_query(&qs).unwrap();
+            let mut thrds = thread_list.write().unwrap();
+            loop {
+                match thrds.next() {
+                    Some(thread) => {
+                        // let thrd = Arc::new(RwLock::new(thread));
+                        tx.send(thread);
+                    },
+                    None => { break }
+                }
+            }
 
-            let mut threads = query.search_threads().unwrap();
 
-            let thread_list: Vec<notmuch::Thread> = threads.collect();
-            sender.send(thread_list);
+            // let thread_list: Vec<notmuch::Thread> = threads.collect();
+            // tx.send(thread_list);
 
         });
+
+
+        // ::relm::interval(self.model.relm.stream(), 500, Msg::AddThreads);
+
+        gtk::timeout_add(500, move || {
+            let threa = rx.recv().unwrap();
+
+            println!("{:?}", threa);
+
+            Continue(false)
+        });
+
 
         // loop {
         //     match threads.next() {
@@ -119,7 +145,8 @@ impl ::relm::Update for ThreadList {
     fn update(&mut self, event: Self::Msg) {
         match event {
             Msg::Update(ref qs) => self.update(qs.clone()),
-            Msg::ItemSelect => ()
+            Msg::ItemSelect => (),
+            Msg::AddThreads => ()
         }
     }
 }
