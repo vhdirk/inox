@@ -55,7 +55,7 @@ pub struct ThreadListItem{
 // pub struct ThreadListItemModel {
 //     relm: ::relm::Relm<ThreadList>,
 //     settings: Rc<Settings>,
-//     dbmanager: Rc<DBManager>,
+//     dbmanager: Arc<DBManager>,
 // }
 //
 // impl ThreadListItem{
@@ -109,7 +109,7 @@ pub struct ThreadListItem{
 //
 // impl ::relm::Update for ThreadListItem {
 //     type Model = ThreadListItemModel;
-//     type ModelParam = (Rc<Settings>, Rc<DBManager>);
+//     type ModelParam = (Rc<Settings>, Arc<DBManager>);
 //     type Msg = Msg;
 //
 //     fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): Self::ModelParam) -> Self::Model {

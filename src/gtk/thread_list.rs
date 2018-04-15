@@ -2,10 +2,11 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{channel, Sender, Receiver, TryRecvError};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::Duration;
+use scoped_pool::Pool;
 
 use gio;
 use glib;
@@ -34,7 +35,7 @@ fn append_text_column(tree: &gtk::TreeView, id: i32) {
 }
 
 
-#[derive(Msg)]
+#[derive(Msg, Debug)]
 pub enum Msg {
     // outbound
     ItemSelect,
@@ -46,7 +47,7 @@ pub enum Msg {
     AddThreads
 }
 
-pub struct ThreadList {
+pub struct ThreadList{
     model: ThreadListModel,
     scrolled_window: gtk::ScrolledWindow,
     tree_view: gtk::TreeView,
@@ -54,10 +55,31 @@ pub struct ThreadList {
     tree_model: gtk::ListStore
 }
 
+
 pub struct ThreadListModel {
     relm: ::relm::Relm<ThreadList>,
     settings: Rc<Settings>,
-    dbmanager: Rc<DBManager>,
+    dbmanager: Arc<DBManager>,
+}
+
+
+#[derive(Default, Debug)]
+struct MailThread {
+    pub id: String,
+    pub subject: String,
+    pub total_messages: i32,
+    pub authors: Vec<String>,
+    pub oldest_date: i64,
+    pub newest_date: i64
+}
+
+
+fn add_thread(tree_model: gtk::ListStore, thread: MailThread){
+
+    let subject = &thread.subject;
+    let it = tree_model.append();
+    tree_model.set_value(&it, 0, &thread.subject.to_value());
+
 }
 
 impl ThreadList{
@@ -66,72 +88,68 @@ impl ThreadList{
         self.tree_model.clear();
 
         let mut dbman = self.model.dbmanager.clone();
+
         let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
 
-        let query = db.create_query(&qs).unwrap();
+        let tree_model = self.tree_model.clone();
 
-        let mut threads = Arc::new(RwLock::new(query.search_threads().unwrap()));
-
-        let mut thread_list = threads.clone();
-
-        let (tx, rx) = channel();
+        let (tx, rx): (Sender<MailThread>, Receiver<MailThread>)  = channel();
 
         thread::spawn(move || {
 
-            let mut thrds = thread_list.write().unwrap();
+            let query = db.create_query(&qs).unwrap();
+
+            let mut threads = query.search_threads().unwrap();
+
             loop {
-                match thrds.next() {
-                    Some(thread) => {
+                match threads.next() {
+                    Some(mthread) => {
                         // let thrd = Arc::new(RwLock::new(thread));
-                        tx.send(thread);
+                        tx.send(MailThread{
+                            id: mthread.id(),
+                            subject: mthread.subject(),
+                            total_messages: mthread.total_messages(),
+                            authors: mthread.authors(),
+                            oldest_date: mthread.oldest_date(),
+                            newest_date: mthread.newest_date()
+
+                        }).unwrap();
                     },
                     None => { break }
                 }
             }
 
-
-            // let thread_list: Vec<notmuch::Thread> = threads.collect();
-            // tx.send(thread_list);
-
         });
 
 
-        // ::relm::interval(self.model.relm.stream(), 500, Msg::AddThreads);
 
-        gtk::timeout_add(500, move || {
-            let threa = rx.recv().unwrap();
+        gtk::timeout_add(250, move || {
+            loop {
+                match rx.try_recv(){
+                    Ok(thread) => {
+                        add_thread(tree_model.clone(), thread);
 
-            println!("{:?}", threa);
-
+                    },
+                    Err(err) if err == TryRecvError::Empty => {
+                        return Continue(true);
+                    },
+                    Err(err) => {
+                        return Continue(false);
+                    },
+                }
+            }
             Continue(false)
         });
 
 
-        // loop {
-        //     match threads.next() {
-        //         Some(thread) => {
-        //             self.add_thread(&thread);
-        //         },
-        //         None => { break }
-        //     }
-        // }
     }
 
-    fn add_thread(self: &mut Self, thread: &notmuch::Thread){
-        // debug!("thread {:?} {:?}", thread.subject(), thread.authors());
-        //
-        //
-        let subject = &thread.subject();
-        //let it = self.tree_model.append();
-        //self.tree_model.set_value(&it, 0, &"".to_string().to_value());
-
-    }
 }
 
 
 impl ::relm::Update for ThreadList {
     type Model = ThreadListModel;
-    type ModelParam = (Rc<Settings>, Rc<DBManager>);
+    type ModelParam = (Rc<Settings>, Arc<DBManager>);
     type Msg = Msg;
 
     fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): Self::ModelParam) -> Self::Model {

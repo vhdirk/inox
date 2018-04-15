@@ -26,7 +26,7 @@ use notmuch::DatabaseMode;
 //     model: gtk::ListStore,
 //
 //
-//     dbmanager: Rc<DBManager>
+//     dbmanager: Arc<DBManager>
 // }
 //
 //
@@ -43,7 +43,7 @@ fn append_text_column(tree: &gtk::TreeView, id: i32) {
 
 
 // impl TagList {
-//     pub fn new(dbmanager: Rc<DBManager>) -> Self {
+//     pub fn new(dbmanager: Arc<DBManager>) -> Self {
 //
 //         let model = gtk::ListStore::new(&[String::static_type()]);
 //
@@ -105,7 +105,7 @@ pub struct TagList {
 pub struct TagListModel {
     relm: ::relm::Relm<TagList>,
     settings: Rc<Settings>,
-    dbmanager: Rc<DBManager>,
+    dbmanager: Arc<DBManager>,
 }
 
 impl TagList{
@@ -146,7 +146,7 @@ impl TagList{
 
 impl ::relm::Update for TagList {
     type Model = TagListModel;
-    type ModelParam = (Rc<Settings>, Rc<DBManager>);
+    type ModelParam = (Rc<Settings>, Arc<DBManager>);
     type Msg = Msg;
 
     fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): Self::ModelParam) -> Self::Model {

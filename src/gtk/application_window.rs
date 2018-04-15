@@ -29,7 +29,7 @@ pub struct MainModel {
     relm: ::relm::Relm<ApplicationWindow>,
     gapp: gtk::Application,
     settings: Rc<Settings>,
-    dbmanager: Rc<DBManager>
+    dbmanager: Arc<DBManager>
 }
 
 
@@ -45,10 +45,10 @@ pub struct ApplicationWindow {
 impl ::relm::Update for ApplicationWindow
 {
     type Model = MainModel;
-    type ModelParam = (gtk::Application, Rc<Settings>, Rc<DBManager>);
+    type ModelParam = (gtk::Application, Rc<Settings>, Arc<DBManager>);
     type Msg = Msg;
 
-    fn model(relm: &::relm::Relm<Self>, (gapp, settings, dbmanager): (gtk::Application, Rc<Settings>, Rc<DBManager>)) -> Self::Model {
+    fn model(relm: &::relm::Relm<Self>, (gapp, settings, dbmanager): (gtk::Application, Rc<Settings>, Arc<DBManager>)) -> Self::Model {
         Self::Model {
             relm: relm.clone(),
             gapp,

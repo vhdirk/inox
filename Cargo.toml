@@ -26,9 +26,14 @@ serde_derive = "*"
 serde_ini = "*"
 lazy_static = "1.0"
 vte = "0.3.2"
-rayon = "1.0"
-notmuch = "*"
 chrono = { version = "0.4", features = ["serde"] }
+
+crossbeam = "^0.3.2"
+crossbeam-channel = "^0.1.2"
+scoped-pool = "^1.0.0"
+
+notmuch = "*"
+
 
 gtk         = "^0.4.0"
 cairo-rs    = "^0.4.1"

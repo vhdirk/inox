@@ -24,7 +24,7 @@ use thread_view::ThreadView;
 
 
 // impl MainContent {
-//     pub fn new(dbmanager: Rc<DBManager>) -> Self {
+//     pub fn new(dbmanager: Arc<DBManager>) -> Self {
 //         // Create the Paned container for the main content
 //         let container = gtk::Paned::new(gtk::Orientation::Horizontal);
 //         let mut tag_list = TagList::new(dbmanager.clone());
@@ -71,7 +71,7 @@ pub struct MainContentModel {
     relm: ::relm::Relm<MainContent>,
     ui_orientation: gtk::Orientation,
     settings: Rc<Settings>,
-    dbmanager: Rc<DBManager>
+    dbmanager: Arc<DBManager>
 }
 
 impl MainContent {
@@ -99,7 +99,7 @@ use self::TagListMsg::ItemSelect;
 #[widget]
 impl ::relm::Widget for MainContent {
     type Model = MainContentModel;
-    type ModelParam = (Rc<Settings>, Rc<DBManager>);
+    type ModelParam = (Rc<Settings>, Arc<DBManager>);
     type Msg = MainContentMsg;
 
 
@@ -114,7 +114,7 @@ impl ::relm::Widget for MainContent {
         self.on_tag_changed(None);
     }
 
-    fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): (Rc<Settings>, Rc<DBManager>)) -> MainContentModel {
+    fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): (Rc<Settings>, Arc<DBManager>)) -> MainContentModel {
         MainContentModel {
             relm: relm.clone(),
             ui_orientation: gtk::Orientation::Horizontal,
