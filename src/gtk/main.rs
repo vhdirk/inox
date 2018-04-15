@@ -21,7 +21,7 @@ extern crate relm_attributes;
 extern crate relm_derive;
 extern crate shellexpand;
 extern crate notmuch;
-extern crate rayon;
+extern crate scoped_pool;
 
 extern crate gtk;
 extern crate gio;
@@ -141,7 +141,7 @@ fn main() {
 
     let settings = Rc::new(Settings::new(&conf_path.as_path()));
 
-    let dbman = Rc::new(DBManager::new(&settings));
+    let dbman = Arc::new(DBManager::new(&settings));
 
     let gapp = gtk::Application::new(Some(constants::APPLICATION_ID),
                                      gio::ApplicationFlags::FLAGS_NONE).unwrap();
