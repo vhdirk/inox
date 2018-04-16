@@ -35,6 +35,16 @@ fn append_text_column(tree: &gtk::TreeView, id: i32) {
     tree.append_column(&column);
 }
 
+pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &::relm::EventStream<MSG>, constructor: F) -> glib::source::SourceId {
+    let stream = stream.clone();
+    gtk::idle_add(move || {
+        let msg = constructor();
+        stream.emit(msg);
+        Continue(true)
+    })
+}
+
+
 
 #[derive(Msg, Debug)]
 pub enum Msg {
@@ -45,7 +55,7 @@ pub enum Msg {
     Update(String),
 
     // private
-    AddThreads
+    RecvThread
 }
 
 
@@ -53,6 +63,7 @@ struct AsyncThreadHandle {
     pub join_handle: thread::JoinHandle<()>,
     pub idle_handle: glib::source::SourceId,
     pub run: Arc<AtomicBool>,
+    pub rx: Receiver<ChannelItem>
 }
 
 pub struct ThreadList{
@@ -60,14 +71,16 @@ pub struct ThreadList{
     scrolled_window: gtk::ScrolledWindow,
     tree_view: gtk::TreeView,
     tree_filter: gtk::TreeModelFilter,
-    tree_model: gtk::ListStore,
-    async_handle: Option<AsyncThreadHandle>,
+    tree_model: gtk::ListStore
+
 }
 
 pub struct ThreadListModel {
     relm: ::relm::Relm<ThreadList>,
     settings: Rc<Settings>,
     dbmanager: Arc<DBManager>,
+
+    async_handle: Option<AsyncThreadHandle>,
 
     num_threads: u32,
     num_threads_loaded: u32
@@ -104,8 +117,8 @@ impl ThreadList{
 
     fn update(&mut self, qs: String){
 
-        if self.async_handle.is_some(){
-            let async_handle = self.async_handle.take().unwrap();
+        if self.model.async_handle.is_some(){
+            let async_handle = self.model.async_handle.take().unwrap();
             async_handle.run.store(false, Ordering::Relaxed);
             async_handle.join_handle.join().unwrap();
 
@@ -157,35 +170,50 @@ impl ThreadList{
         let do_run = run.clone();
 
 
-        let idle_handle = gtk::idle_add(move || {
-            match rx.try_recv(){
-                Ok(ChannelItem::Thread(thread)) => {
-                    add_thread(tree_model.clone(), thread);
-                    Continue(true)
-                },
-                Ok(ChannelItem::Count(num)) => {
-                    println!("{:?} threads", num);
-                    Continue(true)
-                },
-                Err(err) if err == TryRecvError::Empty => {
-                    Continue(true)
-                },
-                Err(err) => {
-                    Continue(false)
-                }
-            }
-        });
+        let idle_handle = gtk_idle_add(self.model.relm.stream(), || Msg::RecvThread);
 
-        self.async_handle = Some(AsyncThreadHandle{
+        // let idle_handle = gtk::idle_add(move || {
+
+        // });
+
+        self.model.async_handle = Some(AsyncThreadHandle{
             join_handle: thread_handle,
             idle_handle: idle_handle,
-            run: run
+            run: run,
+            rx: rx
         });
 
-
+        // self.model.rx = Some(rx);
 
     }
 
+
+    fn add_thread(&mut self, thread: MailThread){
+
+        let subject = &thread.subject;
+        let it = self.tree_model.append();
+        self.tree_model.set_value(&it, 0, &thread.subject.to_value());
+
+    }
+
+    fn receive_thread(&mut self){
+        match self.model.async_handle.as_mut().unwrap().rx.try_recv(){
+         Ok(ChannelItem::Thread(thread)) => {
+             self.add_thread(thread);
+             // Continue(true)
+         },
+         Ok(ChannelItem::Count(num)) => {
+             println!("{:?} threads", num);
+             // Continue(true)
+         },
+         Err(err) if err == TryRecvError::Empty => {
+             // Continue(true)
+         },
+         Err(err) => {
+             // Continue(false)
+         }
+        }
+    }
 }
 
 
@@ -200,6 +228,8 @@ impl ::relm::Update for ThreadList {
             settings,
             dbmanager,
 
+            async_handle: None,
+
             num_threads: 0,
             num_threads_loaded: 0
         }
@@ -209,7 +239,7 @@ impl ::relm::Update for ThreadList {
         match event {
             Msg::Update(ref qs) => self.update(qs.clone()),
             Msg::ItemSelect => (),
-            Msg::AddThreads => ()
+            Msg::RecvThread => self.receive_thread()
         }
     }
 }
@@ -244,8 +274,7 @@ impl ::relm::Widget for ThreadList {
             scrolled_window,
             tree_view,
             tree_filter,
-            tree_model,
-            async_handle: None
+            tree_model
         }
     }
 }
