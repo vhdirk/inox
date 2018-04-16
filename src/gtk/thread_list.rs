@@ -55,7 +55,15 @@ pub enum Msg {
     Update(String),
 
     // private
-    RecvThread
+    AsyncReceive(AsyncFetchEvent)
+}
+
+#[derive(Debug)]
+enum AsyncFetchEvent{
+    Init,
+    NewItem,
+    Complete,
+    Fail
 }
 
 
@@ -170,11 +178,7 @@ impl ThreadList{
         let do_run = run.clone();
 
 
-        let idle_handle = gtk_idle_add(self.model.relm.stream(), || Msg::RecvThread);
-
-        // let idle_handle = gtk::idle_add(move || {
-
-        // });
+        let idle_handle = gtk_idle_add(self.model.relm.stream(), || Msg::AsyncReceive(AsyncFetchEvent::Init));
 
         self.model.async_handle = Some(AsyncThreadHandle{
             join_handle: thread_handle,
@@ -182,8 +186,6 @@ impl ThreadList{
             run: run,
             rx: rx
         });
-
-        // self.model.rx = Some(rx);
 
     }
 
@@ -239,7 +241,7 @@ impl ::relm::Update for ThreadList {
         match event {
             Msg::Update(ref qs) => self.update(qs.clone()),
             Msg::ItemSelect => (),
-            Msg::RecvThread => self.receive_thread()
+            Msg::AsyncReceive(ref evt) => self.receive_thread()
         }
     }
 }
