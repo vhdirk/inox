@@ -50,7 +50,8 @@ pub enum Msg {
 
 
 struct AsyncThreadHandle {
-    pub handle: thread::JoinHandle<()>,
+    pub join_handle: thread::JoinHandle<()>,
+    pub idle_handle: glib::source::SourceId,
     pub run: Arc<AtomicBool>,
 }
 
@@ -63,11 +64,13 @@ pub struct ThreadList{
     async_handle: Option<AsyncThreadHandle>,
 }
 
-
 pub struct ThreadListModel {
     relm: ::relm::Relm<ThreadList>,
     settings: Rc<Settings>,
     dbmanager: Arc<DBManager>,
+
+    num_threads: u32,
+    num_threads_loaded: u32
 }
 
 
@@ -80,6 +83,12 @@ struct MailThread {
     pub authors: Vec<String>,
     pub oldest_date: i64,
     pub newest_date: i64
+}
+
+#[derive(Debug)]
+enum ChannelItem{
+    Thread(MailThread),
+    Count(u32),
 }
 
 
@@ -98,19 +107,19 @@ impl ThreadList{
         if self.async_handle.is_some(){
             let async_handle = self.async_handle.take().unwrap();
             async_handle.run.store(false, Ordering::Relaxed);
-            async_handle.handle.join().unwrap();
+            async_handle.join_handle.join().unwrap();
+
+            // TODO: how do we test if the idle handle is actually correct?
+            glib::source::source_remove(async_handle.idle_handle);
         }
         self.tree_model.clear();
 
-
-
         let mut dbman = self.model.dbmanager.clone();
-
         let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
 
         let tree_model = self.tree_model.clone();
 
-        let (tx, rx): (Sender<MailThread>, Receiver<MailThread>)  = channel();
+        let (tx, rx): (Sender<ChannelItem>, Receiver<ChannelItem>)  = channel();
 
         let run = Arc::new(AtomicBool::new(true));
 
@@ -120,12 +129,14 @@ impl ThreadList{
 
             let query = db.create_query(&qs).unwrap();
 
+            tx.send(ChannelItem::Count(query.count_threads().unwrap())).unwrap();
+
             let mut threads = query.search_threads().unwrap();
 
             while do_run.load(Ordering::Relaxed) {
                 match threads.next() {
                     Some(mthread) => {
-                        tx.send(MailThread{
+                        tx.send(ChannelItem::Thread(MailThread{
                             id: mthread.id(),
                             subject: mthread.subject(),
                             total_messages: mthread.total_messages(),
@@ -133,7 +144,7 @@ impl ThreadList{
                             oldest_date: mthread.oldest_date(),
                             newest_date: mthread.newest_date()
 
-                        }).unwrap();
+                        })).unwrap();
                     },
                     None => { break }
                 }
@@ -141,19 +152,19 @@ impl ThreadList{
 
         });
 
-        self.async_handle = Some(AsyncThreadHandle{
-            handle: thread_handle,
-            run: run.clone()
-        });
 
 
         let do_run = run.clone();
 
 
-        gtk::idle_add(move || {
+        let idle_handle = gtk::idle_add(move || {
             match rx.try_recv(){
-                Ok(thread) => {
+                Ok(ChannelItem::Thread(thread)) => {
                     add_thread(tree_model.clone(), thread);
+                    Continue(true)
+                },
+                Ok(ChannelItem::Count(num)) => {
+                    println!("{:?} threads", num);
                     Continue(true)
                 },
                 Err(err) if err == TryRecvError::Empty => {
@@ -163,6 +174,12 @@ impl ThreadList{
                     Continue(false)
                 }
             }
+        });
+
+        self.async_handle = Some(AsyncThreadHandle{
+            join_handle: thread_handle,
+            idle_handle: idle_handle,
+            run: run
         });
 
 
@@ -181,7 +198,10 @@ impl ::relm::Update for ThreadList {
         ThreadListModel {
             relm: relm.clone(),
             settings,
-            dbmanager
+            dbmanager,
+
+            num_threads: 0,
+            num_threads_loaded: 0
         }
     }
 
