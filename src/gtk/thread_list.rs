@@ -4,6 +4,7 @@ use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{channel, Sender, Receiver, TryRecvError};
 use std::sync::{Arc, Mutex, RwLock};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
 use scoped_pool::Pool;
@@ -47,12 +48,19 @@ pub enum Msg {
     AddThreads
 }
 
+
+struct AsyncThreadHandle {
+    pub handle: thread::JoinHandle<()>,
+    pub run: Arc<AtomicBool>,
+}
+
 pub struct ThreadList{
     model: ThreadListModel,
     scrolled_window: gtk::ScrolledWindow,
     tree_view: gtk::TreeView,
     tree_filter: gtk::TreeModelFilter,
-    tree_model: gtk::ListStore
+    tree_model: gtk::ListStore,
+    async_handle: Option<AsyncThreadHandle>,
 }
 
 
@@ -61,6 +69,7 @@ pub struct ThreadListModel {
     settings: Rc<Settings>,
     dbmanager: Arc<DBManager>,
 }
+
 
 
 #[derive(Default, Debug)]
@@ -85,7 +94,15 @@ fn add_thread(tree_model: gtk::ListStore, thread: MailThread){
 impl ThreadList{
 
     fn update(&mut self, qs: String){
+
+        if self.async_handle.is_some(){
+            let async_handle = self.async_handle.take().unwrap();
+            async_handle.run.store(false, Ordering::Relaxed);
+            async_handle.handle.join().unwrap();
+        }
         self.tree_model.clear();
+
+
 
         let mut dbman = self.model.dbmanager.clone();
 
@@ -95,16 +112,19 @@ impl ThreadList{
 
         let (tx, rx): (Sender<MailThread>, Receiver<MailThread>)  = channel();
 
-        thread::spawn(move || {
+        let run = Arc::new(AtomicBool::new(true));
+
+        let do_run = run.clone();
+
+        let thread_handle = thread::spawn(move || {
 
             let query = db.create_query(&qs).unwrap();
 
             let mut threads = query.search_threads().unwrap();
 
-            loop {
+            while do_run.load(Ordering::Relaxed) {
                 match threads.next() {
                     Some(mthread) => {
-                        // let thrd = Arc::new(RwLock::new(thread));
                         tx.send(MailThread{
                             id: mthread.id(),
                             subject: mthread.subject(),
@@ -121,14 +141,20 @@ impl ThreadList{
 
         });
 
+        self.async_handle = Some(AsyncThreadHandle{
+            handle: thread_handle,
+            run: run.clone()
+        });
+
+
+        let do_run = run.clone();
 
 
         gtk::timeout_add(250, move || {
-            loop {
+            while do_run.load(Ordering::Relaxed) {
                 match rx.try_recv(){
                     Ok(thread) => {
                         add_thread(tree_model.clone(), thread);
-
                     },
                     Err(err) if err == TryRecvError::Empty => {
                         return Continue(true);
@@ -140,6 +166,7 @@ impl ThreadList{
             }
             Continue(false)
         });
+
 
 
     }
@@ -185,7 +212,7 @@ impl ::relm::Widget for ThreadList {
         let tree_model = gtk::ListStore::new(&[String::static_type()]);
         let tree_filter = gtk::TreeModelFilter::new(&tree_model, None);
         let tree_view = gtk::TreeView::new_with_model(&tree_filter);
-        // let tree_view = gtk::TreeView::new();
+
 
         tree_view.set_headers_visible(false);
         append_text_column(&tree_view, 0);
@@ -200,6 +227,7 @@ impl ::relm::Widget for ThreadList {
             tree_view,
             tree_filter,
             tree_model,
+            async_handle: None
         }
     }
 }
