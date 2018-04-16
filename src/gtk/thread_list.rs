@@ -150,21 +150,19 @@ impl ThreadList{
         let do_run = run.clone();
 
 
-        gtk::timeout_add(250, move || {
-            while do_run.load(Ordering::Relaxed) {
-                match rx.try_recv(){
-                    Ok(thread) => {
-                        add_thread(tree_model.clone(), thread);
-                    },
-                    Err(err) if err == TryRecvError::Empty => {
-                        return Continue(true);
-                    },
-                    Err(err) => {
-                        return Continue(false);
-                    },
+        gtk::idle_add(move || {
+            match rx.try_recv(){
+                Ok(thread) => {
+                    add_thread(tree_model.clone(), thread);
+                    Continue(true)
+                },
+                Err(err) if err == TryRecvError::Empty => {
+                    Continue(true)
+                },
+                Err(err) => {
+                    Continue(false)
                 }
             }
-            Continue(false)
         });
 
 
