@@ -11,11 +11,13 @@ use scoped_pool::Pool;
 
 use gio;
 use glib;
+use glib::prelude::*;
 use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 use relm;
 use relm_attributes::widget;
+use relm::ToGlib;
 
 use notmuch;
 use notmuch::DatabaseMode;
@@ -55,15 +57,15 @@ pub enum Msg {
     Update(String),
 
     // private
-    AsyncReceive(AsyncFetchEvent)
+    AsyncFetch(AsyncFetchEvent)
 }
 
 #[derive(Debug)]
-enum AsyncFetchEvent{
+pub enum AsyncFetchEvent{
     Init,
-    NewItem,
+    // NewItem,
     Complete,
-    Fail
+    // Fail
 }
 
 
@@ -178,7 +180,7 @@ impl ThreadList{
         let do_run = run.clone();
 
 
-        let idle_handle = gtk_idle_add(self.model.relm.stream(), || Msg::AsyncReceive(AsyncFetchEvent::Init));
+        let idle_handle = gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init));
 
         self.model.async_handle = Some(AsyncThreadHandle{
             join_handle: thread_handle,
@@ -198,24 +200,37 @@ impl ThreadList{
 
     }
 
-    fn receive_thread(&mut self){
+    fn async_fetch_thread(&mut self){
         match self.model.async_handle.as_mut().unwrap().rx.try_recv(){
          Ok(ChannelItem::Thread(thread)) => {
              self.add_thread(thread);
              // Continue(true)
          },
          Ok(ChannelItem::Count(num)) => {
-             println!("{:?} threads", num);
+            println!("{:?} threads", num);
              // Continue(true)
          },
          Err(err) if err == TryRecvError::Empty => {
+
              // Continue(true)
          },
          Err(err) => {
+            self.model.relm.stream().emit(Msg::AsyncFetch(AsyncFetchEvent::Complete));
+
              // Continue(false)
          }
         }
     }
+
+    fn async_fetch_stop(&mut self){
+        if self.model.async_handle.is_some(){
+            let async_handle = self.model.async_handle.as_mut().unwrap();
+
+            // TODO: how do we test if the idle handle is actually correct?
+            glib::source::source_remove(glib::translate::FromGlib::from_glib(async_handle.idle_handle.to_glib().clone()));
+        }
+    }
+
 }
 
 
@@ -241,7 +256,9 @@ impl ::relm::Update for ThreadList {
         match event {
             Msg::Update(ref qs) => self.update(qs.clone()),
             Msg::ItemSelect => (),
-            Msg::AsyncReceive(ref evt) => self.receive_thread()
+            Msg::AsyncFetch(AsyncFetchEvent::Init) => self.async_fetch_thread(),
+            Msg::AsyncFetch(AsyncFetchEvent::Complete) => self.async_fetch_stop()
+
         }
     }
 }
