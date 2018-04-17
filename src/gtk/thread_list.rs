@@ -174,12 +174,15 @@ impl ThreadList{
         });
 
 
-        let tree_model = self.tree_model.clone();
+        let tree_model = gtk::ListStore::new(&[String::static_type()]);
 
-        gtk::idle_add(move ||{
-            tree_model.clear();
-            Continue(false)
-        });
+        self.tree_view.set_model(&tree_model);
+        self.tree_model = tree_model;
+
+        // gtk::idle_add(move ||{
+        //     tree_model.clear();
+        //     Continue(false)
+        // });
 
         let idle_handle = gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init));
 
@@ -279,7 +282,7 @@ impl ::relm::Widget for ThreadList {
 
         let tree_model = gtk::ListStore::new(&[String::static_type()]);
         let tree_filter = gtk::TreeModelFilter::new(&tree_model, None);
-        let tree_view = gtk::TreeView::new_with_model(&tree_filter);
+        let tree_view = gtk::TreeView::new_with_model(&tree_model);
 
 
         tree_view.set_headers_visible(false);
