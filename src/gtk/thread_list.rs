@@ -135,12 +135,10 @@ impl ThreadList{
             // TODO: how do we test if the idle handle is actually correct?
             glib::source::source_remove(async_handle.idle_handle);
         }
-        self.tree_model.clear();
 
         let mut dbman = self.model.dbmanager.clone();
         let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
 
-        let tree_model = self.tree_model.clone();
 
         let (tx, rx): (Sender<ChannelItem>, Receiver<ChannelItem>)  = channel();
 
@@ -176,9 +174,12 @@ impl ThreadList{
         });
 
 
+        let tree_model = self.tree_model.clone();
 
-        let do_run = run.clone();
-
+        gtk::idle_add(move ||{
+            tree_model.clear();
+            Continue(false)
+        });
 
         let idle_handle = gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init));
 
