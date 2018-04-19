@@ -146,6 +146,7 @@ impl ThreadList{
 
         let query = db.create_query(&qs).unwrap();
 
+
         self.model.thread_list = Some(query.search_threads().unwrap());
 
 
@@ -185,6 +186,10 @@ impl ThreadList{
 
 
         // let do_run = run.clone();
+        gtk::idle_add(move || {
+            debug!("thread count: {:?}", query.count_threads().unwrap());
+            Continue(false)
+        });
 
 
         let idle_handle = gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init));
@@ -218,26 +223,9 @@ impl ThreadList{
             },
             None => ()
         }
-        // match self.model.async_handle.as_mut().unwrap().rx.try_recv(){
-        //  Ok(ChannelItem::Thread(thread)) => {
-        //      self.add_thread(thread);
-        //      // Continue(true)
-        //  },
-        //  Ok(ChannelItem::Count(num)) => {
-        //     println!("{:?} threads", num);
-        //      // Continue(true)
-        //  },
-        //  Err(err) if err == TryRecvError::Empty => {
-        //
-        //      // Continue(true)
-        //  },
-        //  Err(err) => {
-        //     self.model.relm.stream().emit(Msg::AsyncFetch(AsyncFetchEvent::Complete));
-        //
-        //      // Continue(false)
-        //  }
-        // }
+
     }
+
 
     fn async_fetch_stop(&mut self){
         if self.model.async_handle.is_some(){
