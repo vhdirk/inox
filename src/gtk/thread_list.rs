@@ -83,6 +83,7 @@ pub struct ThreadListModel {
     settings: Rc<Settings>,
     dbmanager: Arc<DBManager>,
 
+    idle_handle: Option<glib::SourceId>,
     thread_list: Option<notmuch::Threads>,
 
     num_threads: u32,
@@ -116,28 +117,29 @@ fn add_thread(tree_model: gtk::ListStore, thread: MailThread){
 
 }
 
+fn create_liststore() -> gtk::ListStore{
+    gtk::ListStore::new(&[String::static_type()])
+}
+
 impl ThreadList{
 
     fn update(&mut self, qs: String){
 
-        // if self.model.async_handle.is_some(){
-        //     let async_handle = self.model.async_handle.take().unwrap();
-        //     async_handle.run.store(false, Ordering::Relaxed);
-        //     async_handle.join_handle.join().unwrap();
-        //
-        //     // TODO: how do we test if the idle handle is actually correct?
-        //     glib::source::source_remove(async_handle.idle_handle);
-        // }
+        if self.model.idle_handle.is_some(){
+            glib::source::source_remove(self.model.idle_handle.take().unwrap());
+        }
+        self.tree_model = create_liststore();
+        self.tree_view.set_model(&self.tree_model);
+
+
 
         let mut dbman = self.model.dbmanager.clone();
         let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
-
 
         let query = db.create_query(&qs).unwrap();
 
 
         self.model.thread_list = Some(query.search_threads().unwrap());
-
 
 
         // let do_run = run.clone();
@@ -147,7 +149,7 @@ impl ThreadList{
         });
 
 
-        let idle_handle = gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init));
+        self.model.idle_handle = Some(gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init)));
 
     }
 
@@ -175,15 +177,6 @@ impl ThreadList{
     }
 
 
-    // fn async_fetch_stop(&mut self){
-    //     if self.model.async_handle.is_some(){
-    //         let async_handle = self.model.async_handle.as_mut().unwrap();
-    //
-    //         // TODO: how do we test if the idle handle is actually correct?
-    //         glib::source::source_remove(glib::translate::FromGlib::from_glib(async_handle.idle_handle.to_glib().clone()));
-    //     }
-    // }
-
 }
 
 
@@ -199,6 +192,7 @@ impl ::relm::Update for ThreadList {
             dbmanager,
 
             thread_list: None,
+            idle_handle: None,
             num_threads: 0,
             num_threads_loaded: 0
         }
@@ -227,8 +221,7 @@ impl ::relm::Widget for ThreadList {
     fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self
     {
         let scrolled_window = gtk::ScrolledWindow::new(None, None);
-
-        let tree_model = gtk::ListStore::new(&[String::static_type()]);
+        let tree_model = create_liststore();
         let tree_filter = gtk::TreeModelFilter::new(&tree_model, None);
         let tree_view = gtk::TreeView::new_with_model(&tree_model);
 
