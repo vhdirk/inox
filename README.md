@@ -2,6 +2,8 @@
 
 > Mail with Notmuch Rust
 
+[![Build Status](https://travis-ci.org/vhdirk/inox.svg?branch=master)](https://travis-ci.org/vhdirk/inox)
+
 An experimental email client based on notmuch, along with other utilities like
 afew and offlineimap.
 
