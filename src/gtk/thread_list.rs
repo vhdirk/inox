@@ -26,13 +26,19 @@ use inox_core::database::Manager as DBManager;
 
 use thread_list_item::ThreadListItem;
 
-fn append_text_column(tree: &gtk::TreeView, id: i32) {
+const COLUMN_ID:u8 = 0;
+const COLUMN_SUBJECT:u8 = 1;
+const COLUMN_AUTHORS:u8 = 2;
+
+
+fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
     let column = gtk::TreeViewColumn::new();
     let cell = gtk::CellRendererText::new();
 
-    column.pack_start(&cell, true);
+    column.pack_start(&cell, false);
     // Association of the view's column with the model's `id` column.
     column.add_attribute(&cell, "text", id);
+    column.set_title(&title);
     tree.append_column(&column);
 }
 
@@ -109,16 +115,8 @@ enum ChannelItem{
 }
 
 
-fn add_thread(tree_model: gtk::ListStore, thread: MailThread){
-
-    let subject = &thread.subject;
-    let it = tree_model.append();
-    tree_model.set_value(&it, 0, &thread.subject.to_value());
-
-}
-
 fn create_liststore() -> gtk::ListStore{
-    gtk::ListStore::new(&[String::static_type()])
+    gtk::ListStore::new(&[String::static_type(), String::static_type(), String::static_type()])
 }
 
 impl ThreadList{
@@ -157,9 +155,14 @@ impl ThreadList{
     fn add_thread(&mut self, thread: notmuch::Thread){
 
         let subject = &thread.subject();
-        let it = self.tree_model.append();
-        self.tree_model.set_value(&it, 0, &thread.subject().to_value());
-
+        self.tree_model.insert_with_values(None,
+            &[COLUMN_ID as u32,
+              COLUMN_SUBJECT as u32,
+              COLUMN_AUTHORS as u32],
+            &[&thread.id().to_value(),
+              &thread.subject().to_value(),
+              &thread.authors().join(",").to_value()
+            ]);
     }
 
     fn next_thread(&mut self){
@@ -223,11 +226,12 @@ impl ::relm::Widget for ThreadList {
         let scrolled_window = gtk::ScrolledWindow::new(None, None);
         let tree_model = create_liststore();
         let tree_filter = gtk::TreeModelFilter::new(&tree_model, None);
-        let tree_view = gtk::TreeView::new_with_model(&tree_model);
+        let tree_view = gtk::TreeView::new();
 
 
-        tree_view.set_headers_visible(false);
-        append_text_column(&tree_view, 0);
+        // tree_view.set_headers_visible(false);
+        append_text_column(&tree_view, COLUMN_SUBJECT as i32, "Subject");
+        append_text_column(&tree_view, COLUMN_AUTHORS as i32, "Authors");
 
         scrolled_window.add(&tree_view);
 
