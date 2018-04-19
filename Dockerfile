@@ -1,7 +1,7 @@
 FROM buildpack-deps:buster
 
 # The Rust toolchain to use when building our image.  Set by `hooks/build`.
-ARG TRAVIS_RUST_VERSION=stable
+ARG TRAVIS_RUST_VERSION=nightly
 
 # Make sure we have basic dev tools for building C libraries.  Our goal
 # here is to support the musl-libc builds and Cargo builds needed for a
