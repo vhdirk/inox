@@ -7,7 +7,6 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
-use scoped_pool::Pool;
 
 use gio;
 use glib;

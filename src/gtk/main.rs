@@ -21,8 +21,6 @@ extern crate relm_attributes;
 extern crate relm_derive;
 extern crate shellexpand;
 extern crate notmuch;
-extern crate scoped_pool;
-extern crate owning_ref;
 
 extern crate gtk;
 extern crate gio;

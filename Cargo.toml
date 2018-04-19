@@ -27,12 +27,6 @@ serde_ini = "*"
 lazy_static = "1.0"
 vte = "0.3.2"
 chrono = { version = "0.4", features = ["serde"] }
-owning_ref = "0.3.3"
-
-crossbeam = "^0.3.2"
-crossbeam-channel = "^0.1.2"
-scoped-pool = "^1.0.0"
-
 notmuch = "*"
 
 
