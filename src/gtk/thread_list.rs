@@ -54,6 +54,7 @@ pub enum Msg {
     ItemSelect,
 
     // inbound
+    /// signals a request to update the event list. String is a notmuch query string
     Update(String),
 
     // private
@@ -91,6 +92,7 @@ pub struct ThreadListModel {
     dbmanager: Arc<DBManager>,
 
     async_handle: Option<AsyncThreadHandle>,
+    thread_list: Option<notmuch::Threads>,
 
     num_threads: u32,
     num_threads_loaded: u32
@@ -140,40 +142,55 @@ impl ThreadList{
         let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
 
 
-        let (tx, rx): (Sender<ChannelItem>, Receiver<ChannelItem>)  = channel();
+        let query = db.create_query(&qs).unwrap();
 
-        let run = Arc::new(AtomicBool::new(true));
 
-        let do_run = run.clone();
+        self.model.thread_list = Some(query.search_threads().unwrap());
 
-        let thread_handle = thread::spawn(move || {
 
-            let query = db.create_query(&qs).unwrap();
 
-            tx.send(ChannelItem::Count(query.count_threads().unwrap())).unwrap();
+        // let (tx, rx): (Sender<ChannelItem>, Receiver<ChannelItem>)  = channel();
+        //
+        // let run = Arc::new(AtomicBool::new(true));
+        //
+        // let do_run = run.clone();
+        //
+        // let thread_handle = thread::spawn(move || {
+        //
+        //
+        //     tx.send(ChannelItem::Count(query.count_threads().unwrap())).unwrap();
+        //
+        //     let mut threads = query.search_threads().unwrap();
+        //
+        //     while do_run.load(Ordering::Relaxed) {
+        //         match threads.next() {
+        //             Some(mthread) => {
+        //                 tx.send(ChannelItem::Thread(MailThread{
+        //                     id: mthread.id(),
+        //                     subject: mthread.subject(),
+        //                     total_messages: mthread.total_messages(),
+        //                     authors: mthread.authors(),
+        //                     oldest_date: mthread.oldest_date(),
+        //                     newest_date: mthread.newest_date()
+        //
+        //                 })).unwrap();
+        //             },
+        //             None => { break }
+        //         }
+        //     }
+        //
+        // });
 
-            let mut threads = query.search_threads().unwrap();
 
-            while do_run.load(Ordering::Relaxed) {
-                match threads.next() {
-                    Some(mthread) => {
-                        tx.send(ChannelItem::Thread(MailThread{
-                            id: mthread.id(),
-                            subject: mthread.subject(),
-                            total_messages: mthread.total_messages(),
-                            authors: mthread.authors(),
-                            oldest_date: mthread.oldest_date(),
-                            newest_date: mthread.newest_date()
 
-                        })).unwrap();
-                    },
-                    None => { break }
-                }
-            }
-
+        // let do_run = run.clone();
+        gtk::idle_add(move || {
+            debug!("thread count: {:?}", query.count_threads().unwrap());
+            Continue(false)
         });
 
 
+<<<<<<< HEAD
         let tree_model = gtk::ListStore::new(&[String::static_type()]);
 
         self.tree_view.set_model(&tree_model);
@@ -184,47 +201,47 @@ impl ThreadList{
         //     Continue(false)
         // });
 
+||||||| merged common ancestors
+
+        let do_run = run.clone();
+
+
+=======
+>>>>>>> threadless
         let idle_handle = gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init));
 
-        self.model.async_handle = Some(AsyncThreadHandle{
-            join_handle: thread_handle,
-            idle_handle: idle_handle,
-            run: run,
-            rx: rx
-        });
+        // self.model.async_handle = Some(AsyncThreadHandle{
+        //     join_handle: thread_handle,
+        //     idle_handle: idle_handle,
+        //     run: run,
+        //     rx: rx
+        // });
 
     }
 
 
-    fn add_thread(&mut self, thread: MailThread){
+    fn add_thread(&mut self, thread: notmuch::Thread){
 
-        let subject = &thread.subject;
+        let subject = &thread.subject();
         let it = self.tree_model.append();
-        self.tree_model.set_value(&it, 0, &thread.subject.to_value());
+        self.tree_model.set_value(&it, 0, &thread.subject().to_value());
 
     }
 
     fn async_fetch_thread(&mut self){
-        match self.model.async_handle.as_mut().unwrap().rx.try_recv(){
-         Ok(ChannelItem::Thread(thread)) => {
-             self.add_thread(thread);
-             // Continue(true)
-         },
-         Ok(ChannelItem::Count(num)) => {
-            println!("{:?} threads", num);
-             // Continue(true)
-         },
-         Err(err) if err == TryRecvError::Empty => {
-
-             // Continue(true)
-         },
-         Err(err) => {
-            self.model.relm.stream().emit(Msg::AsyncFetch(AsyncFetchEvent::Complete));
-
-             // Continue(false)
-         }
+        if self.model.thread_list.is_none(){
+            return;
         }
+
+        match self.model.thread_list.as_mut().unwrap().next() {
+            Some(mthread) => {
+                self.add_thread(mthread);
+            },
+            None => ()
+        }
+
     }
+
 
     fn async_fetch_stop(&mut self){
         if self.model.async_handle.is_some(){
@@ -250,7 +267,7 @@ impl ::relm::Update for ThreadList {
             dbmanager,
 
             async_handle: None,
-
+            thread_list: None,
             num_threads: 0,
             num_threads_loaded: 0
         }
