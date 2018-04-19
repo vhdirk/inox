@@ -58,4 +58,4 @@ gtk_3_18 = ["gtk_3_16", "gtk/v3_18"] #for CI tools
 gtk_3_20 = ["gtk_3_18", "gtk/v3_20"] #for CI tools
 
 [patch.crates-io]
-notmuch = { path="../notmuch-rs" }
+notmuch = { path="../notmuch-rs", optional = true }
