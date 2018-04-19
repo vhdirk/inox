@@ -1,0 +1,14 @@
+language: rust
+rust:
+  - nightly
+  - beta
+  - stable
+
+sudo: required
+
+services:
+  - docker
+
+script:
+  - docker build -t rust-buster .
+  - docker run -it --rm -v $(pwd):/opt/rust/src rust-buster cargo build --release
