@@ -24,12 +24,13 @@ extern crate notmuch;
 
 extern crate gtk;
 extern crate gio;
+#[macro_use]
 extern crate glib;
 extern crate gmime;
 extern crate glib_sys as glib_ffi;
+extern crate gobject_sys as gobject_ffi;
 
 
-#[macro_use]
 extern crate gobject_gen;
 
 
@@ -44,7 +45,6 @@ use std::sync::Arc;
 
 use gtk::prelude::*;
 use gio::prelude::*;
-use gtk_sys as gtk_ffi;
 
 use structopt::StructOpt;
 use structopt::clap::{App, Arg};
