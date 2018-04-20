@@ -24,6 +24,7 @@ use notmuch::DatabaseMode;
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
 
+use thread_list_cell_renderer::CellRendererThread;
 
 const COLUMN_ID:u8 = 0;
 const COLUMN_SUBJECT:u8 = 1;
@@ -32,7 +33,7 @@ const COLUMN_AUTHORS:u8 = 2;
 
 fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
     let column = gtk::TreeViewColumn::new();
-    let cell = gtk::CellRendererText::new();
+    let cell = CellRendererThread::new();
 
     column.pack_start(&cell, false);
     // Association of the view's column with the model's `id` column.

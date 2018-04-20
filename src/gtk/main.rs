@@ -29,8 +29,9 @@ extern crate glib;
 extern crate gmime;
 extern crate glib_sys as glib_ffi;
 extern crate gobject_sys as gobject_ffi;
+extern crate gtk_sys as gtk_ffi;
 
-
+#[macro_use]
 extern crate gobject_gen;
 
 
