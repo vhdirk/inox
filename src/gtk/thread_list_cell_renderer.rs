@@ -7,10 +7,11 @@ use std::mem;
 
 use gio;
 use glib;
+use gtk;
 use glib::IsA;
 use glib::translate::*;
-use gtk_ffi;
 use gtk::prelude::*;
+use gobject_gen::gobject_gen;
 use relm_attributes::widget;
 
 use notmuch;
@@ -20,7 +21,13 @@ use inox_core::database::Manager as DBManager;
 
 use notmuch::DatabaseMode;
 
+
+struct CellRendererThreadPrivate{
+
+}
+
 gobject_gen! {
-    class CellRendererThread: gtk::CellRenderer {
+    class CellRendererThreadClass: gtk::CellRenderer {
+        type InstancePrivate = CellRendererThreadPrivate;
     }
 }

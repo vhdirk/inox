@@ -24,7 +24,6 @@ use notmuch::DatabaseMode;
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
 
-use thread_list_item::ThreadListItem;
 
 const COLUMN_ID:u8 = 0;
 const COLUMN_SUBJECT:u8 = 1;
