@@ -13,6 +13,7 @@ use serde_ini;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
+    #[serde(default)]
     pub database: DatabaseConfig,
     pub user: UserConfig,
     pub new: NewConfig,
@@ -60,6 +61,14 @@ impl Config{
 pub struct DatabaseConfig {
     #[serde(default = "default_database_path")]
     pub path: String
+}
+
+impl Default for DatabaseConfig{
+    fn default() -> DatabaseConfig{
+        DatabaseConfig{
+            path: default_database_path()
+        }
+    }
 }
 
 fn default_database_path() -> String {
