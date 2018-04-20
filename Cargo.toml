@@ -44,6 +44,8 @@ relm-attributes = "^0.14.0"
 
 lettre = "*"
 
+gobject-gen = { git = "https://github.com/vhdirk/gnome-class.git" }
+
 [features]
 default = ["gtk/v3_16", "relm/unstable", "relm-attributes/unstable", "relm-derive/unstable"]
 gtk_3_10 = ["gtk/v3_10"]
@@ -53,3 +55,6 @@ gtk_3_20 = ["gtk_3_18", "gtk/v3_20"] #for CI tools
 
 # [patch.crates-io]
 # notmuch = { path="../notmuch-rs", optional = true }
+
+[dev-dependencies]
+cargo-expand = "*"
