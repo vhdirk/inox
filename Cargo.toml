@@ -46,9 +46,7 @@ relm = "^0.14.0"
 relm-derive = "^0.14.0"
 relm-attributes = "^0.14.0"
 
-lettre = "*"
-
-gobject-gen = { git = "https://github.com/vhdirk/gnome-class.git" }
+# lettre = "*"
 
 [features]
 default = ["gtk/v3_16", "relm/unstable", "relm-attributes/unstable", "relm-derive/unstable"]
