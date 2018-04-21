@@ -13,6 +13,8 @@ use glib::translate::*;
 use gtk::prelude::*;
 use glib_ffi;
 use gobject_ffi;
+use cairo_ffi;
+use gtk_ffi;
 use glib::object::Downcast;
 use glib::translate::*;
 use glib::IsA;
@@ -35,8 +37,9 @@ use notmuch::DatabaseMode;
 struct CellRendererThreadPriv {}
 
 glib_wrapper ! {
-    pub struct CellRendererThread(Object<CellRendererThreadFfi, CellRendererThreadClass>):
-        gtk::CellRenderer;
+    pub struct CellRendererThread(Object<CellRendererThreadFfi, CellRendererThreadClass>)
+    : [gtk::CellRenderer => gtk_ffi::GtkCellRenderer];
+
 
     match fn {
         get_type => || cell_renderer_thread_get_type(),
@@ -85,7 +88,7 @@ impl CellRendererThread {
         cell_area: &gtk::Rectangle,
         flags: gtk::CellRendererState,
     ){
-        
+
     }
 
 
@@ -129,14 +132,14 @@ impl CellRendererThreadFfi {
 
     unsafe extern "C" fn render_slot_trampoline(
         this: *mut <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibType,
-        cr: <cairo::Context as GlibPtrDefault>::GlibType,
-        background_area: <gtk::Rectangle as GlibPtrDefault>::GlibType,
-        cell_area: <gtk::Rectangle as GlibPtrDefault>::GlibType,
+        cr: *mut cairo_ffi::cairo_t,
+        background_area: *mut gtk::Rectangle,
+        cell_area: *mut gtk::Rectangle,
         flags: (),
     )  {
         #[allow(deprecated)]
         let _guard = glib::CallbackGuard::new();
-        let this = this as *mut TwoFfi;
+        let this = this as *mut CellRendererThreadFfi;
         let instance: &CellRendererThread = &from_glib_borrow(this);
         instance.render_impl(
             &<cairo::Context as FromGlibPtrBorrow<_>>::from_glib_borrow(cr),
