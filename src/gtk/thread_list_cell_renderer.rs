@@ -8,9 +8,9 @@ use std::mem;
 use gio;
 use glib;
 use gtk;
+use cairo;
 use glib::translate::*;
 use gtk::prelude::*;
-use gobject_gen::gobject_gen;
 use glib_ffi;
 use gobject_ffi;
 use glib::object::Downcast;
@@ -77,6 +77,18 @@ impl CellRendererThread {
             (&*_private).as_ref().unwrap()
         }
     }
+
+    fn render_impl(
+        &self,
+        cr: &cairo::Context,
+        background_area: &gtk::Rectangle,
+        cell_area: &gtk::Rectangle,
+        flags: gtk::CellRendererState,
+    ){
+        
+    }
+
+
 }
 impl CellRendererThreadFfi {
     #[allow(dead_code)]
@@ -114,6 +126,25 @@ impl CellRendererThreadFfi {
             .finalize
             .map(|f| f(obj));
     }
+
+    unsafe extern "C" fn render_slot_trampoline(
+        this: *mut <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibType,
+        cr: <cairo::Context as GlibPtrDefault>::GlibType,
+        background_area: <gtk::Rectangle as GlibPtrDefault>::GlibType,
+        cell_area: <gtk::Rectangle as GlibPtrDefault>::GlibType,
+        flags: (),
+    )  {
+        #[allow(deprecated)]
+        let _guard = glib::CallbackGuard::new();
+        let this = this as *mut TwoFfi;
+        let instance: &CellRendererThread = &from_glib_borrow(this);
+        instance.render_impl(
+            &<cairo::Context as FromGlibPtrBorrow<_>>::from_glib_borrow(cr),
+            &<gtk::Rectangle as FromGlibPtrBorrow<_>>::from_glib_borrow(background_area),
+            &<gtk::Rectangle as FromGlibPtrBorrow<_>>::from_glib_borrow(cell_area),
+            flags,
+        )
+    }
 }
 
 impl CellRendererThreadClass {
@@ -131,6 +162,9 @@ impl CellRendererThreadClass {
         {
             #[allow(unused_variables)]
             let klass = &mut *(klass as *mut CellRendererThreadClass);
+
+            (*(klass as *mut _ as *mut <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibClassType))
+                .render = Some(CellRendererThreadFfi::render_slot_trampoline);
         }
         {}
         PRIV.parent_class = gobject_ffi::g_type_class_peek_parent(klass)
@@ -181,4 +215,7 @@ pub trait CellRendererThreadExt {}
 impl<O: IsA<CellRendererThread> + IsA<glib::object::Object> + glib::object::ObjectExt>
     CellRendererThreadExt for O
 {
+
+
+
 }
