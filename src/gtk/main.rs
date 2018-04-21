@@ -24,6 +24,7 @@ extern crate notmuch;
 
 extern crate gtk;
 extern crate gio;
+extern crate gdk;
 #[macro_use]
 extern crate glib;
 extern crate gmime;
@@ -33,6 +34,7 @@ extern crate glib_sys as glib_ffi;
 extern crate gobject_sys as gobject_ffi;
 extern crate gtk_sys as gtk_ffi;
 extern crate cairo_sys as cairo_ffi;
+extern crate gdk_sys as gdk_ffi;
 
 extern crate inox_core;
 
