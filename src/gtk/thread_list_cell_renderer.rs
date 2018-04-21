@@ -30,7 +30,7 @@ use inox_core::database::Manager as DBManager;
 use notmuch::DatabaseMode;
 
 // A lot of the stuff below was generated with an adapted version of gobject_gen
-// (https://gitlab.gnome.org/federico/gnome-class), but I could not get the macroto work reliably
+// (https://gitlab.gnome.org/federico/gnome-class), but I could not get the macro to work reliably
 // with each nightly compiler. Pasting it here is rather verbose but it does make sure it will
 // work consistently
 
@@ -146,10 +146,10 @@ impl CellRendererThreadFfi {
         let this = this as *mut CellRendererThreadFfi;
         let instance: &CellRendererThread = &from_glib_borrow(this);
         instance.render_impl(
-            &<cairo::Context as FromGlibPtrBorrow<_>>::from_glib_borrow(cr),
-            &<gtk::Widget as FromGlibPtrBorrow<_>>::from_glib_borrow(widget),
-            &<gdk::Rectangle as FromGlibPtrBorrow<_>>::from_glib_borrow(background_area),
-            &<gdk::Rectangle as FromGlibPtrBorrow<_>>::from_glib_borrow(cell_area),
+            &from_glib_borrow(cr),
+            &from_glib_borrow(widget),
+            &from_glib_borrow(background_area),
+            &from_glib_borrow(cell_area),
             glib::translate::FromGlib::from_glib(flags)
         )
     }
