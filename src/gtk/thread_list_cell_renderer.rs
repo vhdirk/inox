@@ -8,6 +8,7 @@ use std::mem;
 use gio;
 use glib;
 use gtk;
+use gdk;
 use cairo;
 use glib::translate::*;
 use gtk::prelude::*;
@@ -15,6 +16,7 @@ use glib_ffi;
 use gobject_ffi;
 use cairo_ffi;
 use gtk_ffi;
+use gdk_ffi;
 use glib::object::Downcast;
 use glib::translate::*;
 use glib::IsA;
@@ -46,12 +48,12 @@ glib_wrapper ! {
     }
 }
 
-struct CellRendererThreadFfi {
+pub struct CellRendererThreadFfi {
     pub parent: <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibType,
 }
 
 #[repr(C)]
-struct CellRendererThreadClass {
+pub struct CellRendererThreadClass {
     pub parent_class: <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibClassType,
 }
 
@@ -84,6 +86,7 @@ impl CellRendererThread {
     fn render_impl(
         &self,
         cr: &cairo::Context,
+        widget: &gtk::Widget,
         background_area: &gtk::Rectangle,
         cell_area: &gtk::Rectangle,
         flags: gtk::CellRendererState,
@@ -133,9 +136,10 @@ impl CellRendererThreadFfi {
     unsafe extern "C" fn render_slot_trampoline(
         this: *mut <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibType,
         cr: *mut cairo_ffi::cairo_t,
-        background_area: *mut gtk::Rectangle,
-        cell_area: *mut gtk::Rectangle,
-        flags: (),
+        widget: *mut gtk_ffi::GtkWidget,
+        background_area: *const gdk_ffi::GdkRectangle,
+        cell_area: *const gdk_ffi::GdkRectangle,
+        flags: gtk_ffi::GtkCellRendererState,
     )  {
         #[allow(deprecated)]
         let _guard = glib::CallbackGuard::new();
@@ -143,9 +147,10 @@ impl CellRendererThreadFfi {
         let instance: &CellRendererThread = &from_glib_borrow(this);
         instance.render_impl(
             &<cairo::Context as FromGlibPtrBorrow<_>>::from_glib_borrow(cr),
-            &<gtk::Rectangle as FromGlibPtrBorrow<_>>::from_glib_borrow(background_area),
-            &<gtk::Rectangle as FromGlibPtrBorrow<_>>::from_glib_borrow(cell_area),
-            flags,
+            &<gtk::Widget as FromGlibPtrBorrow<_>>::from_glib_borrow(widget),
+            &<gdk::Rectangle as FromGlibPtrBorrow<_>>::from_glib_borrow(background_area),
+            &<gdk::Rectangle as FromGlibPtrBorrow<_>>::from_glib_borrow(cell_area),
+            glib::translate::FromGlib::from_glib(flags)
         )
     }
 }
