@@ -68,6 +68,8 @@ use inox_core::database::Manager as DBManager;
 
 use application_window::ApplicationWindow;
 
+pub use thread_list_cell_renderer::cell_renderer_thread_get_type;
+pub use thread_list_cell_renderer::cell_renderer_thread_new;
 
 /// Init Gtk and logger.
 fn init() {
