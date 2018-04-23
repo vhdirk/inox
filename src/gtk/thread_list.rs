@@ -37,7 +37,7 @@ fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
 
     column.pack_start(&cell, false);
     // Association of the view's column with the model's `id` column.
-    column.add_attribute(&cell, "text", id);
+    // column.add_attribute(&cell, "text", id);
     column.set_title(&title);
     tree.append_column(&column);
 }
@@ -47,7 +47,7 @@ pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &::relm::Eve
     gtk::idle_add(move || {
         let msg = constructor();
         stream.emit(msg);
-        Continue(true)
+        Continue(false)
     })
 }
 
@@ -158,10 +158,11 @@ impl ThreadList{
         self.tree_model.insert_with_values(None,
             &[COLUMN_ID as u32,
               COLUMN_SUBJECT as u32,
-              COLUMN_AUTHORS as u32],
+              // COLUMN_AUTHORS as
+            ],
             &[&thread.id().to_value(),
-              &thread.subject().to_value(),
-              &thread.authors().join(",").to_value()
+              &thread.subject().to_value()
+              // &thread.authors().join(",").to_value()
             ]);
     }
 
@@ -231,7 +232,7 @@ impl ::relm::Widget for ThreadList {
 
         // tree_view.set_headers_visible(false);
         append_text_column(&tree_view, COLUMN_SUBJECT as i32, "Subject");
-        append_text_column(&tree_view, COLUMN_AUTHORS as i32, "Authors");
+        // append_text_column(&tree_view, COLUMN_AUTHORS as i32, "Authors");
 
         scrolled_window.add(&tree_view);
 
