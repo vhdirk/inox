@@ -28,6 +28,35 @@ use notmuch;
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 use notmuch::DatabaseMode;
 
 // A lot of the stuff below was generated with an adapted version of gobject_gen
@@ -49,6 +78,7 @@ glib_wrapper ! {
     }
 }
 
+
 pub struct CellRendererThreadFfi {
     pub parent: <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibType,
 }
@@ -57,6 +87,7 @@ pub struct CellRendererThreadFfi {
 pub struct CellRendererThreadClass {
     pub parent_class: <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibClassType,
 }
+
 
 struct CellRendererThreadClassPrivate {
     parent_class: *const <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibClassType,
@@ -70,7 +101,7 @@ impl CellRendererThread {
 
     pub fn new() -> CellRendererThread {
         println!("CellRendererThread::new");
-        unsafe { from_glib_full(cell_renderer_thread_new()) }
+        unsafe { from_glib_none(cell_renderer_thread_new()) }
     }
 
     #[allow(dead_code)]
@@ -86,17 +117,17 @@ impl CellRendererThread {
         }
     }
 
-    // fn render(
-    //     &self,
-    //     cr: &cairo::Context,
-    //     widget: &gtk::Widget,
-    //     background_area: &gtk::Rectangle,
-    //     cell_area: &gtk::Rectangle,
-    //     flags: gtk::CellRendererState,
-    // ){
-    //
-    //     print!("waaah",);
-    // }
+    fn render(
+        &self,
+        cr: &cairo::Context,
+        widget: &gtk::Widget,
+        background_area: &gtk::Rectangle,
+        cell_area: &gtk::Rectangle,
+        flags: gtk::CellRendererState,
+    ){
+
+        print!("waaah",);
+    }
 
 
 }
@@ -140,26 +171,26 @@ impl CellRendererThreadFfi
             .map(|f| f(obj));
     }
 
-    // unsafe extern "C" fn render_slot_trampoline(
-    //     this: *mut <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibType,
-    //     cr: *mut cairo_ffi::cairo_t,
-    //     widget: *mut gtk_ffi::GtkWidget,
-    //     background_area: *const gdk_ffi::GdkRectangle,
-    //     cell_area: *const gdk_ffi::GdkRectangle,
-    //     flags: gtk_ffi::GtkCellRendererState,
-    // )  {
-    //     #[allow(deprecated)]
-    //     let _guard = glib::CallbackGuard::new();
-    //     let this = this as *mut CellRendererThreadFfi;
-    //     let instance: &CellRendererThread = &from_glib_borrow(this);
-    //     instance.render(
-    //         &from_glib_borrow(cr),
-    //         &from_glib_borrow(widget),
-    //         &from_glib_borrow(background_area),
-    //         &from_glib_borrow(cell_area),
-    //         from_glib(flags)
-    //     )
-    // }
+    unsafe extern "C" fn render_slot_trampoline(
+        this: *mut <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibType,
+        cr: *mut cairo_ffi::cairo_t,
+        widget: *mut gtk_ffi::GtkWidget,
+        background_area: *const gdk_ffi::GdkRectangle,
+        cell_area: *const gdk_ffi::GdkRectangle,
+        flags: gtk_ffi::GtkCellRendererState,
+    )  {
+        #[allow(deprecated)]
+        let _guard = glib::CallbackGuard::new();
+        let this = this as *mut CellRendererThreadFfi;
+        let instance: &CellRendererThread = &from_glib_borrow(this);
+        instance.render(
+            &from_glib_borrow(cr),
+            &from_glib_borrow(widget),
+            &from_glib_borrow(background_area),
+            &from_glib_borrow(cell_area),
+            from_glib(flags)
+        )
+    }
 }
 
 impl CellRendererThreadClass {
@@ -174,13 +205,13 @@ impl CellRendererThreadClass {
             let gobject_class = &mut *(klass as *mut gobject_ffi::GObjectClass);
             gobject_class.finalize = Some(CellRendererThreadFfi::finalize);
         }
-        // {
-        //     #[allow(unused_variables)]
-        //     let klass = &mut *(klass as *mut CellRendererThreadClass);
-        //
-        //     (*(klass as *mut _ as *mut <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibClassType))
-        //         .render = Some(CellRendererThreadFfi::render_slot_trampoline);
-        // }
+        {
+            #[allow(unused_variables)]
+            let klass = &mut *(klass as *mut CellRendererThreadClass);
+
+            (*(klass as *mut _ as *mut <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibClassType))
+                .render = Some(CellRendererThreadFfi::render_slot_trampoline);
+        }
 
         PRIV.parent_class = gobject_ffi::g_type_class_peek_parent(klass)
             as *const <gtk::CellRenderer as glib::wrapper::Wrapper>::GlibClassType;
