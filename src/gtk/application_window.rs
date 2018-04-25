@@ -112,7 +112,9 @@ impl ::relm::Widget for ApplicationWindow {
 
 
         use self::MainContentMsg::ThreadSelect as MainContent_ThreadSelect;
-        connect!(content@MainContent_ThreadSelect(ref thread_id), model.relm.clone(), Msg::ThreadSelect(thread_id.clone()));
+        use self::HeaderMsg::ThreadSelect as Header_ThreadSelect;
+
+        connect!(content@MainContent_ThreadSelect(ref thread_id), header, Header_ThreadSelect(thread_id.clone()));
 
 
         ApplicationWindow {
