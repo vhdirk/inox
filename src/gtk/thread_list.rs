@@ -56,13 +56,14 @@ pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &::relm::Eve
 #[derive(Msg, Debug)]
 pub enum Msg {
     // outbound
-    ItemSelect,
+    ThreadSelect(Option<String>),
 
     // inbound
     /// signals a request to update the event list. String is a notmuch query string
     Update(String),
 
     // private
+    ItemSelect,
     AsyncFetch(AsyncFetchEvent)
 }
 
@@ -96,23 +97,6 @@ pub struct ThreadListModel {
     num_threads_loaded: u32
 }
 
-
-
-#[derive(Default, Debug)]
-struct MailThread {
-    pub id: String,
-    pub subject: String,
-    pub total_messages: i32,
-    pub authors: Vec<String>,
-    pub oldest_date: i64,
-    pub newest_date: i64
-}
-
-#[derive(Debug)]
-enum ChannelItem{
-    Thread(MailThread),
-    Count(u32),
-}
 
 
 fn create_liststore() -> gtk::ListStore{
@@ -204,7 +188,18 @@ impl ::relm::Update for ThreadList {
     fn update(&mut self, event: Self::Msg) {
         match event {
             Msg::Update(ref qs) => self.update(qs.clone()),
-            Msg::ItemSelect => (),
+            Msg::ItemSelect => {
+                let selection = self.tree_view.get_selection();
+                if let Some((list_model, iter)) = selection.get_selected() {
+                    let thread_id: String = list_model.get_value(&iter, COLUMN_ID as i32)
+                                                      .get::<String>()
+                                                      .unwrap();
+
+                    debug!("select thread: {:?}", thread_id);
+                    self.model.relm.stream().clone().emit(Msg::ThreadSelect(Some(thread_id)));
+                }
+            },
+            Msg::ThreadSelect(ref _thread_id) => (),
             Msg::AsyncFetch(AsyncFetchEvent::Init) => self.next_thread(),
             Msg::AsyncFetch(AsyncFetchEvent::Complete) => ()
 

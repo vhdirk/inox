@@ -15,12 +15,13 @@ use constants;
 //use self::Msg::*;
 
 #[derive(Msg)]
-pub enum HeaderMsg {
+pub enum Msg {
+    ThreadSelect(Option<String>)
 }
 
 
 pub struct HeaderModel {
-
+    title: String
 }
 
 #[widget]
@@ -31,18 +32,23 @@ impl ::relm::Widget for Header {
 
     fn model() -> HeaderModel {
         HeaderModel {
-
+            title: constants::APPLICATION_NAME.to_string()
         }
     }
 
-    fn update(&mut self, _event: HeaderMsg) {
-        // self.label.set_text("");
+    fn update(&mut self, event: Msg) {
+        match event {
+            Msg::ThreadSelect(ref thread_id) => {
+                println!("header: {:?}", thread_id.clone().unwrap());
+                self.model.title = thread_id.clone().unwrap();
+            }
+        }
     }
 
     view! {
         #[name="container"]
         gtk::HeaderBar {
-            title: constants::APPLICATION_NAME,
+            title: Some(self.model.title.as_str()),
             show_close_button: true
         }
     }
