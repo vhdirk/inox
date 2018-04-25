@@ -18,10 +18,13 @@ use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
 use constants;
 use header::Header;
-use main_content::MainContent;
+use header::Msg as HeaderMsg;
+
+use main_content::{MainContent, Msg as MainContentMsg};
 
 #[derive(Msg)]
 pub enum Msg {
+    ThreadSelect(Option<String>), //emitted when the currently selected thread is changed
     Quit,
 }
 
@@ -60,6 +63,11 @@ impl ::relm::Update for ApplicationWindow
 
     fn update(&mut self, event: Msg) {
         match event {
+            Msg::ThreadSelect(ref thread_id) => {
+                self.header.emit(HeaderMsg::ThreadSelect(thread_id.clone()));
+                debug!("select thread: {:?}", thread_id);
+
+            },
             Msg::Quit => gtk::main_quit(),
         }
     }
@@ -102,6 +110,11 @@ impl ::relm::Widget for ApplicationWindow {
 
         let content = window.add_widget::<MainContent>((model.settings.clone(), model.dbmanager.clone()));
 
+
+        use self::MainContentMsg::ThreadSelect as MainContent_ThreadSelect;
+        connect!(content@MainContent_ThreadSelect(ref thread_id), model.relm.clone(), Msg::ThreadSelect(thread_id.clone()));
+
+
         ApplicationWindow {
             window: window,
             model: model,
@@ -109,4 +122,5 @@ impl ::relm::Widget for ApplicationWindow {
             content: content
         }
     }
+
 }

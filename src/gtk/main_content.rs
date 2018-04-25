@@ -62,8 +62,9 @@ use thread_view::ThreadView;
 // }
 
 #[derive(Msg)]
-pub enum MainContentMsg {
-    TagSelect(Option<String>)
+pub enum Msg {
+    TagSelect(Option<String>),
+    ThreadSelect(Option<String>),
 }
 
 
@@ -93,14 +94,17 @@ impl MainContent {
 
 }
 
-use self::MainContentMsg::TagSelect;
+use self::Msg::TagSelect;
+use self::Msg::ThreadSelect;
+use self::ThreadListMsg::ThreadSelect as ThreadList_ThreadSelect;
+
 use self::TagListMsg::ItemSelect;
 
 #[widget]
 impl ::relm::Widget for MainContent {
     type Model = MainContentModel;
     type ModelParam = (Rc<Settings>, Arc<DBManager>);
-    type Msg = MainContentMsg;
+    type Msg = Msg;
 
 
     fn init_view(&mut self) {
@@ -124,9 +128,13 @@ impl ::relm::Widget for MainContent {
     }
 
 
-    fn update(&mut self, event: MainContentMsg) {
+    fn update(&mut self, event: Msg) {
         match event {
-            MainContentMsg::TagSelect(tag) => self.on_tag_changed(tag)
+            Msg::TagSelect(tag) => self.on_tag_changed(tag),
+            Msg::ThreadSelect(ref thread_id) => {
+                debug!("select thread: {:?}", thread_id);
+
+            },
         }
     }
 
@@ -141,7 +149,9 @@ impl ::relm::Widget for MainContent {
             #[name="thread_container"]
             gtk::Paned(self.model.ui_orientation){
                 #[name="thread_list"]
-                ThreadList(self.model.settings.clone(), self.model.dbmanager.clone()),
+                ThreadList(self.model.settings.clone(), self.model.dbmanager.clone()) {
+                    ThreadList_ThreadSelect(ref thread_id) => ThreadSelect(thread_id.clone()),
+                },
                 #[name="thread_view"]
                 ThreadView
             }
