@@ -42,16 +42,20 @@ pub trait CellRendererThreadImpl: 'static {
 pub struct CellRendererThread {
     thread: Cell<Option<notmuch::Thread>>
 }
+//
+// fn threadfun() -> glib::Type{
+//
+//     glib::Type::BaseBoxed
+// }
 
-static PROPERTIES: [Property; 0] = [
-    // Property::Boxed(
-    //     "thread",
-    //     "Thread to display",
-    //     "Handle of notmuch::Thread to display",
-    //     (1, u32::MAX),
-    //     DEFAULT_SAMPLES_PER_BUFFER,
-    //     PropertyMutability::ReadWrite,
-    // ),
+static PROPERTIES: [Property; 1] = [
+    Property::String(
+        "thread",
+        "Thread to display",
+        "Handle of notmuch::Thread to display",
+        None,
+        PropertyMutability::ReadWrite,
+    ),
 
 
 ];
@@ -89,6 +93,8 @@ impl CellRendererThread {
     }
 }
 
+
+
 impl ObjectImpl<CellRenderer> for CellRendererThread{
 
 
@@ -96,6 +102,9 @@ impl ObjectImpl<CellRenderer> for CellRendererThread{
         let prop = &PROPERTIES[id as usize];
 
         match *prop {
+            Property::String("thread", ..) => {
+                ()
+            },
             _ => unimplemented!(),
         }
     }
@@ -104,6 +113,9 @@ impl ObjectImpl<CellRenderer> for CellRendererThread{
         let prop = &PROPERTIES[id as usize];
 
         match *prop {
+            Property::String("thread", ..) => {
+                Ok("1".to_value())
+            },
             _ => unimplemented!(),
         }
     }
