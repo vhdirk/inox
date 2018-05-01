@@ -19,7 +19,7 @@ use gdk_ffi;
 use glib::object::Downcast;
 use glib::translate::*;
 use glib::IsA;
-
+use glib::value::AnyValue;
 use notmuch;
 
 
@@ -43,17 +43,17 @@ pub struct CellRendererThread {
     thread: Cell<Option<notmuch::Thread>>
 }
 //
-// fn threadfun() -> glib::Type{
-//
-//     glib::Type::BaseBoxed
-// }
+fn threadfun() -> glib::Type{
+
+    AnyValue::static_type()
+}
 
 static PROPERTIES: [Property; 1] = [
-    Property::String(
+    Property::Boxed(
         "thread",
         "Thread to display",
         "Handle of notmuch::Thread to display",
-        None,
+        threadfun,
         PropertyMutability::ReadWrite,
     ),
 
@@ -102,8 +102,10 @@ impl ObjectImpl<CellRenderer> for CellRendererThread{
         let prop = &PROPERTIES[id as usize];
 
         match *prop {
-            Property::String("thread", ..) => {
-                ()
+            Property::Boxed("thread", ..) => {
+                let any_v = value.get::<&AnyValue>().expect("Value did not actually contain an AnyValue");
+
+                self.thread.set(Some(any_v.downcast_ref::<notmuch::Thread>().unwrap().clone()));
             },
             _ => unimplemented!(),
         }
@@ -113,7 +115,7 @@ impl ObjectImpl<CellRenderer> for CellRendererThread{
         let prop = &PROPERTIES[id as usize];
 
         match *prop {
-            Property::String("thread", ..) => {
+            Property::Boxed("thread", ..) => {
                 Ok("1".to_value())
             },
             _ => unimplemented!(),

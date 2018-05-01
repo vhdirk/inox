@@ -119,7 +119,7 @@ enum ChannelItem{
 
 
 fn create_liststore() -> gtk::ListStore{
-    gtk::ListStore::new(&[String::static_type(), AnyValue::static_type(), String::static_type()])
+    gtk::ListStore::new(&[String::static_type(), AnyValue::static_type()])
 }
 
 impl ThreadList{
