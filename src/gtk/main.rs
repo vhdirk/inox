@@ -36,6 +36,8 @@ extern crate gtk_sys as gtk_ffi;
 extern crate cairo_sys as cairo_ffi;
 extern crate gdk_sys as gdk_ffi;
 
+#[macro_use]
+extern crate gobject_subclass;
 extern crate inox_core;
 
 use std::rc::Rc;
@@ -58,6 +60,7 @@ mod constants;
 mod main_content;
 mod tag_list;
 mod thread_list;
+mod cell_renderer;
 mod thread_list_cell_renderer;
 mod thread_view;
 mod application_window;
@@ -68,8 +71,6 @@ use inox_core::database::Manager as DBManager;
 
 use application_window::ApplicationWindow;
 
-pub use thread_list_cell_renderer::cell_renderer_thread_get_type;
-pub use thread_list_cell_renderer::cell_renderer_thread_new;
 
 /// Init Gtk and logger.
 fn init() {
