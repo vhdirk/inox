@@ -10,6 +10,7 @@ use std::time::Duration;
 
 use gio;
 use glib;
+use glib::value::AnyValue;
 use glib::prelude::*;
 use glib::translate::FromGlib;
 use gtk;
@@ -37,7 +38,7 @@ fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
 
     column.pack_start(&cell, false);
     // Association of the view's column with the model's `id` column.
-    // column.add_attribute(&cell, "text", id);
+    column.add_attribute(&cell, "thread", id);
     column.set_title(&title);
     tree.append_column(&column);
 }
@@ -50,6 +51,8 @@ pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &::relm::Eve
         Continue(false)
     })
 }
+
+
 
 
 
@@ -116,7 +119,7 @@ enum ChannelItem{
 
 
 fn create_liststore() -> gtk::ListStore{
-    gtk::ListStore::new(&[String::static_type(), String::static_type(), String::static_type()])
+    gtk::ListStore::new(&[String::static_type(), AnyValue::static_type(), String::static_type()])
 }
 
 impl ThreadList{
@@ -154,6 +157,8 @@ impl ThreadList{
 
     fn add_thread(&mut self, thread: notmuch::Thread){
 
+        let val = AnyValue::new(thread.clone()).to_value();
+
         let subject = &thread.subject();
         self.tree_model.insert_with_values(None,
             &[COLUMN_ID as u32,
@@ -161,8 +166,7 @@ impl ThreadList{
               // COLUMN_AUTHORS as
             ],
             &[&thread.id().to_value(),
-              &thread.subject().to_value()
-              // &thread.authors().join(",").to_value()
+              &val
             ]);
     }
 

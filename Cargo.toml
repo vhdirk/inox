@@ -58,7 +58,6 @@ relm-attributes = { git = "https://github.com/vhdirk/relm" }
 [replace]
 "gobject-sys:0.6.0" = { git = "https://github.com/gtk-rs/sys" }
 "glib-sys:0.6.0" = { git = "https://github.com/gtk-rs/sys" }
-"gtk-sys:0.6.0" = { git = "https://github.com/gtk-rs/sys" }
 "glib:0.5.0" = { git = "https://github.com/gtk-rs/glib" }
 "gtk:0.4.0" = { git = "https://github.com/gtk-rs/gtk" }
 
