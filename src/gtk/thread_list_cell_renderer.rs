@@ -205,9 +205,8 @@ impl CellRendererThread {
         Box::new(imp)
     }
 
-    fn calculate_height(&self, widget: &gtk::Widget) -> i32
+    fn calculate_height(&self, settings: &CellRendererThreadSettings, widget: &gtk::Widget) -> i32
     {
-        let settings = self.settings.borrow();
         if settings.height_set {
             return settings.content_height;
         }
@@ -218,8 +217,6 @@ impl CellRendererThread {
        pango_layout.set_font_description(&settings.font_description);
 
        let (w, h) = pango_layout.get_pixel_size();
-
-       self.settings.borrow_mut().content_height = h;
 
        return h;
    }
@@ -265,7 +262,7 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         _flags: gtk::CellRendererState,
     ){
 
-        let settings = self.settings.borrow();
+        let mut settings = self.settings.borrow_mut();
 
         // calculate text width, we don't need to do this every time,
         // but we need access to the context.
@@ -276,29 +273,27 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
             let char_width = font_metrics.get_approximate_char_width() / pango::SCALE;
             let padding = char_width;
 
-            let content_height  = self.calculate_height(widget);
+            settings.content_height = self.calculate_height(&settings, widget);
 
-            let mut settings_mut = self.settings.borrow_mut();
+            let line_height = settings.content_height + settings.line_spacing;
 
-            let line_height = content_height + settings.line_spacing;
+            settings.height_set = true;
 
-            settings_mut.height_set = true;
+            settings.left_icons_size  = settings.content_height - (2 * settings.left_icons_padding);
+            settings.left_icons_width = settings.left_icons_size;
 
-            settings_mut.left_icons_size  = content_height - (2 * settings.left_icons_padding);
-            settings_mut.left_icons_width = settings.left_icons_size;
-
-            settings_mut.date_start          = settings.left_icons_width_n * settings.left_icons_width +
+            settings.date_start          = settings.left_icons_width_n * settings.left_icons_width +
                   (settings.left_icons_width_n-1) * settings.left_icons_padding + padding;
-            settings_mut.date_width          = char_width * settings.date_len;
-            settings_mut.message_count_width = char_width * settings.message_count_len;
-            settings_mut.message_count_start = settings.date_start + settings.date_width + padding;
-            settings_mut.authors_width       = char_width * settings.authors_len;
-            settings_mut.authors_start       = settings.message_count_start + settings.message_count_width + padding;
-            settings_mut.tags_width          = char_width * settings.tags_len;
-            settings_mut.tags_start          = settings.authors_start + settings.authors_width + padding;
-            settings_mut.subject_start       = settings.tags_start + settings.tags_width + padding;
+            settings.date_width          = char_width * settings.date_len;
+            settings.message_count_width = char_width * settings.message_count_len;
+            settings.message_count_start = settings.date_start + settings.date_width + padding;
+            settings.authors_width       = char_width * settings.authors_len;
+            settings.authors_start       = settings.message_count_start + settings.message_count_width + padding;
+            settings.tags_width          = char_width * settings.tags_len;
+            settings.tags_start          = settings.authors_start + settings.authors_width + padding;
+            settings.subject_start       = settings.tags_start + settings.tags_width + padding;
 
-            settings_mut.height              = content_height + settings.line_spacing;
+            settings.height              = settings.content_height + settings.line_spacing;
         }
 
         if self.thread.borrow().is_none(){
@@ -310,7 +305,7 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         /*if thread.unread() {
           self.settings.borrow_mut().font_description.set_weight(pango::Weight::Bold);
         } else */ {
-          self.settings.borrow_mut().font_description.set_weight(pango::Weight::Normal);
+          settings.font_description.set_weight(pango::Weight::Normal);
         }
 
         // render_background (cr, widget, background_area, flags);
