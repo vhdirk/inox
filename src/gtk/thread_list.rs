@@ -43,12 +43,12 @@ fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
     tree.append_column(&column);
 }
 
-pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &::relm::EventStream<MSG>, constructor: F) -> glib::source::SourceId {
+pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &::relm::EventStream<MSG>, constructor: F, single_shot:Option<bool>) -> glib::source::SourceId {
     let stream = stream.clone();
     gtk::idle_add(move || {
         let msg = constructor();
         stream.emit(msg);
-        Continue(false)
+        Continue(!single_shot.unwrap_or(false))
     })
 }
 
@@ -150,7 +150,7 @@ impl ThreadList{
         });
 
 
-        self.model.idle_handle = Some(gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init)));
+        gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init), Some(true));
 
     }
 
@@ -172,14 +172,19 @@ impl ThreadList{
 
     fn next_thread(&mut self){
         if self.model.thread_list.is_none(){
-            return;
+
+            return ();
         }
 
         match self.model.thread_list.as_mut().unwrap().next() {
             Some(mthread) => {
+                gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init), Some(true));
                 self.add_thread(mthread);
+
             },
-            None => ()
+            None => {
+
+            }
         }
 
     }
