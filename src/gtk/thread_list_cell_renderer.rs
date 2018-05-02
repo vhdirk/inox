@@ -220,6 +220,46 @@ impl CellRendererThread {
 
        return h;
    }
+
+    fn render_background(&self, settings: &CellRendererThreadSettings,
+                                renderer: &CellRenderer,
+                                cr: &cairo::Context,
+                                widget: &gtk::Widget,
+                                background_area: &gtk::Rectangle,
+                                cell_area: &gtk::Rectangle,
+                                flags: gtk::CellRendererState)
+    {
+
+
+        // let bg = gdk::Color::default();
+        let set = true;
+
+        // if (flags & gtk::CellRendererState::SELECTED) != 0 {
+        //     if !marked {
+        //         if background_color_selected.length () > 0 {
+        //             bg = gdk::Color::new(background_color_selected);
+        //         } else {
+        //             set = false;
+        //         }
+        //     } else {
+        //         bg = gdk::Color::new(background_color_marked_selected);
+        //     }
+        // } else {
+        //     if (!marked) {
+        //         set = false;
+        //     } else {
+        //         bg = Gdk::Color (background_color_marked);
+        //     }
+        // }
+
+        if (set) {
+            cr.set_source_rgb (0.5, 0.5, 0.5);//bg.get_red_p(), bg.get_green_p(), bg.get_blue_p());
+
+            cr.rectangle(background_area.x.into(), background_area.y.into(), background_area.width.into(), background_area.height.into());
+            cr.fill ();
+        }
+   }
+
 }
 
 
@@ -257,9 +297,9 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         renderer: &CellRenderer,
         cr: &cairo::Context,
         widget: &gtk::Widget,
-        _background_area: &gtk::Rectangle,
+        background_area: &gtk::Rectangle,
         cell_area: &gtk::Rectangle,
-        _flags: gtk::CellRendererState,
+        flags: gtk::CellRendererState,
     ){
 
         let mut settings = self.settings.borrow_mut();
@@ -308,7 +348,7 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
           settings.font_description.set_weight(pango::Weight::Normal);
         }
 
-        // render_background (cr, widget, background_area, flags);
+        self.render_background(&settings, &renderer, &cr, &widget, &background_area, &cell_area, flags);
         // render_date (cr, widget, cell_area); // returns height
 
         if thread.total_messages() > 1 {
