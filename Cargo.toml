@@ -47,7 +47,7 @@ cairo-rs = { git = "https://github.com/gtk-rs/cairo" }
 
 gmime = { git = "https://github.com/vhdirk/gmime-rs" }
 
-gobject-subclass = { git = "https://github.com/vhdirk/gst-plugin-rs" }
+gobject-subclass = { git = "https://github.com/sdroege/gobject-subclass" }
 
 relm = { git = "https://github.com/vhdirk/relm" }
 relm-derive = { git = "https://github.com/vhdirk/relm" }
