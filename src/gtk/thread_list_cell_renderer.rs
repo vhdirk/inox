@@ -187,18 +187,14 @@ pub struct CellRendererThread {
     settings: RefCell<CellRendererThreadSettings>,
     cache: RefCell<CellRendererThreadCache>,
 }
-//
-fn threadfun() -> glib::Type{
 
-    AnyValue::static_type()
-}
 
 static PROPERTIES: [Property; 1] = [
     Property::Boxed(
         "thread",
         "Thread to display",
         "Handle of notmuch::Thread to display",
-        threadfun,
+        AnyValue::static_type,
         PropertyMutability::ReadWrite,
     ),
 
@@ -250,7 +246,11 @@ impl CellRendererThread {
         let pango_cr = widget.create_pango_context().unwrap();
         let font_metrics = pango_cr.get_metrics(&settings.font_description, &settings.language).unwrap();
 
-        let char_width = font_metrics.get_approximate_char_width() / pango::SCALE;
+        let mut char_width = font_metrics.get_approximate_char_width() / pango::SCALE;
+        if char_width == 0{
+            char_width = 2;
+        }
+        debug!("char width: {:?}", font_metrics.get_approximate_char_width());
         let padding = char_width;
 
         /* figure out font height */
@@ -497,13 +497,16 @@ impl CellRendererThread {
                           cell_area: &gtk::Rectangle,
                           flags: gtk::CellRendererState) -> i32
     {
+        use chrono::{DateTime, TimeZone, NaiveDateTime, Utc, Local};
+
         let settings = self.settings.borrow();
         let mut cache = self.cache.borrow_mut();
 
-        //let date = self.thread.borrow().as_ref().unwrap().newest_date();
+        let timestamp = self.thread.borrow().as_ref().unwrap().newest_date();
+        let datetime_utc = DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(timestamp, 0), Utc);
+        let datetime = datetime_utc.with_timezone(&Local);
 
-        let date = chrono::Local::now();
-        let datestr = format!("{}", date.format("%Y-%m-%d][%H:%M:%S"));
+        let datestr = format!("{}", datetime.format("%Y-%m-%d %H:%M:%S"));
 
         let pango_layout = widget.create_pango_layout(datestr.as_str()).unwrap();
 
