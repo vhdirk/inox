@@ -77,15 +77,15 @@ pub struct CellRendererThreadSettings {
     message_count_length : i32,
     authors_length : i32,
 
-    subject_color: Option<gdk::RGBA>,
-    subject_color_selected : Option<gdk::RGBA>,
-    background_color_selected : Option<gdk::RGBA>,
-    background_color_marked : Option<gdk::RGBA>,
-    background_color_marked_selected : Option<gdk::RGBA>,
+    subject_color: Option<String>,
+    subject_color_selected : Option<String>,
+    background_color_selected : Option<String>,
+    background_color_marked : Option<String>,
+    background_color_marked_selected : Option<String>,
 
     tags_length : u16,
-    tags_upper_color : Option<gdk::RGBA>,
-    tags_lower_color : Option<gdk::RGBA>,
+    tags_upper_color : Option<String>,
+    tags_lower_color : Option<String>,
     tags_alpha : f32,
     hidden_tags : Vec<String>
 }
@@ -131,15 +131,15 @@ impl Default for CellRendererThreadSettings{
             message_count_length : 4,
             authors_length : 20,
 
-            subject_color : gdk::RGBA::from_str("#807d74").ok(),
-            subject_color_selected : gdk::RGBA::from_str("#000000").ok(),
-            background_color_selected : gdk::RGBA::from_str("").ok(),
-            background_color_marked : gdk::RGBA::from_str("#fff584").ok(),
-            background_color_marked_selected : gdk::RGBA::from_str("#bcb559").ok(),
+            subject_color : Some("#807d74".to_string()),
+            subject_color_selected : Some("#000000".to_string()),
+            background_color_selected : None,
+            background_color_marked : Some("#fff584".to_string()),
+            background_color_marked_selected : Some("#bcb559".to_string()),
 
             tags_length : 80,
-            tags_upper_color : gdk::RGBA::from_str("#e5e5e5").ok(),
-            tags_lower_color : gdk::RGBA::from_str("#333333").ok(),
+            tags_upper_color : Some("#e5e5e5".to_string()),
+            tags_lower_color : Some("#333333".to_string()),
             tags_alpha : 0.5,
             hidden_tags : ["attachment".to_string(),
                            "flagged".to_string(),
@@ -269,22 +269,22 @@ impl CellRendererThread {
 
         if flags.contains(gtk::CellRendererState::SELECTED){
             if !settings.marked {
-                match settings.background_color_selected {
-                    Some(color) => {
-                        bg = color.clone();
+                match settings.background_color_selected.as_ref() {
+                    Some(ref color) => {
+                        bg = gdk::RGBA::from_str(color.as_str()).unwrap();
                     },
                     None => {
                         set = false;
                     }
                 }
             } else {
-                bg = settings.background_color_marked_selected.as_ref().unwrap().clone();
+                bg = gdk::RGBA::from_str(settings.background_color_marked_selected.as_ref().unwrap().as_str()).unwrap();
             }
         } else {
-             if !settings.marked {
-                 set = false;
-             } else {
-                 bg = settings.background_color_marked.as_ref().unwrap().clone();
+            if !settings.marked {
+                set = false;
+            } else {
+                bg = gdk::RGBA::from_str(settings.background_color_marked.as_ref().unwrap().as_str()).unwrap();
             }
         }
 
@@ -317,14 +317,14 @@ impl CellRendererThread {
 
         let mut color_str = "".to_string();
         if flags.contains(gtk::CellRendererState::SELECTED) {
-            color_str = format!("{}", settings.subject_color_selected.unwrap());
+            color_str = settings.subject_color_selected.as_ref().unwrap().clone();
         } else {
-            color_str = format!("{}", settings.subject_color.unwrap());
+            color_str = settings.subject_color.as_ref().unwrap().clone();
         }
 
-        pango_layout.set_markup(format!("<span >{}</span>",   //color=\"{}\"
-               // color_str,
-               self.thread.borrow().as_ref().unwrap().subject()).as_str());
+        pango_layout.set_markup(format!("<span color=\"{}\">{}</span>",
+               color_str,
+               glib::markup_escape_text(self.thread.borrow().as_ref().unwrap().subject().as_str())).as_str());
 
         /* align in the middle */
         let (w, h) = pango_layout.get_size();
