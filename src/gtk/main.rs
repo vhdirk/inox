@@ -30,6 +30,7 @@ extern crate glib;
 extern crate gmime;
 extern crate cairo;
 extern crate pango;
+extern crate pangocairo;
 
 extern crate glib_sys as glib_ffi;
 extern crate gobject_sys as gobject_ffi;

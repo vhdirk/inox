@@ -1,7 +1,8 @@
 use std::sync::{Once, ONCE_INIT};
 use std::cell::{Cell, RefCell};
 use std::ptr;
-use std::mem;
+use std::cmp::max;
+use std::str::FromStr;
 use std::ffi::CString;
 
 use gio;
@@ -9,6 +10,7 @@ use glib;
 use gtk;
 use gdk;
 use cairo;
+use pangocairo;
 use gobject_ffi;
 use glib::translate::*;
 use gtk::prelude::*;
@@ -41,6 +43,7 @@ pub struct CellRendererThreadSettings {
     // cached values
     height_set: bool,
     marked: bool,
+    line_height: i32,
     left_icons_size: i32,
     left_icons_width: i32,
 
@@ -74,16 +77,16 @@ pub struct CellRendererThreadSettings {
     message_count_length : i32,
     authors_length : i32,
 
-    subject_color: String,
-    subject_color_selected : String,
-    background_color_selected : String,
-    background_color_marked : String,
-    background_color_marked_selected : String,
+    subject_color: Option<gdk::RGBA>,
+    subject_color_selected : Option<gdk::RGBA>,
+    background_color_selected : Option<gdk::RGBA>,
+    background_color_marked : Option<gdk::RGBA>,
+    background_color_marked_selected : Option<gdk::RGBA>,
 
     tags_length : u16,
-    tags_upper_color : String,
-    tags_lower_color : String,
-    tags_alpha : String,
+    tags_upper_color : Option<gdk::RGBA>,
+    tags_lower_color : Option<gdk::RGBA>,
+    tags_alpha : f32,
     hidden_tags : Vec<String>
 }
 
@@ -95,6 +98,7 @@ impl Default for CellRendererThreadSettings{
         {
             height_set: false,
             marked: false,
+            line_height: 0,
             content_height: 0,
             left_icons_size: 0,
             left_icons_width: 0,
@@ -127,16 +131,16 @@ impl Default for CellRendererThreadSettings{
             message_count_length : 4,
             authors_length : 20,
 
-            subject_color : "#807d74".to_string(),
-            subject_color_selected : "#000000".to_string(),
-            background_color_selected : "".to_string(),
-            background_color_marked : "#fff584".to_string(),
-            background_color_marked_selected : "#bcb559".to_string(),
+            subject_color : gdk::RGBA::from_str("#807d74").ok(),
+            subject_color_selected : gdk::RGBA::from_str("#000000").ok(),
+            background_color_selected : gdk::RGBA::from_str("").ok(),
+            background_color_marked : gdk::RGBA::from_str("#fff584").ok(),
+            background_color_marked_selected : gdk::RGBA::from_str("#bcb559").ok(),
 
             tags_length : 80,
-            tags_upper_color : "#e5e5e5".to_string(),
-            tags_lower_color : "#333333".to_string(),
-            tags_alpha : "0.5".to_string(),
+            tags_upper_color : gdk::RGBA::from_str("#e5e5e5").ok(),
+            tags_lower_color : gdk::RGBA::from_str("#333333").ok(),
+            tags_alpha : 0.5,
             hidden_tags : ["attachment".to_string(),
                            "flagged".to_string(),
                            "unread".to_string()].to_vec(),
@@ -230,7 +234,7 @@ impl CellRendererThread {
 
         settings.content_height = h;
 
-        let line_height = settings.content_height + settings.line_spacing;
+        settings.line_height = settings.content_height + settings.line_spacing;
 
         settings.height_set = true;
 
@@ -251,52 +255,94 @@ impl CellRendererThread {
         settings.height              = settings.content_height + settings.line_spacing;
     }
 
-    fn render_background(&self, settings: &CellRendererThreadSettings,
-                                renderer: &CellRenderer,
+    fn render_background(&self, renderer: &CellRenderer,
                                 cr: &cairo::Context,
                                 widget: &gtk::Widget,
                                 background_area: &gtk::Rectangle,
                                 cell_area: &gtk::Rectangle,
                                 flags: gtk::CellRendererState)
     {
+        let settings = &self.settings.borrow();
 
-
-        // let bg = gdk::Color::default();
+        let mut bg: gdk::RGBA = gdk::RGBA::from_str("#ffffff").unwrap();
         let mut set = true;
 
         if flags.contains(gtk::CellRendererState::SELECTED){
             if !settings.marked {
-        //         if background_color_selected.length () > 0 {
-        //             bg = gdk::Color::new(background_color_selected);
-        //         } else {
-        //             set = false;
-        //         }
+                match settings.background_color_selected {
+                    Some(color) => {
+                        bg = color.clone();
+                    },
+                    None => {
+                        set = false;
+                    }
+                }
             } else {
-        //         bg = gdk::Color::new(background_color_marked_selected);
+                bg = settings.background_color_marked_selected.as_ref().unwrap().clone();
             }
         } else {
              if !settings.marked {
                  set = false;
              } else {
-        //         bg = Gdk::Color (background_color_marked);
+                 bg = settings.background_color_marked.as_ref().unwrap().clone();
             }
         }
 
         if (set) {
-            cr.set_source_rgb (0.5, 0.5, 0.5);//bg.get_red_p(), bg.get_green_p(), bg.get_blue_p());
+            cr.set_source_rgba(bg.red, bg.green, bg.blue, bg.alpha);
 
             cr.rectangle(background_area.x.into(), background_area.y.into(), background_area.width.into(), background_area.height.into());
-            cr.fill ();
+            cr.fill();
         }
    }
+
+   fn render_subject(&self, renderer: &CellRenderer,
+                               cr: &cairo::Context,
+                               widget: &gtk::Widget,
+                               background_area: &gtk::Rectangle,
+                               cell_area: &gtk::Rectangle,
+                               flags: gtk::CellRendererState)
+   {
+        let settings = &self.settings.borrow();
+
+        let pango_layout = widget.create_pango_layout("").unwrap();
+
+        pango_layout.set_font_description(&settings.font_description);
+
+           /* set color */
+        let stylecontext = widget.get_style_context().unwrap();
+        let color = stylecontext.get_color(gtk::StateFlags::NORMAL);
+
+        cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
+
+        let mut color_str = "".to_string();
+        if flags.contains(gtk::CellRendererState::SELECTED) {
+            color_str = format!("{}", settings.subject_color_selected.unwrap());
+        } else {
+            color_str = format!("{}", settings.subject_color.unwrap());
+        }
+
+        pango_layout.set_markup(format!("<span >{}</span>",   //color=\"{}\"
+               // color_str,
+               self.thread.borrow().as_ref().unwrap().subject()).as_str());
+
+        /* align in the middle */
+        let (w, h) = pango_layout.get_size();
+        let y = max(0,(settings.line_height / 2) - ((h / pango::SCALE) / 2));
+
+        cr.move_to((cell_area.x + settings.subject_start) as f64, (cell_area.y + y) as f64);
+        pangocairo::functions::show_layout(&cr, &pango_layout);
+
+
+    }
+
 
 }
 
 
 
-impl ObjectImpl<CellRenderer> for CellRendererThread{
-
-
+impl ObjectImpl<CellRenderer> for CellRendererThread
+{
     fn set_property(&self, obj: &glib::Object, id: u32, value: &glib::Value) {
         let prop = &PROPERTIES[id as usize];
 
@@ -350,7 +396,7 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
           self.settings.borrow_mut().font_description.set_weight(pango::Weight::Normal);
         }
 
-        self.render_background(&self.settings.borrow(), &renderer, &cr, &widget, &background_area, &cell_area, flags);
+        self.render_background(&renderer, &cr, &widget, &background_area, &cell_area, flags);
         // render_date (cr, widget, cell_area); // returns height
 
         if thread.total_messages() > 1 {
@@ -362,7 +408,7 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         // tags_width = render_tags (cr, widget, cell_area, flags); // returns width
         // subject_start = tags_start + tags_width / Pango::SCALE + ((tags_width > 0) ? padding : 0);
         //
-        // render_subject (cr, widget, cell_area, flags);
+        self.render_subject(&renderer, &cr, &widget, &background_area, &cell_area, flags);
 
 
         // if (thread->flagged)
