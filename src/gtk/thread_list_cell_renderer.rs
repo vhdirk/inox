@@ -9,6 +9,7 @@ use glib;
 use gtk;
 use gdk;
 use cairo;
+use gobject_ffi;
 use glib::translate::*;
 use gtk::prelude::*;
 
@@ -190,7 +191,10 @@ impl CellRendererThread {
         });
 
         unsafe {
-            glib::Object::new(TYPE, &[]).unwrap().downcast_unchecked()
+            let obj: glib::Object = from_glib_none(gobject_ffi::g_object_newv(TYPE.to_glib(), 0, ptr::null_mut()));
+            obj.downcast_unchecked()
+
+            //glib::Object::new(TYPE, &[]).unwrap().downcast_unchecked()
         }
     }
 
@@ -258,19 +262,19 @@ impl CellRendererThread {
 
 
         // let bg = gdk::Color::default();
-        let set = true;
+        let mut set = true;
 
-        if (flags & gtk::CellRendererState::SELECTED) != 0 {
+        if flags.contains(gtk::CellRendererState::SELECTED){
             if !settings.marked {
         //         if background_color_selected.length () > 0 {
         //             bg = gdk::Color::new(background_color_selected);
         //         } else {
         //             set = false;
         //         }
-        //     } else {
-        //         bg = gdk::Color::new(background_color_marked_selected);
-        //     }
             } else {
+        //         bg = gdk::Color::new(background_color_marked_selected);
+            }
+        } else {
              if !settings.marked {
                  set = false;
              } else {
@@ -377,7 +381,7 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
 }
 
 #[derive(Default)]
-pub struct CellRendererThreadStatic;
+struct CellRendererThreadStatic{}
 
 
 impl ImplTypeStatic<CellRenderer> for CellRendererThreadStatic {
