@@ -39,6 +39,7 @@ pub trait CellRendererThreadImpl: 'static {
 pub struct CellRendererThreadSettings {
     // cached values
     height_set: bool,
+    marked: bool,
     left_icons_size: i32,
     left_icons_width: i32,
 
@@ -92,6 +93,7 @@ impl Default for CellRendererThreadSettings{
         CellRendererThreadSettings
         {
             height_set: false,
+            marked: false,
             content_height: 0,
             left_icons_size: 0,
             left_icons_width: 0,
@@ -205,21 +207,45 @@ impl CellRendererThread {
         Box::new(imp)
     }
 
-    fn calculate_height(&self, settings: &CellRendererThreadSettings, widget: &gtk::Widget) -> i32
+    fn calculate_height(&self, widget: &gtk::Widget)
     {
-        if settings.height_set {
-            return settings.content_height;
-        }
+        let mut settings = self.settings.borrow_mut();
 
-       /* figure out font height */
-       let pango_layout = widget.create_pango_layout("TEST HEIGHT STRING").unwrap();
+        let pango_cr = widget.create_pango_context().unwrap();
+        let font_metrics = pango_cr.get_metrics(&settings.font_description, &settings.language).unwrap();
 
-       pango_layout.set_font_description(&settings.font_description);
+        let char_width = font_metrics.get_approximate_char_width() / pango::SCALE;
+        let padding = char_width;
 
-       let (w, h) = pango_layout.get_pixel_size();
+        /* figure out font height */
+        let pango_layout = widget.create_pango_layout("TEST HEIGHT STRING").unwrap();
 
-       return h;
-   }
+        pango_layout.set_font_description(&settings.font_description);
+
+        let (w, h) = pango_layout.get_pixel_size();
+
+        settings.content_height = h;
+
+        let line_height = settings.content_height + settings.line_spacing;
+
+        settings.height_set = true;
+
+        settings.left_icons_size  = settings.content_height - (2 * settings.left_icons_padding);
+        settings.left_icons_width = settings.left_icons_size;
+
+        settings.date_start          = settings.left_icons_width_n * settings.left_icons_width +
+             (settings.left_icons_width_n-1) * settings.left_icons_padding + padding;
+        settings.date_width          = char_width * settings.date_len;
+        settings.message_count_width = char_width * settings.message_count_len;
+        settings.message_count_start = settings.date_start + settings.date_width + padding;
+        settings.authors_width       = char_width * settings.authors_len;
+        settings.authors_start       = settings.message_count_start + settings.message_count_width + padding;
+        settings.tags_width          = char_width * settings.tags_len;
+        settings.tags_start          = settings.authors_start + settings.authors_width + padding;
+        settings.subject_start       = settings.tags_start + settings.tags_width + padding;
+
+        settings.height              = settings.content_height + settings.line_spacing;
+    }
 
     fn render_background(&self, settings: &CellRendererThreadSettings,
                                 renderer: &CellRenderer,
@@ -234,8 +260,8 @@ impl CellRendererThread {
         // let bg = gdk::Color::default();
         let set = true;
 
-        // if (flags & gtk::CellRendererState::SELECTED) != 0 {
-        //     if !marked {
+        if (flags & gtk::CellRendererState::SELECTED) != 0 {
+            if !settings.marked {
         //         if background_color_selected.length () > 0 {
         //             bg = gdk::Color::new(background_color_selected);
         //         } else {
@@ -244,13 +270,13 @@ impl CellRendererThread {
         //     } else {
         //         bg = gdk::Color::new(background_color_marked_selected);
         //     }
-        // } else {
-        //     if (!marked) {
-        //         set = false;
-        //     } else {
+            } else {
+             if !settings.marked {
+                 set = false;
+             } else {
         //         bg = Gdk::Color (background_color_marked);
-        //     }
-        // }
+            }
+        }
 
         if (set) {
             cr.set_source_rgb (0.5, 0.5, 0.5);//bg.get_red_p(), bg.get_green_p(), bg.get_blue_p());
@@ -302,38 +328,10 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         flags: gtk::CellRendererState,
     ){
 
-        let mut settings = self.settings.borrow_mut();
-
         // calculate text width, we don't need to do this every time,
         // but we need access to the context.
-        if  !settings.height_set {
-            let pango_cr = widget.create_pango_context().unwrap();
-            let font_metrics = pango_cr.get_metrics(&settings.font_description, &settings.language).unwrap();
-
-            let char_width = font_metrics.get_approximate_char_width() / pango::SCALE;
-            let padding = char_width;
-
-            settings.content_height = self.calculate_height(&settings, widget);
-
-            let line_height = settings.content_height + settings.line_spacing;
-
-            settings.height_set = true;
-
-            settings.left_icons_size  = settings.content_height - (2 * settings.left_icons_padding);
-            settings.left_icons_width = settings.left_icons_size;
-
-            settings.date_start          = settings.left_icons_width_n * settings.left_icons_width +
-                  (settings.left_icons_width_n-1) * settings.left_icons_padding + padding;
-            settings.date_width          = char_width * settings.date_len;
-            settings.message_count_width = char_width * settings.message_count_len;
-            settings.message_count_start = settings.date_start + settings.date_width + padding;
-            settings.authors_width       = char_width * settings.authors_len;
-            settings.authors_start       = settings.message_count_start + settings.message_count_width + padding;
-            settings.tags_width          = char_width * settings.tags_len;
-            settings.tags_start          = settings.authors_start + settings.authors_width + padding;
-            settings.subject_start       = settings.tags_start + settings.tags_width + padding;
-
-            settings.height              = settings.content_height + settings.line_spacing;
+        if  !self.settings.borrow().height_set {
+            self.calculate_height(widget);
         }
 
         if self.thread.borrow().is_none(){
@@ -343,12 +341,12 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         let thread = self.thread.borrow().as_ref().unwrap().clone();
 
         /*if thread.unread() {
-          self.settings.borrow_mut().font_description.set_weight(pango::Weight::Bold);
+          settings.font_description.set_weight(pango::Weight::Bold);
         } else */ {
-          settings.font_description.set_weight(pango::Weight::Normal);
+          self.settings.borrow_mut().font_description.set_weight(pango::Weight::Normal);
         }
 
-        self.render_background(&settings, &renderer, &cr, &widget, &background_area, &cell_area, flags);
+        self.render_background(&self.settings.borrow(), &renderer, &cr, &widget, &background_area, &cell_area, flags);
         // render_date (cr, widget, cell_area); // returns height
 
         if thread.total_messages() > 1 {
@@ -379,8 +377,8 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
 }
 
 #[derive(Default)]
-pub struct CellRendererThreadStatic{
-}
+pub struct CellRendererThreadStatic;
+
 
 impl ImplTypeStatic<CellRenderer> for CellRendererThreadStatic {
     fn get_name(&self) -> &str {
