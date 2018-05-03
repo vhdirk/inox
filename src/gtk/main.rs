@@ -21,10 +21,12 @@ extern crate relm_attributes;
 extern crate relm_derive;
 extern crate shellexpand;
 extern crate notmuch;
+extern crate chrono;
 
 extern crate gtk;
 extern crate gio;
 extern crate gdk;
+extern crate gdk_pixbuf;
 #[macro_use]
 extern crate glib;
 extern crate gmime;

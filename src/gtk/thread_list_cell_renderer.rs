@@ -7,14 +7,19 @@ use std::str::FromStr;
 use glib;
 use gtk;
 use gdk;
+use gdk::ContextExt;
+use gdk_pixbuf;
+use gdk_pixbuf::prelude::*;
 use cairo;
 use pangocairo;
 use gobject_ffi;
 use glib::translate::*;
 use gtk::prelude::*;
+use chrono;
 
 use pango;
 use pango::prelude::*;
+use pango::ContextExt as PangoContextExt;
 use pango::LayoutExt;
 use glib::value::AnyValue;
 use notmuch;
@@ -35,39 +40,84 @@ pub trait CellRendererThreadImpl: 'static {
 
 }
 
-pub struct CellRendererThreadSettings {
-    // cached values
+pub struct CellRendererThreadCache{
     height_set: bool,
     marked: bool,
+    height: i32,
+
+    content_height: i32,
     line_height: i32,
     left_icons_size: i32,
     left_icons_width: i32,
 
-    left_icons_width_n: i32,
-    left_icons_padding: i32,
     date_start: i32,
-    date_len: i32,
     date_width: i32,
 
     message_count_start: i32,
-    message_count_len: i32,
     message_count_width: i32,
 
     authors_start: i32,
-    authors_len: i32,
     authors_width: i32,
 
     tags_start: i32,
     tags_width: i32,
-    tags_len: i32,
 
     subject_start: i32,
-    height: i32,
 
-    // configurable values
+    flagged_icon: Option<gdk_pixbuf::Pixbuf>,
+    attachment_icon: Option<gdk_pixbuf::Pixbuf>
+
+}
+
+
+impl Default for CellRendererThreadCache{
+
+    fn default() -> Self{
+        CellRendererThreadCache{
+            height_set: false,
+            marked: false,
+            height: 0,
+
+            line_height: 0,
+            content_height: 0,
+            left_icons_size: 0,
+            left_icons_width: 0,
+
+            date_start: 0,
+            date_width: 0,
+
+            message_count_start: 0,
+            message_count_width: 0,
+
+            authors_start: 0,
+            authors_width: 0,
+
+            tags_start: 0,
+            tags_width: 0,
+
+            subject_start: 0,
+            flagged_icon: None,
+            attachment_icon: None
+        }
+    }
+}
+
+
+pub struct CellRendererThreadSettings {
+    // cached values
+
+    date_len: i32,
+
+    message_count_len: i32,
+
+    authors_len: i32,
+
+    tags_len: i32,
+
+    left_icons_width_n: i32,
+    left_icons_padding: i32,
     font_description: pango::FontDescription,
     language: pango::Language,
-    content_height: i32,
     line_spacing : i32,
     date_length : i32,
     message_count_length : i32,
@@ -92,33 +142,12 @@ impl Default for CellRendererThreadSettings{
 
         CellRendererThreadSettings
         {
-            height_set: false,
-            marked: false,
-            line_height: 0,
-            content_height: 0,
-            left_icons_size: 0,
-            left_icons_width: 0,
-
             left_icons_width_n: 2,
             left_icons_padding: 1,
-            date_start: 0,
             date_len: 10,
-            date_width: 0,
-
-            message_count_start: 0,
             message_count_len: 4,
-            message_count_width: 0,
-
-            authors_start: 0,
             authors_len: 20,
-            authors_width: 0,
-
-            tags_start: 0,
-            tags_width: 0,
             tags_len: 80,
-
-            subject_start: 0,
-            height: 0,
 
             language: pango::Language::default(),
             font_description : pango::FontDescription::from_string("default"),
@@ -155,7 +184,8 @@ impl Default for CellRendererThreadSettings{
 
 pub struct CellRendererThread {
     thread: RefCell<Option<notmuch::Thread>>,
-    settings: RefCell<CellRendererThreadSettings>
+    settings: RefCell<CellRendererThreadSettings>,
+    cache: RefCell<CellRendererThreadCache>,
 }
 //
 fn threadfun() -> glib::Type{
@@ -206,14 +236,16 @@ impl CellRendererThread {
     {
         let imp = Self{
             thread: RefCell::new(None),
-            settings: RefCell::new(CellRendererThreadSettings::default())
+            settings: RefCell::new(CellRendererThreadSettings::default()),
+            cache: RefCell::new(CellRendererThreadCache::default()),
         };
         Box::new(imp)
     }
 
     fn calculate_height(&self, widget: &gtk::Widget)
     {
-        let mut settings = self.settings.borrow_mut();
+        let settings = self.settings.borrow();
+        let mut cache = self.cache.borrow_mut();
 
         let pango_cr = widget.create_pango_context().unwrap();
         let font_metrics = pango_cr.get_metrics(&settings.font_description, &settings.language).unwrap();
@@ -228,27 +260,27 @@ impl CellRendererThread {
 
         let (_, h) = pango_layout.get_pixel_size();
 
-        settings.content_height = h;
+        cache.content_height = h;
 
-        settings.line_height = settings.content_height + settings.line_spacing;
+        cache.line_height = cache.content_height + settings.line_spacing;
 
-        settings.height_set = true;
+        cache.height_set = true;
 
-        settings.left_icons_size  = settings.content_height - (2 * settings.left_icons_padding);
-        settings.left_icons_width = settings.left_icons_size;
+        cache.left_icons_size  = cache.content_height - (2 * settings.left_icons_padding);
+        cache.left_icons_width = cache.left_icons_size;
 
-        settings.date_start          = settings.left_icons_width_n * settings.left_icons_width +
+        cache.date_start          = settings.left_icons_width_n * cache.left_icons_width +
              (settings.left_icons_width_n-1) * settings.left_icons_padding + padding;
-        settings.date_width          = char_width * settings.date_len;
-        settings.message_count_width = char_width * settings.message_count_len;
-        settings.message_count_start = settings.date_start + settings.date_width + padding;
-        settings.authors_width       = char_width * settings.authors_len;
-        settings.authors_start       = settings.message_count_start + settings.message_count_width + padding;
-        settings.tags_width          = char_width * settings.tags_len;
-        settings.tags_start          = settings.authors_start + settings.authors_width + padding;
-        settings.subject_start       = settings.tags_start + settings.tags_width + padding;
+        cache.date_width          = char_width * settings.date_len;
+        cache.message_count_width = char_width * settings.message_count_len;
+        cache.message_count_start = cache.date_start + cache.date_width + padding;
+        cache.authors_width       = char_width * settings.authors_len;
+        cache.authors_start       = cache.message_count_start + cache.message_count_width + padding;
+        cache.tags_width          = char_width * settings.tags_len;
+        cache.tags_start          = cache.authors_start + cache.authors_width + padding;
+        cache.subject_start       = cache.tags_start + cache.tags_width + padding;
 
-        settings.height              = settings.content_height + settings.line_spacing;
+        cache.height              = cache.content_height + settings.line_spacing;
     }
 
     fn render_background(&self, _renderer: &CellRenderer,
@@ -259,12 +291,13 @@ impl CellRendererThread {
                                 flags: gtk::CellRendererState)
     {
         let settings = &self.settings.borrow();
+        let cache = &self.cache.borrow();
 
         let mut bg: gdk::RGBA = gdk::RGBA::from_str("#ffffff").unwrap();
         let mut set = true;
 
         if flags.contains(gtk::CellRendererState::SELECTED){
-            if !settings.marked {
+            if !cache.marked {
                 match settings.background_color_selected.as_ref() {
                     Some(ref color) => {
                         bg = gdk::RGBA::from_str(color.as_str()).unwrap();
@@ -277,7 +310,7 @@ impl CellRendererThread {
                 bg = gdk::RGBA::from_str(settings.background_color_marked_selected.as_ref().unwrap().as_str()).unwrap();
             }
         } else {
-            if !settings.marked {
+            if !cache.marked {
                 set = false;
             } else {
                 bg = gdk::RGBA::from_str(settings.background_color_marked.as_ref().unwrap().as_str()).unwrap();
@@ -300,6 +333,7 @@ impl CellRendererThread {
                             flags: gtk::CellRendererState)
    {
         let settings = &self.settings.borrow();
+        let cache = &self.cache.borrow();
 
         let pango_layout = widget.create_pango_layout("").unwrap();
 
@@ -324,12 +358,173 @@ impl CellRendererThread {
 
         /* align in the middle */
         let (_, h) = pango_layout.get_size();
-        let y = max(0,(settings.line_height / 2) - ((h / pango::SCALE) / 2));
+        let y = max(0,(cache.line_height / 2) - ((h / pango::SCALE) / 2));
 
-        cr.move_to((cell_area.x + settings.subject_start) as f64, (cell_area.y + y) as f64);
+        cr.move_to((cell_area.x + cache.subject_start) as f64, (cell_area.y + y) as f64);
+        pangocairo::functions::show_layout(&cr, &pango_layout);
+    }
+
+    fn render_icon(&self, _renderer: &CellRenderer,
+                          settings: &CellRendererThreadSettings,
+                          cache:  &CellRendererThreadCache,
+                          cr: &cairo::Context,
+                          widget: &gtk::Widget,
+                          background_area: &gtk::Rectangle,
+                          cell_area: &gtk::Rectangle,
+                          flags: gtk::CellRendererState,
+                          icon_name: &str,
+                          icon_cache: &mut Option<gdk_pixbuf::Pixbuf>,
+                          icon_offset: i32)
+    {
+        //
+        // if icon_cache.is_none() {
+        //     let theme = gtk::IconTheme::get_default().unwrap();
+        //     let pixbuf = theme.load_icon(icon_name,
+        //                     cache.left_icons_size,
+        //                     gtk::IconLookupFlags::USE_BUILTIN | gtk::IconLookupFlags::FORCE_SIZE)
+        //                     .unwrap()
+        //                     .unwrap();
+        //
+        //     *icon_cache = pixbuf.scale_simple(cache.left_icons_size,
+        //                                       cache.left_icons_size,
+        //                                       gdk_pixbuf::InterpType::Bilinear);
+        // }
+        //
+        // let y = cell_area.y + settings.left_icons_padding + settings.line_spacing / 2;
+        // let x = cell_area.x + icon_offset * (cache.left_icons_width + settings.left_icons_padding);
+        //
+        // cr.set_source_pixbuf(icon_cache.as_ref().unwrap(), x as f64, y as f64);
+        //
+        // cr.rectangle(x as f64, y as f64, cache.left_icons_size as f64, cache.left_icons_size as f64);
+        // cr.fill();
+
+    }
+
+
+    fn render_flagged(&self, renderer: &CellRenderer,
+                             cr: &cairo::Context,
+                             widget: &gtk::Widget,
+                             background_area: &gtk::Rectangle,
+                             cell_area: &gtk::Rectangle,
+                             flags: gtk::CellRendererState)
+    {
+        let settings = self.settings.borrow();
+        let mut cache = self.cache.borrow_mut();
+
+        let icon_name = "starred-symbolic";
+        let icon_offset = 0;
+
+        if cache.flagged_icon.is_none() {
+            let theme = gtk::IconTheme::get_default().unwrap();
+            let pixbuf = theme.load_icon(icon_name,
+                            cache.left_icons_size,
+                            gtk::IconLookupFlags::USE_BUILTIN | gtk::IconLookupFlags::FORCE_SIZE)
+                            .unwrap()
+                            .unwrap();
+
+            cache.flagged_icon = pixbuf.scale_simple(cache.left_icons_size,
+                cache.left_icons_size,
+                gdk_pixbuf::InterpType::Bilinear);
+        }
+
+        let y = cell_area.y + settings.left_icons_padding + settings.line_spacing / 2;
+        let x = cell_area.x + icon_offset * (cache.left_icons_width + settings.left_icons_padding);
+
+        cr.set_source_pixbuf(cache.flagged_icon.as_ref().unwrap(), x as f64, y as f64);
+
+        cr.rectangle(x as f64, y as f64, cache.left_icons_size as f64, cache.left_icons_size as f64);
+        cr.fill();
+    }
+
+
+    fn render_attachment(&self, renderer: &CellRenderer,
+                                cr: &cairo::Context,
+                                widget: &gtk::Widget,
+                                background_area: &gtk::Rectangle,
+                                cell_area: &gtk::Rectangle,
+                                flags: gtk::CellRendererState)
+    {
+        let settings = self.settings.borrow();
+        let mut cache = self.cache.borrow_mut();
+
+        let icon_name = "mail-attachment-symbolic";
+        let icon_offset = 1;
+
+        if cache.attachment_icon.is_none() {
+         let theme = gtk::IconTheme::get_default().unwrap();
+         let pixbuf = theme.load_icon(icon_name,
+                         cache.left_icons_size,
+                         gtk::IconLookupFlags::USE_BUILTIN | gtk::IconLookupFlags::FORCE_SIZE)
+                         .unwrap()
+                         .unwrap();
+
+         cache.attachment_icon = pixbuf.scale_simple(cache.left_icons_size,
+             cache.left_icons_size,
+             gdk_pixbuf::InterpType::Bilinear);
+        }
+
+        let y = cell_area.y + settings.left_icons_padding + settings.line_spacing / 2;
+        let x = cell_area.x + icon_offset * (cache.left_icons_width + settings.left_icons_padding);
+
+        cr.set_source_pixbuf(cache.attachment_icon.as_ref().unwrap(), x as f64, y as f64);
+
+        cr.rectangle(x as f64, y as f64, cache.left_icons_size as f64, cache.left_icons_size as f64);
+        cr.fill();
+
+    }
+
+    fn render_delimiter(&self, renderer: &CellRenderer,
+                                cr: &cairo::Context,
+                                widget: &gtk::Widget,
+                                background_area: &gtk::Rectangle,
+                                cell_area: &gtk::Rectangle,
+                                flags: gtk::CellRendererState)
+    {
+        let settings = self.settings.borrow();
+        let mut cache = self.cache.borrow_mut();
+
+        cr.set_line_width(0.5);
+        cr.set_source_rgb(0.1, 0.1, 0.1);
+        cr.move_to(cell_area.x as f64, cell_area.y as f64 + cell_area.height as f64);
+        cr.line_to((cell_area.x + cell_area.width) as f64, (cell_area.y + cell_area.height) as f64);
+        cr.stroke();
+    }
+
+    fn render_date(&self, renderer: &CellRenderer,
+                          cr: &cairo::Context,
+                          widget: &gtk::Widget,
+                          background_area: &gtk::Rectangle,
+                          cell_area: &gtk::Rectangle,
+                          flags: gtk::CellRendererState) -> i32
+    {
+        let settings = self.settings.borrow();
+        let mut cache = self.cache.borrow_mut();
+
+        //let date = self.thread.borrow().as_ref().unwrap().newest_date();
+
+        let date = chrono::Local::now();
+        let datestr = format!("{}", date.format("%Y-%m-%d][%H:%M:%S"));
+
+        let pango_layout = widget.create_pango_layout(datestr.as_str()).unwrap();
+
+        pango_layout.set_font_description(&settings.font_description);
+
+        /* set color */
+        let stylecontext = widget.get_style_context().unwrap();
+        let color = stylecontext.get_color(gtk::StateFlags::NORMAL);
+        cr.set_source_rgb(color.red, color.green, color.blue);
+
+        /* align in the middle */
+        let (w, h) = pango_layout.get_size();
+        let y = max(0, (cache.line_height / 2) - ((h / pango::SCALE) / 2));
+
+        /* update subject start */
+        //subject_start = date_start + (w / Pango::SCALE) + padding;
+
+        cr.move_to((cell_area.x + cache.date_start) as f64, (cell_area.y + y) as f64);
         pangocairo::functions::show_layout(&cr, &pango_layout);
 
-
+        return h;
     }
 
 
@@ -376,7 +571,7 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
 
         // calculate text width, we don't need to do this every time,
         // but we need access to the context.
-        if  !self.settings.borrow().height_set {
+        if  !self.cache.borrow().height_set {
             self.calculate_height(widget);
         }
 
@@ -393,7 +588,7 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         }
 
         self.render_background(&renderer, &cr, &widget, &background_area, &cell_area, flags);
-        // render_date (cr, widget, cell_area); // returns height
+        self.render_date(&renderer, &cr, &widget, &background_area, &cell_area, flags); // returns height
 
         if thread.total_messages() > 1 {
           //render_message_count (cr, widget, cell_area);
