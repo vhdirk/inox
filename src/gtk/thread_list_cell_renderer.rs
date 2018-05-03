@@ -1,11 +1,9 @@
 use std::sync::{Once, ONCE_INIT};
-use std::cell::{Cell, RefCell};
+use std::cell::{RefCell};
 use std::ptr;
 use std::cmp::max;
 use std::str::FromStr;
-use std::ffi::CString;
 
-use gio;
 use glib;
 use gtk;
 use gdk;
@@ -18,14 +16,12 @@ use gtk::prelude::*;
 use pango;
 use pango::prelude::*;
 use pango::LayoutExt;
-use glib::object::Downcast;
 use glib::value::AnyValue;
 use notmuch;
 
 
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
-
 
 use notmuch::DatabaseMode;
 
@@ -206,7 +202,7 @@ impl CellRendererThread {
         klass.install_properties(&PROPERTIES);
     }
 
-    fn init(renderer: &CellRenderer) -> Box<CellRendererImpl<CellRenderer>>
+    fn init(_renderer: &CellRenderer) -> Box<CellRendererImpl<CellRenderer>>
     {
         let imp = Self{
             thread: RefCell::new(None),
@@ -230,7 +226,7 @@ impl CellRendererThread {
 
         pango_layout.set_font_description(&settings.font_description);
 
-        let (w, h) = pango_layout.get_pixel_size();
+        let (_, h) = pango_layout.get_pixel_size();
 
         settings.content_height = h;
 
@@ -255,11 +251,11 @@ impl CellRendererThread {
         settings.height              = settings.content_height + settings.line_spacing;
     }
 
-    fn render_background(&self, renderer: &CellRenderer,
+    fn render_background(&self, _renderer: &CellRenderer,
                                 cr: &cairo::Context,
-                                widget: &gtk::Widget,
+                                _widget: &gtk::Widget,
                                 background_area: &gtk::Rectangle,
-                                cell_area: &gtk::Rectangle,
+                                _cell_area: &gtk::Rectangle,
                                 flags: gtk::CellRendererState)
     {
         let settings = &self.settings.borrow();
@@ -288,7 +284,7 @@ impl CellRendererThread {
             }
         }
 
-        if (set) {
+        if set {
             cr.set_source_rgba(bg.red, bg.green, bg.blue, bg.alpha);
 
             cr.rectangle(background_area.x.into(), background_area.y.into(), background_area.width.into(), background_area.height.into());
@@ -296,12 +292,12 @@ impl CellRendererThread {
         }
    }
 
-   fn render_subject(&self, renderer: &CellRenderer,
-                               cr: &cairo::Context,
-                               widget: &gtk::Widget,
-                               background_area: &gtk::Rectangle,
-                               cell_area: &gtk::Rectangle,
-                               flags: gtk::CellRendererState)
+   fn render_subject(&self, _renderer: &CellRenderer,
+                            cr: &cairo::Context,
+                            widget: &gtk::Widget,
+                            _background_area: &gtk::Rectangle,
+                            cell_area: &gtk::Rectangle,
+                            flags: gtk::CellRendererState)
    {
         let settings = &self.settings.borrow();
 
@@ -327,7 +323,7 @@ impl CellRendererThread {
                glib::markup_escape_text(self.thread.borrow().as_ref().unwrap().subject().as_str())).as_str());
 
         /* align in the middle */
-        let (w, h) = pango_layout.get_size();
+        let (_, h) = pango_layout.get_size();
         let y = max(0,(settings.line_height / 2) - ((h / pango::SCALE) / 2));
 
         cr.move_to((cell_area.x + settings.subject_start) as f64, (cell_area.y + y) as f64);
@@ -343,7 +339,7 @@ impl CellRendererThread {
 
 impl ObjectImpl<CellRenderer> for CellRendererThread
 {
-    fn set_property(&self, obj: &glib::Object, id: u32, value: &glib::Value) {
+    fn set_property(&self, _obj: &glib::Object, id: u32, value: &glib::Value) {
         let prop = &PROPERTIES[id as usize];
 
         match *prop {
@@ -355,7 +351,7 @@ impl ObjectImpl<CellRenderer> for CellRendererThread
         }
     }
 
-    fn get_property(&self, obj: &glib::Object, id: u32) -> Result<glib::Value, ()> {
+    fn get_property(&self, _obj: &glib::Object, id: u32) -> Result<glib::Value, ()> {
         let prop = &PROPERTIES[id as usize];
 
         match *prop {
