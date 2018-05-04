@@ -3,6 +3,7 @@ use std::cell::{RefCell};
 use std::ptr;
 use std::cmp::max;
 use std::str::FromStr;
+use std::ops::AddAssign;
 
 use glib;
 use gtk;
@@ -531,6 +532,122 @@ impl CellRendererThread {
     }
 
 
+    fn render_authors(&self, renderer: &CellRenderer,
+                             cr: &cairo::Context,
+                             widget: &gtk::Widget,
+                             background_area: &gtk::Rectangle,
+                             cell_area: &gtk::Rectangle,
+                             flags: gtk::CellRendererState) -> i32
+    {
+        let thread = self.thread.borrow().as_ref().unwrap().clone();
+        let settings = self.settings.borrow();
+        let mut cache = self.cache.borrow_mut();
+
+        // TODO: move unread status and author splitting somewhere central
+
+       /* format authors string */
+        let mut authors = "".to_string();
+
+        if thread.authors().len() == 1 {
+            /* if only one, show full name */
+            let mut author = thread.authors()[0].clone();
+
+            if author.len() >= settings.authors_len as usize {
+                author.truncate(settings.authors_len as usize);
+                author = author.trim_right().to_string();
+                author.add_assign(".");
+            }
+            // TODO: make author bold if thread is unread
+            authors = glib::markup_escape_text(author.as_str());
+            // if (get<1>(thread->authors[0])) {
+            //    authors = ustring::compose ("<b>%1</b>",
+            //      Glib::Markup::escape_text (an));
+            // } else {
+            //     authors = Glib::Markup::escape_text (an);
+            // }
+
+        } else {
+            /* show first names separated by comma */
+            let mut first = true;
+
+            let mut len = 0;
+
+            for author_orig in thread.authors()
+            {
+                let mut author = author_orig.clone();
+                if !first{ len += 1; } // comma
+
+                let idx = author.find(|c: char| ( c== ',') || (c == ' ') || (c == '@'));
+                if idx.is_some(){
+                    author.truncate(idx.unwrap());
+                }
+
+
+                let mut tlen = author.len() as i32;
+                if (len + tlen) >= settings.authors_len {
+                    author.truncate((settings.authors_len - len) as usize);
+                    author = author.trim_right().to_string();
+                    author.add_assign(".");
+                    tlen = settings.authors_len - len;
+                }
+
+                len += tlen;
+
+                if !first {
+                    authors += ",";
+                } else {
+                    first = false;
+                }
+
+               // if (get<1>(a)) {
+               //   authors += ustring::compose ("<b>%1</b>", Glib::Markup::escape_text (an));
+               // } else {
+               //   authors += Glib::Markup::escape_text (an);
+               // }
+                authors = glib::markup_escape_text(author.as_str());
+
+
+                if len >= settings.authors_len {
+                   break;
+                }
+            }
+        }
+
+        let pango_layout = widget.create_pango_layout("").unwrap();
+
+        pango_layout.set_markup(&authors);
+
+        let mut font_description = settings.font_description.clone();
+
+        let tags:Vec<String> = thread.tags().collect();
+        let thread_unread = tags.contains(&"unread".to_string());
+
+        if thread_unread {
+            font_description.set_weight(pango::Weight::Normal);
+        }
+
+        pango_layout.set_font_description(&font_description);
+
+        if thread_unread {
+            font_description.set_weight(pango::Weight::Bold);
+        }
+
+       /* set color */
+       let stylecontext = widget.get_style_context().unwrap();
+       let color = stylecontext.get_color(gtk::StateFlags::NORMAL);
+       cr.set_source_rgb(color.red, color.green, color.blue);
+
+       /* align in the middle */
+       let (_, h) = pango_layout.get_size();
+       let y = max(0,(cache.line_height / 2) - ((h / pango::SCALE) / 2));
+
+       cr.move_to((cell_area.x + cache.authors_start) as f64, (cell_area.y + y) as f64);
+       pangocairo::functions::show_layout(&cr, &pango_layout);
+
+       h
+    }
+
+
 }
 
 
@@ -584,9 +701,13 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
 
         let thread = self.thread.borrow().as_ref().unwrap().clone();
 
-        /*if thread.unread() {
-          settings.font_description.set_weight(pango::Weight::Bold);
-        } else */ {
+        let tags:Vec<String> = thread.tags().collect();
+        let thread_unread = tags.contains(&"unread".to_string());
+
+
+        if thread_unread {
+          self.settings.borrow_mut().font_description.set_weight(pango::Weight::Bold);
+        } else  {
           self.settings.borrow_mut().font_description.set_weight(pango::Weight::Normal);
         }
 
@@ -597,8 +718,8 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
           //render_message_count (cr, widget, cell_area);
         }
 
-        // render_authors (cr, widget, cell_area);
-        //
+        self.render_authors(&renderer, &cr, &widget, &background_area, &cell_area, flags);
+
         // tags_width = render_tags (cr, widget, cell_area, flags); // returns width
         // subject_start = tags_start + tags_width / Pango::SCALE + ((tags_width > 0) ? padding : 0);
         //

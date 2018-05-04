@@ -27,6 +27,7 @@ pub trait CellRendererImpl<T: CellRendererBase>: ObjectImpl<T> + AnyImpl + 'stat
     {
         cell_renderer.parent_render(cr, widget, background_area, cell_area, flags)
     }
+
 }
 
 pub trait CellRendererImplExt<T> {
