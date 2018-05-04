@@ -10,6 +10,7 @@ use std::time::Duration;
 
 use gio;
 use glib;
+use glib::value::AnyValue;
 use glib::prelude::*;
 use glib::translate::FromGlib;
 use gtk;
@@ -24,7 +25,7 @@ use notmuch::DatabaseMode;
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
 
-use thread_list_item::ThreadListItem;
+use thread_list_cell_renderer::CellRendererThread;
 
 const COLUMN_ID:u8 = 0;
 const COLUMN_SUBJECT:u8 = 1;
@@ -33,23 +34,25 @@ const COLUMN_AUTHORS:u8 = 2;
 
 fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
     let column = gtk::TreeViewColumn::new();
-    let cell = gtk::CellRendererText::new();
+    let cell = CellRendererThread::new();
 
     column.pack_start(&cell, false);
     // Association of the view's column with the model's `id` column.
-    column.add_attribute(&cell, "text", id);
+    column.add_attribute(&cell, "thread", id);
     column.set_title(&title);
     tree.append_column(&column);
 }
 
-pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &::relm::EventStream<MSG>, constructor: F) -> glib::source::SourceId {
+pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &::relm::EventStream<MSG>, constructor: F, single_shot:Option<bool>) -> glib::source::SourceId {
     let stream = stream.clone();
     gtk::idle_add(move || {
         let msg = constructor();
         stream.emit(msg);
-        Continue(true)
+        Continue(!single_shot.unwrap_or(false))
     })
 }
+
+
 
 
 
@@ -100,7 +103,7 @@ pub struct ThreadListModel {
 
 
 fn create_liststore() -> gtk::ListStore{
-    gtk::ListStore::new(&[String::static_type(), String::static_type(), String::static_type()])
+    gtk::ListStore::new(&[String::static_type(), AnyValue::static_type()])
 }
 
 impl ThreadList{
@@ -131,34 +134,41 @@ impl ThreadList{
         });
 
 
-        self.model.idle_handle = Some(gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init)));
+        gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init), Some(true));
 
     }
 
 
     fn add_thread(&mut self, thread: notmuch::Thread){
 
+        let val = AnyValue::new(thread.clone()).to_value();
+
         let subject = &thread.subject();
         self.tree_model.insert_with_values(None,
             &[COLUMN_ID as u32,
               COLUMN_SUBJECT as u32,
-              COLUMN_AUTHORS as u32],
+              // COLUMN_AUTHORS as
+            ],
             &[&thread.id().to_value(),
-              &thread.subject().to_value(),
-              &thread.authors().join(",").to_value()
+              &val
             ]);
     }
 
     fn next_thread(&mut self){
         if self.model.thread_list.is_none(){
-            return;
+
+            return ();
         }
 
         match self.model.thread_list.as_mut().unwrap().next() {
             Some(mthread) => {
+                gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init), Some(true));
                 self.add_thread(mthread);
+
             },
-            None => ()
+            None => {
+
+            }
         }
 
     }
@@ -226,7 +236,7 @@ impl ::relm::Widget for ThreadList {
 
         // tree_view.set_headers_visible(false);
         append_text_column(&tree_view, COLUMN_SUBJECT as i32, "Subject");
-        append_text_column(&tree_view, COLUMN_AUTHORS as i32, "Authors");
+        // append_text_column(&tree_view, COLUMN_AUTHORS as i32, "Authors");
 
         scrolled_window.add(&tree_view);
 
