@@ -21,12 +21,27 @@ extern crate relm_attributes;
 extern crate relm_derive;
 extern crate shellexpand;
 extern crate notmuch;
+extern crate chrono;
 
 extern crate gtk;
 extern crate gio;
+extern crate gdk;
+extern crate gdk_pixbuf;
+#[macro_use]
 extern crate glib;
 extern crate gmime;
+extern crate cairo;
+extern crate pango;
+extern crate pangocairo;
 
+extern crate glib_sys as glib_ffi;
+extern crate gobject_sys as gobject_ffi;
+extern crate gtk_sys as gtk_ffi;
+extern crate cairo_sys as cairo_ffi;
+extern crate gdk_sys as gdk_ffi;
+
+#[macro_use]
+extern crate gobject_subclass;
 extern crate inox_core;
 
 use std::rc::Rc;
@@ -49,7 +64,8 @@ mod constants;
 mod main_content;
 mod tag_list;
 mod thread_list;
-mod thread_list_item;
+mod cell_renderer;
+mod thread_list_cell_renderer;
 mod thread_view;
 mod application_window;
 
