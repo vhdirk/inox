@@ -608,9 +608,11 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         // if (thread->flagged)
         //   render_flagged (cr, widget, cell_area);
         //
-        // if (thread->attachment)
-        //   render_attachment (cr, widget, cell_area);
-        //
+        let tags:Vec<String> = thread.tags().collect();
+        if tags.contains(&"attachment".to_string()){
+            self.render_attachment(&renderer, &cr, &widget, &background_area, &cell_area, flags);
+
+        }
         // /*
         // if (marked)
         //   render_marked (cr, widget, cell_area);

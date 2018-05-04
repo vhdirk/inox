@@ -28,7 +28,7 @@ use inox_core::database::Manager as DBManager;
 use thread_list_cell_renderer::CellRendererThread;
 
 const COLUMN_ID:u8 = 0;
-const COLUMN_SUBJECT:u8 = 1;
+const COLUMN_THREAD:u8 = 1;
 const COLUMN_AUTHORS:u8 = 2;
 
 
@@ -146,8 +146,7 @@ impl ThreadList{
         let subject = &thread.subject();
         self.tree_model.insert_with_values(None,
             &[COLUMN_ID as u32,
-              COLUMN_SUBJECT as u32,
-              // COLUMN_AUTHORS as
+              COLUMN_THREAD as u32
             ],
             &[&thread.id().to_value(),
               &val
@@ -234,9 +233,8 @@ impl ::relm::Widget for ThreadList {
         let tree_view = gtk::TreeView::new();
 
 
-        // tree_view.set_headers_visible(false);
-        append_text_column(&tree_view, COLUMN_SUBJECT as i32, "Subject");
-        // append_text_column(&tree_view, COLUMN_AUTHORS as i32, "Authors");
+        tree_view.set_headers_visible(false);
+        append_text_column(&tree_view, COLUMN_THREAD as i32, "Thread");
 
         scrolled_window.add(&tree_view);
 
