@@ -42,6 +42,9 @@ extern crate gdk_sys as gdk_ffi;
 
 #[macro_use]
 extern crate gobject_subclass;
+
+extern crate md5;
+
 extern crate inox_core;
 
 use std::rc::Rc;
@@ -68,6 +71,7 @@ mod cell_renderer;
 mod thread_list_cell_renderer;
 mod thread_view;
 mod application_window;
+mod util;
 
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;

@@ -36,7 +36,7 @@ use gobject_subclass::object::*;
 use gobject_subclass::properties::*;
 
 use cell_renderer::*;
-
+use util::*;
 
 pub trait CellRendererThreadImpl: 'static {
 
@@ -160,7 +160,7 @@ impl Default for CellRendererThreadSettings{
 
             subject_color : Some("#807d74".to_string()),
             subject_color_selected : Some("#000000".to_string()),
-            background_color_selected : None,
+            background_color_selected : Some("#ffffff".to_string()),
             background_color_marked : Some("#fff584".to_string()),
             background_color_marked_selected : Some("#bcb559".to_string()),
 
@@ -174,12 +174,6 @@ impl Default for CellRendererThreadSettings{
         }
     }
 }
-
-
-
-
-
-
 
 
 
@@ -645,6 +639,67 @@ impl CellRendererThread {
        h
     }
 
+    fn render_tags(&self, renderer: &CellRenderer,
+                          cr: &cairo::Context,
+                          widget: &gtk::Widget,
+                          background_area: &gtk::Rectangle,
+                          cell_area: &gtk::Rectangle,
+                          flags: gtk::CellRendererState) -> i32
+    {
+        let thread = self.thread.borrow().as_ref().unwrap().clone();
+        let settings = self.settings.borrow();
+        let mut cache = self.cache.borrow_mut();
+
+
+        let pango_layout = widget.create_pango_layout("").unwrap();
+        pango_layout.set_font_description(&settings.font_description);
+
+
+        /* set color */
+        let stylecontext = widget.get_style_context().unwrap();
+        let color = stylecontext.get_color(gtk::StateFlags::NORMAL);
+        cr.set_source_rgb(color.red, color.green, color.blue);
+
+      /* subtract hidden tags */
+      // vector<ustring> tags;
+      // set_difference (thread->tags.begin(),
+      //                 thread->tags.end(),
+      //                 hidden_tags.begin (),
+      //                 hidden_tags.end (),
+      //                 back_inserter(tags));
+
+      let mut tag_string: String;
+
+      let mut bg: gdk::RGBA = gdk::RGBA::from_str("#ffffff").unwrap();
+
+      if flags.contains(gtk::CellRendererState::SELECTED){
+        bg = gdk::RGBA::from_str(settings.background_color_selected.as_ref().unwrap().as_str()).unwrap();
+        cr.set_source_rgb (bg.red, bg.green, bg.blue);
+      }
+
+      /* first try plugin */
+  // # ifndef DISABLE_PLUGINS
+  //     if (!thread_index->plugins->format_tags (tags, bg.to_string (), (flags & Gtk::CELL_RENDERER_SELECTED) != 0, tag_string)) {
+  // # endif
+
+        let tags: Vec<String> = thread.tags().collect();
+        tag_string = concat_tags_color(&tags, true, settings.tags_len, &bg);
+  // # ifndef DISABLE_PLUGINS
+  //     }
+  // # endif
+
+      pango_layout.set_markup(&tag_string);
+
+      /* align in the middle */
+      let (w, h) = pango_layout.get_size();
+      let y = max(0, (cache.line_height / 2) - ((h / pango::SCALE) / 2));
+
+      cr.move_to((cell_area.x + cache.tags_start) as f64, (cell_area.y + y) as f64);
+      pangocairo::functions::show_layout(&cr, &pango_layout);
+
+      w
+
+    }
 
 }
 
@@ -714,8 +769,14 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
 
         self.render_authors(&renderer, &cr, &widget, &background_area, &cell_area, flags);
 
-        // tags_width = render_tags (cr, widget, cell_area, flags); // returns width
-        // subject_start = tags_start + tags_width / Pango::SCALE + ((tags_width > 0) ? padding : 0);
+        let tags_width = self.render_tags(&renderer, &cr, &widget, &background_area, &cell_area, flags); // returns width
+        {
+            let mut cache = self.cache.borrow_mut();
+            cache.tags_width = tags_width;
+            let t = 0;
+            // if (cache.tags_width > 0) {t = self.settings.borrow().padding}
+            cache.subject_start = cache.tags_start + cache.tags_width / pango::SCALE + (t);
+        }
         //
         self.render_subject(&renderer, &cr, &widget, &background_area, &cell_area, flags);
 
