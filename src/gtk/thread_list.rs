@@ -24,6 +24,7 @@ use notmuch::DatabaseMode;
 
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
+use inox_core::database::Thread;
 
 use thread_list_cell_renderer::CellRendererThread;
 
@@ -139,7 +140,7 @@ impl ThreadList{
     }
 
 
-    fn add_thread(&mut self, thread: notmuch::Thread){
+    fn add_thread(&mut self, thread: Thread){
 
         let val = AnyValue::new(thread.clone()).to_value();
 
@@ -162,7 +163,7 @@ impl ThreadList{
         match self.model.thread_list.as_mut().unwrap().next() {
             Some(mthread) => {
                 gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init), Some(true));
-                self.add_thread(mthread);
+                self.add_thread(mthread.into());
 
             },
             None => {

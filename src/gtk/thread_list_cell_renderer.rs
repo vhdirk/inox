@@ -28,6 +28,7 @@ use notmuch;
 
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
+use inox_core::database::Thread;
 
 use notmuch::DatabaseMode;
 
@@ -184,7 +185,7 @@ impl Default for CellRendererThreadSettings{
 
 
 pub struct CellRendererThread {
-    thread: RefCell<Option<notmuch::Thread>>,
+    thread: RefCell<Option<Thread>>,
     settings: RefCell<CellRendererThreadSettings>,
     cache: RefCell<CellRendererThreadCache>,
 }
@@ -498,7 +499,7 @@ impl CellRendererThread {
                           cell_area: &gtk::Rectangle,
                           flags: gtk::CellRendererState) -> i32
     {
-        use chrono::{DateTime, TimeZone, NaiveDateTime, Utc, Local};
+        use chrono::{DateTime, NaiveDateTime, Utc, Local};
 
         let settings = self.settings.borrow();
         let mut cache = self.cache.borrow_mut();
@@ -619,16 +620,13 @@ impl CellRendererThread {
 
         let mut font_description = settings.font_description.clone();
 
-        let tags:Vec<String> = thread.tags().collect();
-        let thread_unread = tags.contains(&"unread".to_string());
-
-        if thread_unread {
+        if thread.is_unread() {
             font_description.set_weight(pango::Weight::Normal);
         }
 
         pango_layout.set_font_description(&font_description);
 
-        if thread_unread {
+        if thread.is_unread() {
             font_description.set_weight(pango::Weight::Bold);
         }
 
@@ -660,7 +658,7 @@ impl ObjectImpl<CellRenderer> for CellRendererThread
         match *prop {
             Property::Boxed("thread", ..) => {
                 let any_v = value.get::<&AnyValue>().expect("Value did not actually contain an AnyValue");
-                *(self.thread.borrow_mut()) = Some(any_v.downcast_ref::<notmuch::Thread>().unwrap().clone());
+                *(self.thread.borrow_mut()) = Some(any_v.downcast_ref::<Thread>().unwrap().clone());
             },
             _ => unimplemented!(),
         }
@@ -701,11 +699,7 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
 
         let thread = self.thread.borrow().as_ref().unwrap().clone();
 
-        let tags:Vec<String> = thread.tags().collect();
-        let thread_unread = tags.contains(&"unread".to_string());
-
-
-        if thread_unread {
+        if thread.is_unread() {
           self.settings.borrow_mut().font_description.set_weight(pango::Weight::Bold);
         } else  {
           self.settings.borrow_mut().font_description.set_weight(pango::Weight::Normal);
@@ -729,8 +723,7 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         // if (thread->flagged)
         //   render_flagged (cr, widget, cell_area);
         //
-        let tags:Vec<String> = thread.tags().collect();
-        if tags.contains(&"attachment".to_string()){
+        if thread.has_attachment(){
             self.render_attachment(&renderer, &cr, &widget, &background_area, &cell_area, flags);
 
         }
