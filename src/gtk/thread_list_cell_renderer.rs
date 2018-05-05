@@ -55,6 +55,8 @@ pub struct CellRendererThreadCache{
     date_start: i32,
     date_width: i32,
 
+    padding: i32,
+
     message_count_start: i32,
     message_count_width: i32,
 
@@ -65,6 +67,7 @@ pub struct CellRendererThreadCache{
     tags_width: i32,
 
     subject_start: i32,
+    subject_width: i32,
 
     flagged_icon: Option<gdk_pixbuf::Pixbuf>,
     attachment_icon: Option<gdk_pixbuf::Pixbuf>
@@ -98,6 +101,10 @@ impl Default for CellRendererThreadCache{
             tags_width: 0,
 
             subject_start: 0,
+            subject_width: 0,
+
+            padding: 0,
+
             flagged_icon: None,
             attachment_icon: None
         }
@@ -108,22 +115,19 @@ impl Default for CellRendererThreadCache{
 pub struct CellRendererThreadSettings {
     // cached values
 
-    date_len: i32,
+    date_length: i32,
 
-    message_count_len: i32,
+    message_count_length: i32,
 
-    authors_len: i32,
+    authors_length: i32,
 
-    tags_len: i32,
+    tags_length: i32,
 
     left_icons_width_n: i32,
     left_icons_padding: i32,
     font_description: pango::FontDescription,
     language: pango::Language,
     line_spacing : i32,
-    date_length : i32,
-    message_count_length : i32,
-    authors_length : i32,
 
     subject_color: Option<String>,
     subject_color_selected : Option<String>,
@@ -131,7 +135,6 @@ pub struct CellRendererThreadSettings {
     background_color_marked : Option<String>,
     background_color_marked_selected : Option<String>,
 
-    tags_length : u16,
     tags_upper_color : Option<String>,
     tags_lower_color : Option<String>,
     tags_alpha : f32,
@@ -146,17 +149,14 @@ impl Default for CellRendererThreadSettings{
         {
             left_icons_width_n: 2,
             left_icons_padding: 1,
-            date_len: 10,
-            message_count_len: 4,
-            authors_len: 20,
-            tags_len: 80,
+            date_length: 10,
+            message_count_length: 4,
+            authors_length: 20,
+            tags_length: 80,
 
             language: pango::Language::default(),
             font_description : pango::FontDescription::from_string("default"),
             line_spacing : 2,
-            date_length : 10,
-            message_count_length : 4,
-            authors_length : 20,
 
             subject_color : Some("#807d74".to_string()),
             subject_color_selected : Some("#000000".to_string()),
@@ -164,7 +164,6 @@ impl Default for CellRendererThreadSettings{
             background_color_marked : Some("#fff584".to_string()),
             background_color_marked_selected : Some("#bcb559".to_string()),
 
-            tags_length : 80,
             tags_upper_color : Some("#e5e5e5".to_string()),
             tags_lower_color : Some("#333333".to_string()),
             tags_alpha : 0.5,
@@ -244,10 +243,10 @@ impl CellRendererThread {
 
         let mut char_width = font_metrics.get_approximate_char_width() / pango::SCALE;
         if char_width == 0{
-            char_width = 2;
+            char_width = 10;
         }
         debug!("char width: {:?}", font_metrics.get_approximate_char_width());
-        let padding = char_width;
+        cache.padding = char_width;
 
         /* figure out font height */
         let pango_layout = widget.create_pango_layout("TEST HEIGHT STRING").unwrap();
@@ -266,15 +265,15 @@ impl CellRendererThread {
         cache.left_icons_width = cache.left_icons_size;
 
         cache.date_start          = settings.left_icons_width_n * cache.left_icons_width +
-             (settings.left_icons_width_n-1) * settings.left_icons_padding + padding;
-        cache.date_width          = char_width * settings.date_len;
-        cache.message_count_width = char_width * settings.message_count_len;
-        cache.message_count_start = cache.date_start + cache.date_width + padding;
-        cache.authors_width       = char_width * settings.authors_len;
-        cache.authors_start       = cache.message_count_start + cache.message_count_width + padding;
-        cache.tags_width          = char_width * settings.tags_len;
-        cache.tags_start          = cache.authors_start + cache.authors_width + padding;
-        cache.subject_start       = cache.tags_start + cache.tags_width + padding;
+             (settings.left_icons_width_n-1) * settings.left_icons_padding + cache.padding;
+        cache.date_width          = char_width * settings.date_length;
+        cache.message_count_width = char_width * settings.message_count_length;
+        cache.message_count_start = cache.date_start + cache.date_width + cache.padding;
+        cache.authors_width       = char_width * settings.authors_length;
+        cache.authors_start       = cache.message_count_start + cache.message_count_width + cache.padding;
+        cache.tags_width          = char_width * settings.tags_length;
+        cache.tags_start          = cache.authors_start + cache.authors_width + cache.padding;
+        cache.subject_start       = cache.tags_start + cache.tags_width + cache.padding;
 
         cache.height              = cache.content_height + settings.line_spacing;
     }
@@ -547,8 +546,8 @@ impl CellRendererThread {
             /* if only one, show full name */
             let mut author = thread.authors()[0].clone();
 
-            if author.len() >= settings.authors_len as usize {
-                author.truncate(settings.authors_len as usize);
+            if author.len() >= settings.authors_length as usize {
+                author.truncate(settings.authors_length as usize);
                 author = author.trim_right().to_string();
                 author.add_assign(".");
             }
@@ -579,11 +578,11 @@ impl CellRendererThread {
 
 
                 let mut tlen = author.len() as i32;
-                if (len + tlen) >= settings.authors_len {
-                    author.truncate((settings.authors_len - len) as usize);
+                if (len + tlen) >= settings.authors_length {
+                    author.truncate((settings.authors_length - len) as usize);
                     author = author.trim_right().to_string();
                     author.add_assign(".");
-                    tlen = settings.authors_len - len;
+                    tlen = settings.authors_length - len;
                 }
 
                 len += tlen;
@@ -602,7 +601,7 @@ impl CellRendererThread {
                 authors = glib::markup_escape_text(author.as_str());
 
 
-                if len >= settings.authors_len {
+                if len >= settings.authors_length {
                    break;
                 }
             }
@@ -683,7 +682,7 @@ impl CellRendererThread {
   // # endif
 
         let tags: Vec<String> = thread.tags().collect();
-        tag_string = concat_tags_color(&tags, true, settings.tags_len, &bg);
+        tag_string = concat_tags_color(&tags, true, settings.tags_length, &bg);
   // # ifndef DISABLE_PLUGINS
   //     }
   // # endif
@@ -765,6 +764,7 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
 
         if thread.total_messages() > 1 {
           //render_message_count (cr, widget, cell_area);
+          //self.render_authors(&renderer, &cr, &widget, &background_area, &cell_area, flags);
         }
 
         self.render_authors(&renderer, &cr, &widget, &background_area, &cell_area, flags);
@@ -773,8 +773,8 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         {
             let mut cache = self.cache.borrow_mut();
             cache.tags_width = tags_width;
-            let t = 0;
-            // if (cache.tags_width > 0) {t = self.settings.borrow().padding}
+            let mut t = 0;
+            if cache.tags_width > 0 {t = cache.padding}
             cache.subject_start = cache.tags_start + cache.tags_width / pango::SCALE + (t);
         }
         //
