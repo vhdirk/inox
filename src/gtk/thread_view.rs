@@ -8,6 +8,8 @@ use glib;
 use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
+use webkit2gtk;
+
 use relm_attributes::widget;
 
 use notmuch;

@@ -40,6 +40,9 @@ extern crate gtk_sys as gtk_ffi;
 extern crate cairo_sys as cairo_ffi;
 extern crate gdk_sys as gdk_ffi;
 
+extern crate webkit2gtk;
+extern crate webkit2gtk_webextension;
+
 #[macro_use]
 extern crate gobject_subclass;
 
