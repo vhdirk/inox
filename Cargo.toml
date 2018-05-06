@@ -43,6 +43,8 @@ gtk-sys        = "^0.6.0"
 gdk-sys        = "^0.6.0"
 gdk-pixbuf-sys = "^0.6.0"
 cairo-sys-rs   = "^0.6.0"
+webkit2gtk     = "^0.4.0"
+webkit2gtk-webextension = "^0.6.0"
 
 gobject-subclass = "^0.1.0"
 gmime       = "*"
@@ -56,16 +58,34 @@ md5 = "0.3.7"
 
 
 [features]
-default = ["gtk/v3_16", "relm/unstable", "relm-attributes/unstable", "relm-derive/unstable"]
-gtk_3_10 = ["gtk/v3_10"]
-gtk_3_16 = ["gtk_3_10", "gtk/v3_16"]
-gtk_3_18 = ["gtk_3_16", "gtk/v3_18"] #for CI tools
-gtk_3_20 = ["gtk_3_18", "gtk/v3_20"] #for CI tools
+default = ["gtk/v3_16",
+           "webkit2gtk/v2_16",
+           "relm/unstable",
+           "relm-attributes/unstable",
+           "relm-derive/unstable"]
 
 
-# [patch.crates-io]
-# notmuch = { path="../notmuch-rs", optional = true }
-#
+[patch.crates-io]
+notmuch = { path="../notmuch-rs" }
+gobject-subclass = { git = "https://github.com/sdroege/gobject-subclass" }
+gmime = { path = "../gmime-rs" }
+
+gtk = { git = "https://github.com/gtk-rs/gtk", branch="crate"}
+cairo-rs = { git = "https://github.com/gtk-rs/cairo", branch="crate"}
+pango = { git = "https://github.com/gtk-rs/pango", branch="crate"}
+gdk = { git = "https://github.com/gtk-rs/gdk", branch="crate"}
+gdk-pixbuf = { git = "https://github.com/gtk-rs/gdk-pixbuf", branch="crate"}
+gio = { git = "https://github.com/gtk-rs/gio", branch="crate"}
+glib = { git = "https://github.com/gtk-rs/glib", branch="crate"}
+pangocairo = { git = "https://github.com/gtk-rs/pangocairo", branch="crate"}
+glib-sys = { git = "https://github.com/gtk-rs/sys", branch="crate"}
+gio-sys = { git = "https://github.com/gtk-rs/sys", branch="crate"}
+gobject-sys = { git = "https://github.com/gtk-rs/sys", branch="crate"}
+gtk-sys = { git = "https://github.com/gtk-rs/sys", branch="crate"}
+gdk-sys = { git = "https://github.com/gtk-rs/sys", branch="crate"}
+gdk-pixbuf-sys = { git = "https://github.com/gtk-rs/sys", branch="crate"}
+cairo-sys-rs = { git = "https://github.com/gtk-rs/cairo", branch="crate"}
+
 
 [dev-dependencies]
 cargo-expand = "*"
