@@ -9,7 +9,7 @@ use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 use webkit2gtk;
-use webkit2gtk_webextension;
+use webkit2gtk::prelude::*;
 use webkit2gtk::SettingsExt;
 
 use relm_attributes::widget;

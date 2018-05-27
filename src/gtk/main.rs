@@ -14,11 +14,11 @@ extern crate serde_derive;
 extern crate toml;
 #[macro_use]
 extern crate lazy_static;
-#[macro_use]
-extern crate relm;
-extern crate relm_attributes;
-#[macro_use]
-extern crate relm_derive;
+// #[macro_use]
+// extern crate relm;
+// extern crate relm_attributes;
+// #[macro_use]
+// extern crate relm_derive;
 extern crate shellexpand;
 extern crate notmuch;
 extern crate chrono;
@@ -36,15 +36,19 @@ extern crate pangocairo;
 
 extern crate glib_sys as glib_ffi;
 extern crate gobject_sys as gobject_ffi;
+extern crate gio_sys as gio_ffi;
 extern crate gtk_sys as gtk_ffi;
 extern crate cairo_sys as cairo_ffi;
 extern crate gdk_sys as gdk_ffi;
 
-extern crate webkit2gtk;
-extern crate webkit2gtk_webextension;
+// extern crate webkit2gtk;
 
 #[macro_use]
 extern crate gobject_subclass;
+#[macro_use]
+extern crate gio_subclass;
+#[macro_use]
+extern crate gtk_subclass;
 
 extern crate md5;
 
@@ -63,25 +67,27 @@ use gio::prelude::*;
 use structopt::StructOpt;
 use structopt::clap::{App, Arg};
 
-use relm::Widget;
+// use relm::Widget;
 
-mod header;
+// mod header;
 mod constants;
-mod main_content;
-mod tag_list;
-mod thread_list;
-mod cell_renderer;
-mod thread_list_cell_renderer;
-mod thread_view;
-mod application_window;
-mod util;
+// mod main_content;
+// mod tag_list;
+// mod thread_list;
+// mod cell_renderer;
+// mod thread_list_cell_renderer;
+// mod thread_view;
+// mod application_window;
+// mod util;
+
+mod application;
 
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
 // use application::Application as InoxApplication;
 
-use application_window::ApplicationWindow;
-
+// use application_window::ApplicationWindow;
+use application::InoxApplication;
 
 /// Init Gtk and logger.
 fn init() {
@@ -158,24 +164,30 @@ fn main() {
 
     debug!("Using config file {:?}", conf_location);
 
-    // load the settings
-    let conf_path:PathBuf = PathBuf::from(conf_location);
-
-    let settings = Rc::new(Settings::new(&conf_path.as_path()));
-
-    let dbman = Arc::new(DBManager::new(&settings));
-
-    let gapp = gtk::Application::new(Some(constants::APPLICATION_ID),
-                                     gio::ApplicationFlags::FLAGS_NONE).unwrap();
-
-    gapp.connect_startup(move |app| {
-        let mut _appwindow = ::relm::init::<ApplicationWindow>((app.to_owned(), settings.clone(), dbman.clone()));
-    });
-    gapp.connect_activate(|_| {
-
-    });
+    // // load the settings
+    // let conf_path:PathBuf = PathBuf::from(conf_location);
+    //
+    // let settings = Rc::new(Settings::new(&conf_path.as_path()));
+    //
+    // let dbman = Arc::new(DBManager::new(&settings));
 
 
+    let gapp = InoxApplication::new(constants::APPLICATION_ID,
+                                              gio::ApplicationFlags::empty())
+                                         .expect("Initialization failed...");
+
+
+    // let gapp = gtk::Application::new(Some(constants::APPLICATION_ID),
+    //                                  gio::ApplicationFlags::FLAGS_NONE).unwrap();
+    //
+    // gapp.connect_startup(move |app| {
+    //     let mut _appwindow = ::relm::init::<ApplicationWindow>((app.to_owned(), settings.clone(), dbman.clone()));
+    // });
+    // gapp.connect_activate(|_| {
+    //
+    // });
+    //
+    //
     // Run GTK application with command line args
     let args: Vec<String> = std::env::args().collect();
     gapp.run(args.as_slice());
