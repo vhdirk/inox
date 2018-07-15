@@ -1,77 +1,8 @@
-[package]
-name = "Inox"
-version = "0.0.1"
-authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
+[workspace]
+members = [
+    "inox-core",
+    "inox-gtk"
+]
 
-[lib]
-name = "inox_core"
-path = "src/core/lib.rs"
-
-[[bin]]
-name = "inox-gtk"
-path = "src/gtk/main.rs"
-
-
-[dependencies]
-structopt = "0.2"
-log = "*"
-env_logger ="*"
-shellexpand = "*"
-net2 = "*"
-nix = "*"
-regex = "*"
-toml = "*"
-serde = "*"
-serde_derive = "*"
-serde_ini = "*"
-lazy_static = "1.0"
-vte = "0.3.2"
-chrono = { version = "0.4", features = ["serde"] }
-notmuch = "*"
-
-gtk = { git = "https://github.com/gtk-rs/gtk"}
-cairo-rs = { git = "https://github.com/gtk-rs/cairo"}
-pango = { git = "https://github.com/gtk-rs/pango"}
-gdk = { git = "https://github.com/gtk-rs/gdk"}
-gdk-pixbuf = { git = "https://github.com/gtk-rs/gdk-pixbuf"}
-gio = { git = "https://github.com/gtk-rs/gio", features=["futures"]}
-glib = { git = "https://github.com/gtk-rs/glib"}
-pangocairo = { git = "https://github.com/gtk-rs/pangocairo"}
-glib-sys = { git = "https://github.com/gtk-rs/sys"}
-gio-sys = { git = "https://github.com/gtk-rs/sys"}
-gobject-sys = { git = "https://github.com/gtk-rs/sys"}
-gtk-sys = { git = "https://github.com/gtk-rs/sys"}
-gdk-sys = { git = "https://github.com/gtk-rs/sys"}
-gdk-pixbuf-sys = { git = "https://github.com/gtk-rs/sys"}
-cairo-sys-rs = { git = "https://github.com/gtk-rs/cairo"}
-# webkit2gtk    = { git = "https://github.com/gtk-rs/webkit2gtk-rs"}
-# webkit2gtk-webextension = { git = "https://github.com/gtk-rs/webkit2gtk-webextension-rs"}
-
-gobject-subclass = { git = "https://github.com/sdroege/gobject-subclass" }
-gio-subclass = { git = "https://github.com/sdroege/gobject-subclass" }
-gtk-subclass = { git = "https://github.com/sdroege/gtk-subclass" }
-
-gmime   = "*"
-#
-# relm = "^0.14.0"
-# relm-derive = "^0.14.0"
-# relm-attributes = "^0.14.0"
-
-md5 = "0.3.7"
-
-
-
-[features]
-default = ["gtk/v3_16",
-           #"webkit2gtk/v2_16",
-           "glib/futures",
-           "gio/futures"]
-
-
-[patch.crates-io]
-notmuch = { path="../notmuch-rs" }
-gmime = { path = "../gmime-rs" }
-
-
-[dev-dependencies]
-cargo-expand = "*"
+[profile.release]
+debug = false

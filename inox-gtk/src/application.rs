@@ -23,17 +23,30 @@ use glib::translate::*;
 use gio::prelude::*;
 use gtk::prelude::*;
 
+use crossbeam_channel::{unbounded, Receiver, Sender};
+
 use gobject_subclass::object::*;
-use gio_subclass::application::{Application as GApplication, ApplicationImpl, ApplicationBase};
-use gtk_subclass::application::{Application as GtkApplication};
-use gtk_subclass::application::*;
+use gio_subclass::application::{Application as GApplication,
+                                ApplicationImpl as GApplicationImpl,
+                                ApplicationBase as GApplicationBase};
+use gtk_subclass::application::{Application as GtkApplication,
+                                ApplicationClass as GtkApplicationClass,
+                                GtkApplicationImpl};
 
 
 mod imp {
     use super::*;
 
+    #[derive(Debug, Clone)]
     pub struct InoxApplication{
-
+        window: gtk::ApplicationWindow,
+        overlay: gtk::Overlay,
+        settings: gio::Settings,
+        content: Rc<Content>,
+        headerbar: Rc<Header>,
+        player: Rc<player::PlayerWidget>,
+        sender: Sender<Action>,
+        receiver: Receiver<Action>,
     }
 
     static PROPERTIES: [Property; 0] = [];
@@ -54,11 +67,11 @@ mod imp {
             unsafe { TYPE }
         }
 
-        fn class_init(klass: &mut ApplicationClass) {
+        fn class_init(klass: &mut GtkApplicationClass) {
             klass.install_properties(&PROPERTIES);
         }
 
-        fn init(_application: &Application) -> Box<GtkApplicationImpl<Application>> {
+        fn init(_application: &GtkApplication) -> Box<GtkApplicationImpl<GtkApplication>> {
             let imp = Self {
 
             };
@@ -67,32 +80,32 @@ mod imp {
 
     }
 
-    impl ObjectImpl<Application> for InoxApplication {}
+    impl ObjectImpl<GtkApplication> for InoxApplication {}
 
-    impl ApplicationImpl<Application> for InoxApplication
+    impl GApplicationImpl<GtkApplication> for InoxApplication
     {
-        fn startup(&self, application: &Application){
+        fn startup(&self, application: &GtkApplication){
             application.parent_startup();
 
         }
     }
 
-    impl GtkApplicationImpl<Application> for InoxApplication {}
+    impl GtkApplicationImpl<GtkApplication> for InoxApplication {}
 
 
     pub struct InoxApplicationStatic;
 
-    impl ImplTypeStatic<Application> for InoxApplicationStatic
+    impl ImplTypeStatic<GtkApplication> for InoxApplicationStatic
     {
         fn get_name(&self) -> &str {
             "InoxApplication"
         }
 
-        fn new(&self, application: &Application) -> Box<GtkApplicationImpl<Application>> {
+        fn new(&self, application: &GtkApplication) -> Box<GtkApplicationImpl<GtkApplication>> {
             InoxApplication::init(application)
         }
 
-        fn class_init(&self, klass: &mut ApplicationClass) {
+        fn class_init(&self, klass: &mut GtkApplicationClass) {
             InoxApplication::class_init(klass);
         }
     }
@@ -101,7 +114,7 @@ mod imp {
 
 glib_wrapper! {
     pub struct InoxApplication(Object<imp::InoxApplication>):
-        [Application => InstanceStruct<Application>,
+        [GtkApplication => InstanceStruct<GtkApplication>,
          GApplication => InstanceStruct<GApplication>,
          gtk::Application => gtk_ffi::GtkApplication,
          gio::Application => gio_ffi::GApplication,
@@ -131,19 +144,4 @@ impl InoxApplication {
     }
 }
 
-// TODO: This one should probably get a macro
-impl Deref for InoxApplication {
-    type Target = imp::InoxApplication;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe {
-
-            let base: Application = from_glib_borrow(self.to_glib_none().0);
-            let imp = base.get_impl();
-            let imp = imp.downcast_ref::<imp::InoxApplication>().unwrap();
-            // Cast to a raw pointer to get us an appropriate lifetime: the compiler
-            // can't know that the lifetime of base is the same as the one of self
-            &*(imp as *const imp::InoxApplication)
-        }
-    }
-}
+gobject_subclass_deref!(InoxApplication, GtkApplication);
