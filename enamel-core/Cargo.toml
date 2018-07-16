@@ -1,10 +1,10 @@
 [package]
-name = "inox-core"
+name = "enamel-core"
 version = "0.0.1"
 authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
 
 [lib]
-name = "inox_core"
+name = "enamel_core"
 path = "src/lib.rs"
 
 

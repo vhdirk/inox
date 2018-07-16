@@ -1,12 +1,12 @@
 [package]
-name = "inox-gtk"
+name = "enamel-gtk"
 version = "0.0.1"
 authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
 workspace = "../"
 
 
 [[bin]]
-name = "inox-gtk"
+name = "enamel-gtk"
 path = "src/main.rs"
 
 
@@ -52,7 +52,7 @@ crossbeam-channel = "0.2.1"
 
 md5 = "0.3.7"
 
-inox-core = { path = "../inox-core" }
+enamel-core = { path = "../enamel-core" }
 notmuch = "*"
 gmime = { git = "https://github.com/vhdirk/gmime-rs"}
 

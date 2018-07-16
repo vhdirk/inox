@@ -14,11 +14,7 @@ extern crate serde_derive;
 extern crate toml;
 #[macro_use]
 extern crate lazy_static;
-// #[macro_use]
-// extern crate relm;
-// extern crate relm_attributes;
-// #[macro_use]
-// extern crate relm_derive;
+
 extern crate shellexpand;
 extern crate notmuch;
 extern crate chrono;
@@ -67,10 +63,13 @@ use gio::prelude::*;
 use structopt::StructOpt;
 use structopt::clap::{App, Arg};
 
-// use relm::Widget;
-
-// mod header;
+mod macros;
+mod static_resource;
 mod constants;
+mod app;
+
+
+
 // mod main_content;
 // mod tag_list;
 // mod thread_list;
@@ -87,7 +86,7 @@ use inox_core::database::Manager as DBManager;
 // use application::Application as InoxApplication;
 
 // use application_window::ApplicationWindow;
-use application::InoxApplication;
+use app::InoxApp;
 
 /// Init Gtk and logger.
 fn init() {
@@ -96,12 +95,12 @@ fn init() {
     static START: Once = ONCE_INIT;
 
     START.call_once(|| {
-        env_logger::init();
+        env_logger::init().expect("Error initializing logger.");
 
         // run initialization here
-        if gtk::init().is_err() {
-            panic!("Failed to initialize GTK.");
-        }
+        gtk::init().expect("Error initializing gtk.");
+
+        static_resource::init().expect("Something went wrong with the resource file initialization.");
     });
 }
 
@@ -164,17 +163,18 @@ fn main() {
 
     debug!("Using config file {:?}", conf_location);
 
-    // // load the settings
-    // let conf_path:PathBuf = PathBuf::from(conf_location);
-    //
-    // let settings = Rc::new(Settings::new(&conf_path.as_path()));
-    //
-    // let dbman = Arc::new(DBManager::new(&settings));
+    // load the settings
+    let conf_path:PathBuf = PathBuf::from(conf_location);
+    let settings = Rc::new(Settings::new(&conf_path.as_path()));
 
+    let dbman = Arc::new(DBManager::new(&settings));
 
-    let gapp = InoxApplication::new(constants::APPLICATION_ID,
-                                              gio::ApplicationFlags::empty())
-                                         .expect("Initialization failed...");
+    //
+    // let gapp = InoxApplication::new(constants::APPLICATION_ID,
+    //                                           gio::ApplicationFlags::empty())
+    //                                      .expect("Initialization failed...");
+
+    InoxApp::run(settings, dbman);
 
 
     // let gapp = gtk::Application::new(Some(constants::APPLICATION_ID),
@@ -189,6 +189,6 @@ fn main() {
     //
     //
     // Run GTK application with command line args
-    let args: Vec<String> = std::env::args().collect();
-    gapp.run(args.as_slice());
+    // let args: Vec<String> = std::env::args().collect();
+    // gapp.run(args.as_slice());
 }
