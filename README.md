@@ -1,6 +1,6 @@
-# Inox
+# Enamel
 
-> Mail with Notmuch Rust
+> Email with Notmuch Rust
 
 [![Build Status](https://travis-ci.org/vhdirk/inox.svg?branch=master)](https://travis-ci.org/vhdirk/inox)
 
