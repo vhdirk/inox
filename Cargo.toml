@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "inox-core",
-    "inox-gtk"
+    "enamel-core",
+    "enamel-gtk"
 ]
 
 [profile.release]

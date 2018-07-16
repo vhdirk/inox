@@ -23,19 +23,7 @@ use widgets::{about_dialog, mark_all_notif, remove_show_notif};
 use std::rc::Rc;
 use std::sync::Arc;
 
-/// Creates an action named $called in the action map $on with the handler $handle
-macro_rules! action {
-    ($on:expr, $called:expr, $handle:expr) => {{
-        // Create a stateless, parameterless action
-        let act = SimpleAction::new($called, None);
-        // Connect the handler
-        act.connect_activate($handle);
-        // Add it to the map
-        $on.add_action(&act);
-        // Return the action
-        act
-    }};
-}
+
 
 #[derive(Debug, Clone)]
 pub enum Action {
@@ -58,7 +46,7 @@ pub enum Action {
 }
 
 #[derive(Debug, Clone)]
-pub struct App {
+pub struct EnamelApp {
     instance: gtk::Application,
     window: gtk::ApplicationWindow,
     overlay: gtk::Overlay,
@@ -70,14 +58,14 @@ pub struct App {
     receiver: Receiver<Action>,
 }
 
-impl App {
+impl EnamelApp {
     pub fn new(application: &gtk::Application) -> Rc<Self> {
-        let settings = gio::Settings::new("org.gnome.Inox");
+        let settings = gio::Settings::new("com.github.vhdirk.Enamel");
 
         let (sender, receiver) = unbounded();
 
         let window = gtk::ApplicationWindow::new(application);
-        window.set_title("Inox");
+        window.set_title("Enamel");
         window.connect_delete_event(clone!(application, settings => move |window, _| {
             WindowGeometry::from_window(&window).write(&settings);
             application.quit();
@@ -278,7 +266,7 @@ impl App {
     }
 
     pub fn run() {
-        let application = gtk::Application::new("org.gnome.Inox", ApplicationFlags::empty())
+        let application = gtk::Application::new("com.github.vhdirk.Enamel", ApplicationFlags::empty())
             .expect("Application Initialization failed...");
 
         application.connect_startup(clone!(application => move |_| {
@@ -290,10 +278,22 @@ impl App {
         }));
 
         // Weird magic I copy-pasted that sets the Application Name in the Shell.
-        glib::set_application_name("Inox");
-        glib::set_prgname(Some("Inox"));
-        // We need out own Inox icon
+        glib::set_application_name("Enamel");
+        glib::set_prgname(Some("Enamel"));
+        // We need out own Enamel icon
         gtk::Window::set_default_icon_name("email");
-        ApplicationExtManual::run(&application, &[]);
+        // ApplicationExtManual::run(&application, &[]);
+
+
+        // gapp.connect_startup(move |app| {
+        //     let mut _appwindow = ::relm::init::<ApplicationWindow>((app.to_owned(), settings.clone(), dbman.clone()));
+        // });
+        // gapp.connect_activate(|_| {
+        //
+        // });
+
+        // Run GTK application with command line args
+        let args: Vec<String> = std::env::args().collect();
+        application.run(args.as_slice());
     }
 }
