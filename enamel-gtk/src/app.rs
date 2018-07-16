@@ -1,5 +1,5 @@
 #![allow(new_without_default)]
-
+use std;
 use gio::{
     self, ActionMapExt, ApplicationExt, ApplicationExtManual, ApplicationFlags, SettingsExt,
     SimpleAction, SimpleActionExt,
@@ -10,18 +10,21 @@ use gtk::prelude::*;
 use gtk::SettingsExt as GtkSettingsExt;
 
 use crossbeam_channel::{unbounded, Receiver, Sender};
-use hammond_data::Show;
+// use hammond_data::Show;
 
 use headerbar::Header;
 use settings::{self, WindowGeometry};
-use stacks::{Content, PopulatedState};
-use utils;
-use widgets::appnotif::{InAppNotification, UndoState};
-use widgets::player;
-use widgets::{about_dialog, mark_all_notif, remove_show_notif};
+use stacks::Content; //, PopulatedState};
+// use utils;
+// use widgets::appnotif::{InAppNotification, UndoState};
+// use widgets::player;
+// use widgets::{about_dialog, mark_all_notif, remove_show_notif};
 
 use std::rc::Rc;
 use std::sync::Arc;
+
+use enamel_core::settings::Settings;
+use enamel_core::database::Manager as DBManager;
 
 
 
@@ -31,18 +34,18 @@ pub enum Action {
     RefreshEpisodesView,
     RefreshEpisodesViewBGR,
     RefreshShowsView,
-    ReplaceWidget(Arc<Show>),
+    // ReplaceWidget(Arc<Show>),
     RefreshWidgetIfSame(i32),
-    ShowWidgetAnimated,
-    ShowShowsAnimated,
+    // ShowWidgetAnimated,
+    // ShowShowsAnimated,
     HeaderBarShowTile(String),
     HeaderBarNormal,
     HeaderBarShowUpdateIndicator,
     HeaderBarHideUpdateIndicator,
-    MarkAllPlayerNotification(Arc<Show>),
-    RemoveShow(Arc<Show>),
-    ErrorNotification(String),
-    InitEpisode(i32),
+    // MarkAllPlayerNotification(Arc<Show>),
+    // RemoveShow(Arc<Show>),
+    // ErrorNotification(String),
+    // InitEpisode(i32),
 }
 
 #[derive(Debug, Clone)]
@@ -50,24 +53,25 @@ pub struct EnamelApp {
     instance: gtk::Application,
     window: gtk::ApplicationWindow,
     overlay: gtk::Overlay,
-    settings: gio::Settings,
+    settings: Rc<Settings>,
+    // gio_settings: gio::Settings,
     content: Rc<Content>,
     headerbar: Rc<Header>,
-    player: Rc<player::PlayerWidget>,
+    // player: Rc<player::PlayerWidget>,
     sender: Sender<Action>,
     receiver: Receiver<Action>,
 }
 
 impl EnamelApp {
-    pub fn new(application: &gtk::Application) -> Rc<Self> {
-        let settings = gio::Settings::new("com.github.vhdirk.Enamel");
+    pub fn new(application: &gtk::Application, settings: Rc<Settings>, dbman: Rc<DBManager>) -> Rc<Self> {
+        // let settings = gio::Settings::new("com.github.vhdirk.Enamel");
 
         let (sender, receiver) = unbounded();
 
         let window = gtk::ApplicationWindow::new(application);
         window.set_title("Enamel");
         window.connect_delete_event(clone!(application, settings => move |window, _| {
-            WindowGeometry::from_window(&window).write(&settings);
+            // WindowGeometry::from_window(&window).write(&settings);
             application.quit();
             Inhibit(false)
         }));
@@ -88,20 +92,20 @@ impl EnamelApp {
         // Add the overlay to the main Box
         wrap.add(&overlay);
 
-        let player = player::PlayerWidget::new(&sender);
-        // Add the player to the main Box
-        wrap.add(&player.action_bar);
+        // let player = player::PlayerWidget::new(&sender);
+        // // Add the player to the main Box
+        // wrap.add(&player.action_bar);
 
         window.add(&wrap);
 
-        let app = App {
+        let app = EnamelApp {
             instance: application.clone(),
             window,
             settings,
             overlay,
             headerbar: header,
             content,
-            player,
+            // player,
             sender,
             receiver,
         };
@@ -110,9 +114,9 @@ impl EnamelApp {
     }
 
     fn init(app: &Rc<Self>) {
-        let cleanup_date = settings::get_cleanup_date(&app.settings);
+        // let cleanup_date = settings::get_cleanup_date(&app.settings);
         // Garbage collect watched episodes from the disk
-        utils::cleanup(cleanup_date);
+        // utils::cleanup(cleanup_date);
 
         app.setup_gactions();
         app.setup_timed_callbacks();
@@ -120,53 +124,53 @@ impl EnamelApp {
         app.instance.connect_activate(move |_| ());
 
         // Retrieve the previous window position and size.
-        WindowGeometry::from_settings(&app.settings).apply(&app.window);
+        // WindowGeometry::from_settings(&app.settings).apply(&app.window);
 
         // Setup the Action channel
         gtk::timeout_add(25, clone!(app => move || app.setup_action_channel()));
     }
 
     fn setup_timed_callbacks(&self) {
-        self.setup_dark_theme();
-        self.setup_refresh_on_startup();
-        self.setup_auto_refresh();
+        // self.setup_dark_theme();
+        // self.setup_refresh_on_startup();
+        // self.setup_auto_refresh();
     }
 
-    fn setup_dark_theme(&self) {
-        let gtk_settings = gtk::Settings::get_default().unwrap();
-        let enabled = self.settings.get_boolean("dark-theme");
+    // fn setup_dark_theme(&self) {
+    //     let gtk_settings = gtk::Settings::get_default().unwrap();
+    //     let enabled = self.settings.get_boolean("dark-theme");
+    //
+    //     gtk_settings.set_property_gtk_application_prefer_dark_theme(enabled);
+    // }
 
-        gtk_settings.set_property_gtk_application_prefer_dark_theme(enabled);
-    }
+    // fn setup_refresh_on_startup(&self) {
+    //     // Update the feeds right after the Application is initialized.
+    //     let sender = self.sender.clone();
+    //     if self.settings.get_boolean("refresh-on-startup") {
+    //         info!("Refresh on startup.");
+    //         // The ui loads async, after initialization
+    //         // so we need to delay this a bit so it won't block
+    //         // requests that will come from loading the gui on startup.
+    //         gtk::timeout_add(1500, move || {
+    //             let s: Option<Vec<_>> = None;
+    //             utils::refresh(s, sender.clone());
+    //             glib::Continue(false)
+    //         });
+    //     }
+    // }
 
-    fn setup_refresh_on_startup(&self) {
-        // Update the feeds right after the Application is initialized.
-        let sender = self.sender.clone();
-        if self.settings.get_boolean("refresh-on-startup") {
-            info!("Refresh on startup.");
-            // The ui loads async, after initialization
-            // so we need to delay this a bit so it won't block
-            // requests that will come from loading the gui on startup.
-            gtk::timeout_add(1500, move || {
-                let s: Option<Vec<_>> = None;
-                utils::refresh(s, sender.clone());
-                glib::Continue(false)
-            });
-        }
-    }
-
-    fn setup_auto_refresh(&self) {
-        let refresh_interval = settings::get_refresh_interval(&self.settings).num_seconds() as u32;
-        info!("Auto-refresh every {:?} seconds.", refresh_interval);
-
-        let sender = self.sender.clone();
-        gtk::timeout_add_seconds(refresh_interval, move || {
-            let s: Option<Vec<_>> = None;
-            utils::refresh(s, sender.clone());
-
-            glib::Continue(true)
-        });
-    }
+    // fn setup_auto_refresh(&self) {
+    //     let refresh_interval = settings::get_refresh_interval(&self.settings).num_seconds() as u32;
+    //     info!("Auto-refresh every {:?} seconds.", refresh_interval);
+    //
+    //     let sender = self.sender.clone();
+    //     gtk::timeout_add_seconds(refresh_interval, move || {
+    //         let s: Option<Vec<_>> = None;
+    //         utils::refresh(s, sender.clone());
+    //
+    //         glib::Continue(true)
+    //     });
+    // }
 
     /// Define the `GAction`s.
     ///
@@ -181,31 +185,31 @@ impl EnamelApp {
         // Create the `refresh` action.
         //
         // This will trigger a refresh of all the shows in the database.
-        action!(win, "refresh", clone!(sender => move |_, _| {
-            gtk::idle_add(clone!(sender => move || {
-                let s: Option<Vec<_>> = None;
-                utils::refresh(s, sender.clone());
-                glib::Continue(false)
-            }));
-        }));
-        self.instance.set_accels_for_action("win.refresh", &["<primary>r"]);
+        // action!(win, "refresh", clone!(sender => move |_, _| {
+        //     gtk::idle_add(clone!(sender => move || {
+        //         let s: Option<Vec<_>> = None;
+        //         utils::refresh(s, sender.clone());
+        //         glib::Continue(false)
+        //     }));
+        // }));
+        // self.instance.set_accels_for_action("win.refresh", &["<primary>r"]);
 
         // Create the `OPML` import action
-        action!(win, "import", clone!(sender, win => move |_, _| {
-            utils::on_import_clicked(&win, &sender)
-        }));
+        // action!(win, "import", clone!(sender, win => move |_, _| {
+        //     utils::on_import_clicked(&win, &sender)
+        // }));
 
         // Create the action that shows a `gtk::AboutDialog`
-        action!(win, "about", clone!(win => move |_, _| about_dialog(&win)));
+        // action!(win, "about", clone!(win => move |_, _| about_dialog(&win)));
 
         // Create the quit action
-        action!(win, "quit", clone!(instance => move |_, _| instance.quit()));
-        self.instance.set_accels_for_action("win.quit", &["<primary>q"]);
+        // action!(win, "quit", clone!(instance => move |_, _| instance.quit()));
+        // self.instance.set_accels_for_action("win.quit", &["<primary>q"]);
 
         // Create the menu action
-        action!(win, "menu",clone!(header => move |_, _| header.open_menu()));
+        // action!(win, "menu",clone!(header => move |_, _| header.open_menu()));
         // Bind the hamburger menu button to `F10`
-        self.instance.set_accels_for_action("win.menu", &["F10"]);
+        // self.instance.set_accels_for_action("win.menu", &["F10"]);
     }
 
     fn setup_action_channel(&self) -> glib::Continue {
@@ -217,61 +221,61 @@ impl EnamelApp {
                 Action::RefreshWidgetIfSame(id) => self.content.update_widget_if_same(id),
                 Action::RefreshEpisodesView => self.content.update_home(),
                 Action::RefreshEpisodesViewBGR => self.content.update_home_if_background(),
-                Action::ReplaceWidget(pd) => {
-                    let shows = self.content.get_shows();
-                    let mut pop = shows.borrow().populated();
-                    pop.borrow_mut()
-                        .replace_widget(pd.clone())
-                        .map_err(|err| error!("Failed to update ShowWidget: {}", err))
-                        .map_err(|_| error!("Failed ot update ShowWidget {}", pd.title()))
-                        .ok();
-                }
-                Action::ShowWidgetAnimated => {
-                    let shows = self.content.get_shows();
-                    let mut pop = shows.borrow().populated();
-                    pop.borrow_mut().switch_visible(
-                        PopulatedState::Widget,
-                        gtk::StackTransitionType::SlideLeft,
-                    );
-                }
-                Action::ShowShowsAnimated => {
-                    let shows = self.content.get_shows();
-                    let mut pop = shows.borrow().populated();
-                    pop.borrow_mut()
-                        .switch_visible(PopulatedState::View, gtk::StackTransitionType::SlideRight);
-                }
+                // Action::ReplaceWidget(pd) => {
+                //     let shows = self.content.get_shows();
+                //     let mut pop = shows.borrow().populated();
+                //     pop.borrow_mut()
+                //         .replace_widget(pd.clone())
+                //         .map_err(|err| error!("Failed to update ShowWidget: {}", err))
+                //         .map_err(|_| error!("Failed ot update ShowWidget {}", pd.title()))
+                //         .ok();
+                // }
+                // Action::ShowWidgetAnimated => {
+                //     let shows = self.content.get_shows();
+                //     let mut pop = shows.borrow().populated();
+                //     pop.borrow_mut().switch_visible(
+                //         PopulatedState::Widget,
+                //         gtk::StackTransitionType::SlideLeft,
+                //     );
+                // }
+                // Action::ShowShowsAnimated => {
+                //     let shows = self.content.get_shows();
+                //     let mut pop = shows.borrow().populated();
+                //     pop.borrow_mut()
+                //         .switch_visible(PopulatedState::View, gtk::StackTransitionType::SlideRight);
+                // }
                 Action::HeaderBarShowTile(title) => self.headerbar.switch_to_back(&title),
                 Action::HeaderBarNormal => self.headerbar.switch_to_normal(),
                 Action::HeaderBarShowUpdateIndicator => self.headerbar.show_update_notification(),
                 Action::HeaderBarHideUpdateIndicator => self.headerbar.hide_update_notification(),
-                Action::MarkAllPlayerNotification(pd) => {
-                    let notif = mark_all_notif(pd, &self.sender);
-                    notif.show(&self.overlay);
-                }
-                Action::RemoveShow(pd) => {
-                    let notif = remove_show_notif(pd, self.sender.clone());
-                    notif.show(&self.overlay);
-                }
-                Action::ErrorNotification(err) => {
-                    error!("An error notification was triggered: {}", err);
-                    let callback = || glib::Continue(false);
-                    let notif = InAppNotification::new(&err, callback, || {}, UndoState::Hidden);
-                    notif.show(&self.overlay);
-                }
-                Action::InitEpisode(rowid) => self.player.initialize_episode(rowid).unwrap(),
+                // Action::MarkAllPlayerNotification(pd) => {
+                //     let notif = mark_all_notif(pd, &self.sender);
+                //     notif.show(&self.overlay);
+                // }
+                // Action::RemoveShow(pd) => {
+                //     let notif = remove_show_notif(pd, self.sender.clone());
+                //     notif.show(&self.overlay);
+                // }
+                // Action::ErrorNotification(err) => {
+                //     error!("An error notification was triggered: {}", err);
+                //     let callback = || glib::Continue(false);
+                //     let notif = InAppNotification::new(&err, callback, || {}, UndoState::Hidden);
+                //     notif.show(&self.overlay);
+                // }
+                // Action::InitEpisode(rowid) => self.player.initialize_episode(rowid).unwrap(),
             }
         }
 
         glib::Continue(true)
     }
 
-    pub fn run() {
+    pub fn run(settings: Rc<Settings>, dbman: Rc<DBManager>) {
         let application = gtk::Application::new("com.github.vhdirk.Enamel", ApplicationFlags::empty())
             .expect("Application Initialization failed...");
 
         application.connect_startup(clone!(application => move |_| {
             info!("CONNECT STARTUP RUN");
-            let app = Self::new(&application);
+            let app = Self::new(&application, settings.clone(), dbman.clone());
             Self::init(&app);
             app.window.show_all();
             app.window.activate();
@@ -280,6 +284,7 @@ impl EnamelApp {
         // Weird magic I copy-pasted that sets the Application Name in the Shell.
         glib::set_application_name("Enamel");
         glib::set_prgname(Some("Enamel"));
+
         // We need out own Enamel icon
         gtk::Window::set_default_icon_name("email");
         // ApplicationExtManual::run(&application, &[]);
