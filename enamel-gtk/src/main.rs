@@ -18,6 +18,17 @@ extern crate lazy_static;
 extern crate shellexpand;
 extern crate notmuch;
 extern crate chrono;
+extern crate crossbeam_channel;
+extern crate rayon;
+
+
+#[macro_use]
+extern crate failure;
+
+#[cfg(test)]
+#[macro_use]
+extern crate pretty_assertions;
+
 
 extern crate gtk;
 extern crate gio;
@@ -38,6 +49,10 @@ extern crate cairo_sys as cairo_ffi;
 extern crate gdk_sys as gdk_ffi;
 
 // extern crate webkit2gtk;
+//
+//
+
+
 
 #[macro_use]
 extern crate gobject_subclass;
@@ -48,7 +63,7 @@ extern crate gtk_subclass;
 
 extern crate md5;
 
-extern crate inox_core;
+extern crate enamel_core;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -63,12 +78,14 @@ use gio::prelude::*;
 use structopt::StructOpt;
 use structopt::clap::{App, Arg};
 
+#[macro_use]
 mod macros;
 mod static_resource;
 mod constants;
 mod app;
-
-
+mod settings;
+mod headerbar;
+mod stacks;
 
 // mod main_content;
 // mod tag_list;
@@ -79,14 +96,14 @@ mod app;
 // mod application_window;
 // mod util;
 
-mod application;
+// mod application;
 
-use inox_core::settings::Settings;
-use inox_core::database::Manager as DBManager;
+use enamel_core::settings::Settings;
+use enamel_core::database::Manager as DBManager;
 // use application::Application as InoxApplication;
 
 // use application_window::ApplicationWindow;
-use app::InoxApp;
+use app::EnamelApp;
 
 /// Init Gtk and logger.
 fn init() {
@@ -95,7 +112,7 @@ fn init() {
     static START: Once = ONCE_INIT;
 
     START.call_once(|| {
-        env_logger::init().expect("Error initializing logger.");
+        env_logger::init();
 
         // run initialization here
         gtk::init().expect("Error initializing gtk.");
@@ -106,7 +123,7 @@ fn init() {
 
 #[derive(Debug, StructOpt)]
 struct Args {
-    #[structopt(help="The configuration file to load.")]
+    #[structopt(help="The configuration file to load.", parse(from_os_str))]
     config: Option<PathBuf>,
     #[structopt(help="Print help message.")]
     help: bool,
@@ -123,7 +140,7 @@ impl Default for Args{
 
 fn default_config_path() -> PathBuf{
     let mut default_config = glib::get_user_config_dir().unwrap();
-    default_config.push("inox");
+    default_config.push("enamel");
     default_config.push("config");
     default_config.set_extension("toml");
     return default_config;
@@ -134,7 +151,7 @@ fn main() {
     init();
 
     let mut default_config = glib::get_user_config_dir().unwrap();
-    default_config.push("inox");
+    default_config.push("enamel");
 
     DirBuilder::new()
         .recursive(true)
@@ -145,7 +162,7 @@ fn main() {
     let args = App::new("Inox")
         .version("0.0.1")
         .author("Dirk Van Haerenborgh <vhdirk@gmail.com>")
-        .about("A mail client with notmuch rust.")
+        .about("An email client with notmuch rust.")
         .arg(
             Arg::with_name("config")
                 .short("c")
@@ -167,14 +184,14 @@ fn main() {
     let conf_path:PathBuf = PathBuf::from(conf_location);
     let settings = Rc::new(Settings::new(&conf_path.as_path()));
 
-    let dbman = Arc::new(DBManager::new(&settings));
+    let dbman = Rc::new(DBManager::new(&settings));
 
     //
     // let gapp = InoxApplication::new(constants::APPLICATION_ID,
     //                                           gio::ApplicationFlags::empty())
     //                                      .expect("Initialization failed...");
 
-    InoxApp::run(settings, dbman);
+    EnamelApp::run(settings, dbman);
 
 
     // let gapp = gtk::Application::new(Some(constants::APPLICATION_ID),

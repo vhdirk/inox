@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use toml;
 use serde;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Config {
 
     #[serde(default = "default_version")]
@@ -58,7 +58,7 @@ impl Config{
 
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct DebugConfig {
     #[serde(default = "default_debug_dryrun_sending")]
     pub dryrun_sending: bool,
@@ -72,7 +72,7 @@ impl Default for DebugConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct NotMuchConfig {
     #[serde(default = "default_notmuch_config_path")]
     pub path: String,
@@ -87,7 +87,7 @@ impl Default for NotMuchConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct AccountConfig {
     pub default: bool,
     pub name: String,

@@ -14,6 +14,7 @@ use settings::enamel::Config as EnamelConfig;
 use settings::notmuch::Config as NotMuchConfig;
 
 
+#[derive(Clone, Debug)]
 pub struct Settings{
 
     /// Path where config was loaded from
