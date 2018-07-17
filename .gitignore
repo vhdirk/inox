@@ -1,2 +1,10 @@
 /target/
 **/*.rs.bk
+Cargo.lock
+.vscode
+*.ui~
+resources.gresource
+_build
+vendor/
+.criterion
+org.gnome.*.json~
