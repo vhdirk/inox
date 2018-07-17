@@ -2,6 +2,7 @@
 name = "enamel-gtk"
 version = "0.0.1"
 authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
+build = "build.rs"
 workspace = "../"
 
 
