@@ -86,6 +86,7 @@ mod app;
 mod settings;
 mod headerbar;
 mod stacks;
+mod widgets;
 
 // mod main_content;
 // mod tag_list;
