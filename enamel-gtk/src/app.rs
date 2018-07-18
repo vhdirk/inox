@@ -18,14 +18,13 @@ use stacks::Content; //, PopulatedState};
 // use utils;
 // use widgets::appnotif::{InAppNotification, UndoState};
 // use widgets::player;
-// use widgets::{about_dialog, mark_all_notif, remove_show_notif};
+use widgets::{about_dialog}; //, mark_all_notif, remove_show_notif};
 
 use std::rc::Rc;
 use std::sync::Arc;
 
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
-
 
 
 #[derive(Debug, Clone)]
@@ -200,16 +199,16 @@ impl EnamelApp {
         // }));
 
         // Create the action that shows a `gtk::AboutDialog`
-        // action!(win, "about", clone!(win => move |_, _| about_dialog(&win)));
+        action!(win, "about", clone!(win => move |_, _| about_dialog(&win)));
 
         // Create the quit action
-        // action!(win, "quit", clone!(instance => move |_, _| instance.quit()));
-        // self.instance.set_accels_for_action("win.quit", &["<primary>q"]);
+        action!(win, "quit", clone!(instance => move |_, _| instance.quit()));
+        self.instance.set_accels_for_action("win.quit", &["<primary>q"]);
 
         // Create the menu action
-        // action!(win, "menu",clone!(header => move |_, _| header.open_menu()));
+        action!(win, "menu",clone!(header => move |_, _| header.open_menu()));
         // Bind the hamburger menu button to `F10`
-        // self.instance.set_accels_for_action("win.menu", &["F10"]);
+        self.instance.set_accels_for_action("win.menu", &["F10"]);
     }
 
     fn setup_action_channel(&self) -> glib::Continue {
