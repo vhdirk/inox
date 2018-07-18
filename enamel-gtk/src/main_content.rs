@@ -9,18 +9,22 @@ use glib;
 use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
-use relm_attributes::widget;
 
 use notmuch;
 
-use inox_core::settings::Settings;
-use inox_core::database::Manager as DBManager;
+use enamel_core::settings::Settings;
+use enamel_core::database::Manager as DBManager;
 
-use tag_list::{TagList, Msg as TagListMsg};
-use thread_list::{ThreadList, Msg as ThreadListMsg};
-use thread_view::ThreadView;
+use widgets::tag_list::TagList;
+use widgets::thread_list::ThreadList;
+use widgets::thread_view::ThreadView;
 
-
+struct MainContent{
+    container: gtk::Paned,
+    tag_list: TagList
+    thread_list,
+    thread_view
+}
 
 
 // impl MainContent {

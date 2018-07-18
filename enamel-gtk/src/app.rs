@@ -12,6 +12,7 @@ use gtk::SettingsExt as GtkSettingsExt;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 // use hammond_data::Show;
 
+use constants;
 use headerbar::Header;
 use settings::{self, WindowGeometry};
 use stacks::Content; //, PopulatedState};
@@ -68,7 +69,11 @@ impl EnamelApp {
         let (sender, receiver) = unbounded();
 
         let window = gtk::ApplicationWindow::new(application);
-        window.set_title("Enamel");
+        window.set_title(constants::APPLICATION_NAME);
+        window.set_wmclass(constants::APPLICATION_CLASS, constants::APPLICATION_NAME);
+        window.set_role(constants::APPLICATION_CLASS);
+        window.set_default_size(800, 600);
+        
         window.connect_delete_event(clone!(application, settings => move |window, _| {
             // WindowGeometry::from_window(&window).write(&settings);
             application.quit();
@@ -281,11 +286,11 @@ impl EnamelApp {
         }));
 
         // Weird magic I copy-pasted that sets the Application Name in the Shell.
-        glib::set_application_name("Enamel");
-        glib::set_prgname(Some("Enamel"));
+        glib::set_application_name(constants::APPLICATION_NAME);
+        glib::set_prgname(Some(constants::APPLICATION_NAME));
 
         // We need out own Enamel icon
-        gtk::Window::set_default_icon_name("email");
+        gtk::Window::set_default_icon_name(constants::APPLICATION_ICON_NAME);
         // ApplicationExtManual::run(&application, &[]);
 
 
