@@ -10,15 +10,13 @@ use glib;
 use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
-use relm;
-use relm_attributes::widget;
 
 use notmuch;
-
-use inox_core::settings::Settings;
-use inox_core::database::Manager as DBManager;
-
 use notmuch::DatabaseMode;
+
+use enamel_core::settings::Settings;
+use enamel_core::database::Manager as DBManager;
+
 
 // pub struct TagList {
 //     pub container: gtk::TreeView,
@@ -88,12 +86,12 @@ fn append_text_column(tree: &gtk::TreeView, id: i32) {
 //
 // }
 
-#[derive(Msg)]
-pub enum Msg {
-    Refresh,
-    SelectionChanged,
-    ItemSelect(Option<String>)
-}
+// #[derive(Msg)]
+// pub enum Msg {
+//     Refresh,
+//     SelectionChanged,
+//     ItemSelect(Option<String>)
+// }
 
 pub struct TagList {
     model: TagListModel,
@@ -103,7 +101,7 @@ pub struct TagList {
 }
 
 pub struct TagListModel {
-    relm: ::relm::Relm<TagList>,
+    // relm: ::relm::Relm<TagList>,
     settings: Rc<Settings>,
     dbmanager: Arc<DBManager>,
 }
@@ -134,65 +132,65 @@ impl TagList{
         let (model, iter) = self.tree_view.get_selection().get_selected().unwrap();
 
 
-        if(self.tree_model.iter_is_valid(&iter)){
-            let val: String = model.get_value(&iter, 0).get().unwrap();
-            self.model.relm.stream().emit(Msg::ItemSelect(Some(val)));
-        }else{
-            self.model.relm.stream().emit(Msg::ItemSelect(None));
-        }
+        // if(self.tree_model.iter_is_valid(&iter)){
+        //     let val: String = model.get_value(&iter, 0).get().unwrap();
+        //     self.model.relm.stream().emit(Msg::ItemSelect(Some(val)));
+        // }else{
+        //     self.model.relm.stream().emit(Msg::ItemSelect(None));
+        // }
     }
 }
 
 
-impl ::relm::Update for TagList {
-    type Model = TagListModel;
-    type ModelParam = (Rc<Settings>, Arc<DBManager>);
-    type Msg = Msg;
+// impl ::relm::Update for TagList {
+//     type Model = TagListModel;
+//     type ModelParam = (Rc<Settings>, Arc<DBManager>);
+//     type Msg = Msg;
 
-    fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): Self::ModelParam) -> Self::Model {
-        TagListModel {
-            relm: relm.clone(),
-            settings,
-            dbmanager
-        }
-    }
+//     fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): Self::ModelParam) -> Self::Model {
+//         TagListModel {
+//             relm: relm.clone(),
+//             settings,
+//             dbmanager
+//         }
+//     }
 
-    fn update(&mut self, event: Self::Msg) {
-        match event {
-            Msg::Refresh => self.refresh(),
-            Msg::SelectionChanged => self.on_selection_changed(),
-            Msg::ItemSelect(_) => ()
-        }
-    }
-}
+//     fn update(&mut self, event: Self::Msg) {
+//         match event {
+//             Msg::Refresh => self.refresh(),
+//             Msg::SelectionChanged => self.on_selection_changed(),
+//             Msg::ItemSelect(_) => ()
+//         }
+//     }
+// }
 
 
-impl ::relm::Widget for TagList {
+// impl ::relm::Widget for TagList {
 
-    type Root = gtk::ScrolledWindow;
+//     type Root = gtk::ScrolledWindow;
 
-    fn root(&self) -> Self::Root {
-        self.scrolled_window.clone()
-    }
+//     fn root(&self) -> Self::Root {
+//         self.scrolled_window.clone()
+//     }
 
-    fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self
-    {
-        let scrolled_window = gtk::ScrolledWindow::new(None, None);
+//     fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self
+//     {
+//         let scrolled_window = gtk::ScrolledWindow::new(None, None);
 
-        let tree_model = gtk::ListStore::new(&[String::static_type()]);
-        let tree_view = gtk::TreeView::new_with_model(&tree_model);
-        tree_view.set_headers_visible(false);
-        append_text_column(&tree_view, 0);
+//         let tree_model = gtk::ListStore::new(&[String::static_type()]);
+//         let tree_view = gtk::TreeView::new_with_model(&tree_model);
+//         tree_view.set_headers_visible(false);
+//         append_text_column(&tree_view, 0);
 
-        scrolled_window.add(&tree_view);
+//         scrolled_window.add(&tree_view);
 
-        connect!(relm, tree_view.get_selection(), connect_changed(_), Msg::SelectionChanged);
+//         connect!(relm, tree_view.get_selection(), connect_changed(_), Msg::SelectionChanged);
 
-        TagList {
-            model,
-            scrolled_window,
-            tree_view,
-            tree_model,
-        }
-    }
-}
+//         TagList {
+//             model,
+//             scrolled_window,
+//             tree_view,
+//             tree_model,
+//         }
+//     }
+// }
