@@ -20,7 +20,7 @@ extern crate notmuch;
 extern crate chrono;
 extern crate crossbeam_channel;
 extern crate rayon;
-
+extern crate md5;
 
 #[macro_use]
 extern crate failure;
@@ -28,7 +28,6 @@ extern crate failure;
 #[cfg(test)]
 #[macro_use]
 extern crate pretty_assertions;
-
 
 extern crate gtk;
 extern crate gio;
@@ -49,10 +48,6 @@ extern crate cairo_sys as cairo_ffi;
 extern crate gdk_sys as gdk_ffi;
 
 // extern crate webkit2gtk;
-//
-//
-
-
 
 #[macro_use]
 extern crate gobject_subclass;
@@ -61,9 +56,9 @@ extern crate gio_subclass;
 #[macro_use]
 extern crate gtk_subclass;
 
-extern crate md5;
 
 extern crate enamel_core;
+
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -87,6 +82,7 @@ mod settings;
 mod headerbar;
 mod stacks;
 mod widgets;
+mod main_window;
 
 // mod main_content;
 // mod tag_list;

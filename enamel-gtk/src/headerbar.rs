@@ -19,7 +19,7 @@ use std::rc::Rc;
 // TODO: Factor out the hamburger menu
 // TODO: Make a proper state machine for the headerbar states
 pub struct Header {
-    pub container: gtk::HeaderBar,
+    pub(crate) container: gtk::HeaderBar,
     switch: gtk::StackSwitcher,
     back: gtk::Button,
     show_title: gtk::Label,

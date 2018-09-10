@@ -16,6 +16,7 @@ use constants;
 use headerbar::Header;
 use settings::{self, WindowGeometry};
 use stacks::Content; //, PopulatedState};
+use main_window::MainWindow;
 // use utils;
 // use widgets::appnotif::{InAppNotification, UndoState};
 // use widgets::player;
@@ -26,7 +27,6 @@ use std::sync::Arc;
 
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
-
 
 #[derive(Debug, Clone)]
 pub enum Action {
@@ -49,66 +49,94 @@ pub enum Action {
 }
 
 #[derive(Debug, Clone)]
-pub struct EnamelApp {
+pub(crate) struct EnamelApp {
     instance: gtk::Application,
-    window: gtk::ApplicationWindow,
-    overlay: gtk::Overlay,
+    window: Rc<MainWindow>,
+    // overlay: gtk::Overlay,
     settings: Rc<Settings>,
     // gio_settings: gio::Settings,
-    content: Rc<Content>,
-    headerbar: Rc<Header>,
+    // content: Rc<Content>,
+    // headerbar: Rc<Header>,
     // player: Rc<player::PlayerWidget>,
     sender: Sender<Action>,
     receiver: Receiver<Action>,
 }
 
 impl EnamelApp {
-    pub fn new(application: &gtk::Application, settings: Rc<Settings>, dbman: Rc<DBManager>) -> Rc<Self> {
+    pub(crate) fn new(application: &gtk::Application,
+                      settings: Rc<Settings>, dbman: Rc<DBManager>) -> Rc<Self> {
         // let settings = gio::Settings::new("com.github.vhdirk.Enamel");
 
         let (sender, receiver) = unbounded();
 
-        let window = gtk::ApplicationWindow::new(application);
-        window.set_title(constants::APPLICATION_NAME);
-        window.set_wmclass(constants::APPLICATION_CLASS, constants::APPLICATION_NAME);
-        window.set_role(constants::APPLICATION_CLASS);
-        window.set_default_size(800, 600);
-        
-        window.connect_delete_event(clone!(application, settings => move |window, _| {
-            // WindowGeometry::from_window(&window).write(&settings);
-            application.quit();
+        let window = MainWindow::new(&sender);
+        window.container.set_application(application);
+
+        //let weak_s = settings.downgrade();
+        let weak_app = application.downgrade();
+        window.container.connect_delete_event(move |window, _| {
+            let app = match weak_app.upgrade() {
+                Some(a) => a,
+                None => return Inhibit(false),
+            };
+
+            // let settings = match weak_s.upgrade() {
+            //     Some(s) => s,
+            //     None => return Inhibit(false),
+            // };
+
+            info!("Saving window position");
+            //WindowGeometry::from_window(&window).write(&settings);
+
+            info!("Application is exiting");
+            app.quit();
             Inhibit(false)
-        }));
+        });
+
+
+        // let window = gtk::ApplicationWindow::new(application);
+        // window.set_title(constants::APPLICATION_NAME);
+        // window.set_wmclass(constants::APPLICATION_CLASS, constants::APPLICATION_NAME);
+        // window.set_role(constants::APPLICATION_CLASS);
+        // window.set_default_size(800, 600);
+        
+        // window.connect_delete_event(clone!(application, settings => move |window, _| {
+        //     // WindowGeometry::from_window(&window).write(&settings);
+        //     application.quit();
+        //     Inhibit(false)
+        // }));
 
         // Create a content instance
-        let content = Content::new(&sender).expect("Content Initialization failed.");
+        // let content = Content::new(&sender).expect("Content Initialization failed.");
 
-        // Create the headerbar
-        let header = Header::new(&content, &sender);
-        // Add the Headerbar to the window.
-        window.set_titlebar(&header.container);
+        // // Create the headerbar
+        // let header = Header::new(&content, &sender);
+        // // Add the Headerbar to the window.
+        // window.set_titlebar(&header.container);
 
-        // Add the content main stack to the overlay.
-        let overlay = gtk::Overlay::new();
-        overlay.add(&content.get_stack());
+        // // Add the content main stack to the overlay.
+        // let overlay = gtk::Overlay::new();
+        // overlay.add(&content.get_stack());
 
-        let wrap = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        // Add the overlay to the main Box
-        wrap.add(&overlay);
+        // let wrap = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        // // Add the overlay to the main Box
+        // wrap.add(&overlay);
 
         // let player = player::PlayerWidget::new(&sender);
         // // Add the player to the main Box
         // wrap.add(&player.action_bar);
 
-        window.add(&wrap);
+        // let window
+
+        //window.add(&wrap);
 
         let app = EnamelApp {
             instance: application.clone(),
             window,
             settings,
-            overlay,
-            headerbar: header,
-            content,
+            // overlay,
+            // headerbar: header,
+            // content,
             // player,
             sender,
             receiver,
@@ -184,7 +212,7 @@ impl EnamelApp {
         let sender = &self.sender;
         let win = &self.window;
         let instance = &self.instance;
-        let header = &self.headerbar;
+        // let header = &self.headerbar;
 
         // Create the `refresh` action.
         //
@@ -204,14 +232,14 @@ impl EnamelApp {
         // }));
 
         // Create the action that shows a `gtk::AboutDialog`
-        action!(win, "about", clone!(win => move |_, _| about_dialog(&win)));
+        // action!(win, "about", clone!(win => move |_, _| about_dialog(&win)));
 
         // Create the quit action
         action!(win, "quit", clone!(instance => move |_, _| instance.quit()));
         self.instance.set_accels_for_action("win.quit", &["<primary>q"]);
 
         // Create the menu action
-        action!(win, "menu",clone!(header => move |_, _| header.open_menu()));
+        // action!(win, "menu",clone!(header => move |_, _| header.open_menu()));
         // Bind the hamburger menu button to `F10`
         self.instance.set_accels_for_action("win.menu", &["F10"]);
     }
@@ -220,11 +248,11 @@ impl EnamelApp {
         if let Some(action) = self.receiver.try_recv() {
             trace!("Incoming channel action: {:?}", action);
             match action {
-                Action::RefreshAllViews => self.content.update(),
-                Action::RefreshShowsView => self.content.update_shows_view(),
-                Action::RefreshWidgetIfSame(id) => self.content.update_widget_if_same(id),
-                Action::RefreshEpisodesView => self.content.update_home(),
-                Action::RefreshEpisodesViewBGR => self.content.update_home_if_background(),
+                // Action::RefreshAllViews => self.content.update(),
+                // Action::RefreshShowsView => self.content.update_shows_view(),
+                // Action::RefreshWidgetIfSame(id) => self.content.update_widget_if_same(id),
+                // Action::RefreshEpisodesView => self.content.update_home(),
+                // Action::RefreshEpisodesViewBGR => self.content.update_home_if_background(),
                 // Action::ReplaceWidget(pd) => {
                 //     let shows = self.content.get_shows();
                 //     let mut pop = shows.borrow().populated();
@@ -248,10 +276,10 @@ impl EnamelApp {
                 //     pop.borrow_mut()
                 //         .switch_visible(PopulatedState::View, gtk::StackTransitionType::SlideRight);
                 // }
-                Action::HeaderBarShowTile(title) => self.headerbar.switch_to_back(&title),
-                Action::HeaderBarNormal => self.headerbar.switch_to_normal(),
-                Action::HeaderBarShowUpdateIndicator => self.headerbar.show_update_notification(),
-                Action::HeaderBarHideUpdateIndicator => self.headerbar.hide_update_notification(),
+                // Action::HeaderBarShowTile(title) => self.headerbar.switch_to_back(&title),
+                // Action::HeaderBarNormal => self.headerbar.switch_to_normal(),
+                // Action::HeaderBarShowUpdateIndicator => self.headerbar.show_update_notification(),
+                // Action::HeaderBarHideUpdateIndicator => self.headerbar.hide_update_notification(),
                 // Action::MarkAllPlayerNotification(pd) => {
                 //     let notif = mark_all_notif(pd, &self.sender);
                 //     notif.show(&self.overlay);
@@ -267,6 +295,7 @@ impl EnamelApp {
                 //     notif.show(&self.overlay);
                 // }
                 // Action::InitEpisode(rowid) => self.player.initialize_episode(rowid).unwrap(),
+                _ => ()
             }
         }
 
@@ -277,13 +306,44 @@ impl EnamelApp {
         let application = gtk::Application::new("com.github.vhdirk.Enamel", ApplicationFlags::empty())
             .expect("Application Initialization failed...");
 
-        application.connect_startup(clone!(application => move |_| {
-            info!("CONNECT STARTUP RUN");
-            let app = Self::new(&application, settings.clone(), dbman.clone());
-            Self::init(&app);
-            app.window.show_all();
-            app.window.activate();
-        }));
+        application.set_resource_base_path("/com/github/vhdirk/Enamel");
+
+
+        // application.connect_startup(clone!(application => move |_| {
+        //     info!("CONNECT STARTUP RUN");
+        //     println!("CONNECT STARTUP RUN");
+        //     let app = Self::new(&application, settings.clone(), dbman.clone());
+        //     Self::init(&app);
+        //     app.window.show_all();
+        //     app.window.activate();
+        // }));
+
+
+        let weak_app = application.downgrade();
+        application.connect_startup(move |_| {
+            info!("GApplication::startup");
+            weak_app.upgrade().map(|application| {
+                let app = Self::new(&application, settings.clone(), dbman.clone());
+                Self::init(&app);
+
+                let weak = Rc::downgrade(&app);
+                application.connect_activate(move |_| {
+                    info!("GApplication::activate");
+                    if let Some(app) = weak.upgrade() {
+                        // Ideally Gtk4/GtkBuilder make this irrelvent
+
+                        app.window.show_all();
+                        app.window.present();
+                        info!("Window presented");
+                    } else {
+                        debug_assert!(false, "I hate computers");
+                    }
+                });
+
+                info!("Init complete");
+            });
+        });
+
 
         // Weird magic I copy-pasted that sets the Application Name in the Shell.
         glib::set_application_name(constants::APPLICATION_NAME);
@@ -291,18 +351,17 @@ impl EnamelApp {
 
         // We need out own Enamel icon
         gtk::Window::set_default_icon_name(constants::APPLICATION_ICON_NAME);
-        // ApplicationExtManual::run(&application, &[]);
 
 
         // gapp.connect_startup(move |app| {
         //     let mut _appwindow = ::relm::init::<ApplicationWindow>((app.to_owned(), settings.clone(), dbman.clone()));
         // });
-        // gapp.connect_activate(|_| {
+        application.connect_activate(|_| {
         //
-        // });
+        });
 
         // Run GTK application with command line args
         let args: Vec<String> = std::env::args().collect();
-        application.run(args.as_slice());
+        ApplicationExtManual::run(&application, &args);
     }
 }
