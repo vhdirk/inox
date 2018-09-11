@@ -83,6 +83,8 @@ mod headerbar;
 mod stacks;
 mod widgets;
 mod main_window;
+mod controller;
+mod uibuilder;
 
 // mod main_content;
 // mod tag_list;
@@ -181,14 +183,14 @@ fn main() {
     let conf_path:PathBuf = PathBuf::from(conf_location);
     let settings = Rc::new(Settings::new(&conf_path.as_path()));
 
-    let dbman = Rc::new(DBManager::new(&settings));
+    //let dbman = Rc::new(DBManager::new(&settings));
 
     //
     // let gapp = InoxApplication::new(constants::APPLICATION_ID,
     //                                           gio::ApplicationFlags::empty())
     //                                      .expect("Initialization failed...");
 
-    EnamelApp::run(settings, dbman);
+    EnamelApp::run(settings);
 
 
     // let gapp = gtk::Application::new(Some(constants::APPLICATION_ID),

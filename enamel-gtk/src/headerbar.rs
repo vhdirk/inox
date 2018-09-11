@@ -9,7 +9,7 @@ use rayon;
 
 // use hammond_data::{dbqueries, Source};
 
-use app::Action;
+use controller::Action;
 use stacks::Content;
 // use utils::{itunes_to_rss, refresh};
 
@@ -25,7 +25,7 @@ pub struct Header {
     show_title: gtk::Label,
     menu_button: gtk::MenuButton,
     app_menu: MenuModel,
-    // updater: UpdateIndicator,
+    // updater: UpdateIndicator,    
     // add: AddPopover,
 }
 

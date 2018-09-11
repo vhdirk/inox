@@ -12,7 +12,8 @@ use rayon;
 
 // use hammond_data::{dbqueries, Source};
 
-use app::{EnamelApp, Action};
+use app::EnamelApp;
+use controller::Action;
 use stacks::Content;
 // use utils::{itunes_to_rss, refresh};
 
@@ -48,20 +49,5 @@ impl MainWindow {
         let weak = Rc::downgrade(this);
 
         //self.switch.set_stack(&content.get_stack());
-    }
-
-
-    // proxy functions for Window
-    pub fn show_all(&self){
-        self.container.show_all();
-    }
-    pub fn present(&self){
-        self.container.present();
-    }
-    pub fn activate(&self){
-        self.container.activate();
-    }
-    pub fn add_action<P: glib::IsA<gio::Action>>(&self, action: &P){
-        self.container.add_action(action);
     }
 }
