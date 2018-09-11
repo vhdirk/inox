@@ -25,6 +25,10 @@ use widgets::{about_dialog}; //, mark_all_notif, remove_show_notif};
 use std::rc::Rc;
 use std::sync::Arc;
 
+use riker::actors::{ActorSystem, ActorMsg};
+use riker_default::DefaultModel;
+
+
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
 
@@ -50,21 +54,27 @@ pub enum Action {
     // InitEpisode(i32),
 }
 
+impl Into<ActorMsg<Action>> for Action {
+    fn into(self) -> ActorMsg<Action> {
+        ActorMsg::User(self)
+    }
+}
+
 
 
 #[derive(Debug, Clone)]
 pub(crate) struct EnamelApp {
     instance: gtk::Application,
     ui: uibuilder::UI,
-    window: gtk::ApplicationWindow,
+    window: Rc<MainWindow>,
     // overlay: gtk::Overlay,
     settings: Rc<Settings>,
     // gio_settings: gio::Settings,
     // content: Rc<Content>,
     // headerbar: Rc<Header>,
     // player: Rc<player::PlayerWidget>,
-    sender: Sender<Action>,
-    receiver: Receiver<Action>,
+    // sender: Sender<Action>,
+    // receiver: Receiver<Action>,
 }
 
 impl EnamelApp {
@@ -72,34 +82,34 @@ impl EnamelApp {
                       settings: Rc<Settings>) -> Rc<Self> {
         // let settings = gio::Settings::new("com.github.vhdirk.Enamel");
 
-        let (sender, receiver) = unbounded();
+        let model: DefaultModel<Action> = DefaultModel::new();
+        let sys = ActorSystem::new(&model).unwrap();
 
         let ui = uibuilder::UI::new();
-        let window: gtk::ApplicationWindow = ui.builder
-                .get_object("main_window")
-                .expect("Couldn't find main_window in ui file.");
-        window.set_application(application);
+
+        let window = MainWindow::new(ui.clone(), application.clone());
+
 
         //let weak_s = settings.downgrade();
-        let weak_app = application.downgrade();
-        window.connect_delete_event(move |window, _| {
-            let app = match weak_app.upgrade() {
-                Some(a) => a,
-                None => return Inhibit(false),
-            };
+        // let weak_app = application.downgrade();
+        // window.connect_delete_event(move |window, _| {
+        //     let app = match weak_app.upgrade() {
+        //         Some(a) => a,
+        //         None => return Inhibit(false),
+        //     };
 
-            // let settings = match weak_s.upgrade() {
-            //     Some(s) => s,
-            //     None => return Inhibit(false),
-            // };
+        //     // let settings = match weak_s.upgrade() {
+        //     //     Some(s) => s,
+        //     //     None => return Inhibit(false),
+        //     // };
 
-            info!("Saving window position");
-            //WindowGeometry::from_window(&window).write(&settings);
+        //     info!("Saving window position");
+        //     //WindowGeometry::from_window(&window).write(&settings);
 
-            info!("Application is exiting");
-            app.quit();
-            Inhibit(false)
-        });
+        //     info!("Application is exiting");
+        //     app.quit();
+        //     Inhibit(false)
+        // });
         
 
         // let window = gtk::ApplicationWindow::new(application);
@@ -147,8 +157,8 @@ impl EnamelApp {
             // headerbar: header,
             // content,
             // player,
-            sender,
-            receiver,
+            // sender,
+            // receiver,
         };
 
         Rc::new(app)
@@ -172,6 +182,7 @@ impl EnamelApp {
     }
 
     pub fn activate(&self) {
+        // TODO: broadcast activate signal
         let window: gtk::Window = self.ui.builder
             .get_object("main_window")
             .expect("Couldn't find main_window in ui file.");
@@ -227,7 +238,7 @@ impl EnamelApp {
     /// Used in menus and the keyboard shortcuts dialog.
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn setup_gactions(&self) {
-        let sender = &self.sender;
+        //let sender = &self.sender;
         let win = &self.window;
         let instance = &self.instance;
         // let header = &self.headerbar;
@@ -253,7 +264,8 @@ impl EnamelApp {
         // action!(win, "about", clone!(win => move |_, _| about_dialog(&win)));
 
         // Create the quit action
-        action!(win, "quit", clone!(instance => move |_, _| instance.quit()));
+        //action!(win, "quit", clone!(instance => move |_, _| instance.quit()));
+        
         self.instance.set_accels_for_action("win.quit", &["<primary>q"]);
 
         // Create the menu action
@@ -263,59 +275,59 @@ impl EnamelApp {
     }
 
     fn setup_action_channel(&self) -> glib::Continue {
-        if let Some(action) = self.receiver.try_recv() {
-            trace!("Incoming channel action: {:?}", action);
-            match action {
-                // Action::RefreshAllViews => self.content.update(),
-                // Action::RefreshShowsView => self.content.update_shows_view(),
-                // Action::RefreshWidgetIfSame(id) => self.content.update_widget_if_same(id),
-                // Action::RefreshEpisodesView => self.content.update_home(),
-                // Action::RefreshEpisodesViewBGR => self.content.update_home_if_background(),
-                // Action::ReplaceWidget(pd) => {
-                //     let shows = self.content.get_shows();
-                //     let mut pop = shows.borrow().populated();
-                //     pop.borrow_mut()
-                //         .replace_widget(pd.clone())
-                //         .map_err(|err| error!("Failed to update ShowWidget: {}", err))
-                //         .map_err(|_| error!("Failed ot update ShowWidget {}", pd.title()))
-                //         .ok();
-                // }
-                // Action::ShowWidgetAnimated => {
-                //     let shows = self.content.get_shows();
-                //     let mut pop = shows.borrow().populated();
-                //     pop.borrow_mut().switch_visible(
-                //         PopulatedState::Widget,
-                //         gtk::StackTransitionType::SlideLeft,
-                //     );
-                // }
-                // Action::ShowShowsAnimated => {
-                //     let shows = self.content.get_shows();
-                //     let mut pop = shows.borrow().populated();
-                //     pop.borrow_mut()
-                //         .switch_visible(PopulatedState::View, gtk::StackTransitionType::SlideRight);
-                // }
-                // Action::HeaderBarShowTile(title) => self.headerbar.switch_to_back(&title),
-                // Action::HeaderBarNormal => self.headerbar.switch_to_normal(),
-                // Action::HeaderBarShowUpdateIndicator => self.headerbar.show_update_notification(),
-                // Action::HeaderBarHideUpdateIndicator => self.headerbar.hide_update_notification(),
-                // Action::MarkAllPlayerNotification(pd) => {
-                //     let notif = mark_all_notif(pd, &self.sender);
-                //     notif.show(&self.overlay);
-                // }
-                // Action::RemoveShow(pd) => {
-                //     let notif = remove_show_notif(pd, self.sender.clone());
-                //     notif.show(&self.overlay);
-                // }
-                // Action::ErrorNotification(err) => {
-                //     error!("An error notification was triggered: {}", err);
-                //     let callback = || glib::Continue(false);
-                //     let notif = InAppNotification::new(&err, callback, || {}, UndoState::Hidden);
-                //     notif.show(&self.overlay);
-                // }
-                // Action::InitEpisode(rowid) => self.player.initialize_episode(rowid).unwrap(),
-                _ => ()
-            }
-        }
+        // if let Some(action) = self.receiver.try_recv() {
+        //     trace!("Incoming channel action: {:?}", action);
+        //     match action {
+        //         // Action::RefreshAllViews => self.content.update(),
+        //         // Action::RefreshShowsView => self.content.update_shows_view(),
+        //         // Action::RefreshWidgetIfSame(id) => self.content.update_widget_if_same(id),
+        //         // Action::RefreshEpisodesView => self.content.update_home(),
+        //         // Action::RefreshEpisodesViewBGR => self.content.update_home_if_background(),
+        //         // Action::ReplaceWidget(pd) => {
+        //         //     let shows = self.content.get_shows();
+        //         //     let mut pop = shows.borrow().populated();
+        //         //     pop.borrow_mut()
+        //         //         .replace_widget(pd.clone())
+        //         //         .map_err(|err| error!("Failed to update ShowWidget: {}", err))
+        //         //         .map_err(|_| error!("Failed ot update ShowWidget {}", pd.title()))
+        //         //         .ok();
+        //         // }
+        //         // Action::ShowWidgetAnimated => {
+        //         //     let shows = self.content.get_shows();
+        //         //     let mut pop = shows.borrow().populated();
+        //         //     pop.borrow_mut().switch_visible(
+        //         //         PopulatedState::Widget,
+        //         //         gtk::StackTransitionType::SlideLeft,
+        //         //     );
+        //         // }
+        //         // Action::ShowShowsAnimated => {
+        //         //     let shows = self.content.get_shows();
+        //         //     let mut pop = shows.borrow().populated();
+        //         //     pop.borrow_mut()
+        //         //         .switch_visible(PopulatedState::View, gtk::StackTransitionType::SlideRight);
+        //         // }
+        //         // Action::HeaderBarShowTile(title) => self.headerbar.switch_to_back(&title),
+        //         // Action::HeaderBarNormal => self.headerbar.switch_to_normal(),
+        //         // Action::HeaderBarShowUpdateIndicator => self.headerbar.show_update_notification(),
+        //         // Action::HeaderBarHideUpdateIndicator => self.headerbar.hide_update_notification(),
+        //         // Action::MarkAllPlayerNotification(pd) => {
+        //         //     let notif = mark_all_notif(pd, &self.sender);
+        //         //     notif.show(&self.overlay);
+        //         // }
+        //         // Action::RemoveShow(pd) => {
+        //         //     let notif = remove_show_notif(pd, self.sender.clone());
+        //         //     notif.show(&self.overlay);
+        //         // }
+        //         // Action::ErrorNotification(err) => {
+        //         //     error!("An error notification was triggered: {}", err);
+        //         //     let callback = || glib::Continue(false);
+        //         //     let notif = InAppNotification::new(&err, callback, || {}, UndoState::Hidden);
+        //         //     notif.show(&self.overlay);
+        //         // }
+        //         // Action::InitEpisode(rowid) => self.player.initialize_episode(rowid).unwrap(),
+        //         _ => ()
+        //     }
+        // }
 
         glib::Continue(true)
     }

@@ -1,4 +1,3 @@
-#![feature(proc_macro)]
 #[macro_use]
 extern crate structopt;
 
@@ -56,6 +55,8 @@ extern crate gio_subclass;
 #[macro_use]
 extern crate gtk_subclass;
 
+extern crate riker;
+extern crate riker_default;
 
 extern crate enamel_core;
 
@@ -190,20 +191,4 @@ fn main() {
     //                                      .expect("Initialization failed...");
 
     EnamelApp::run(settings);
-
-
-    // let gapp = gtk::Application::new(Some(constants::APPLICATION_ID),
-    //                                  gio::ApplicationFlags::FLAGS_NONE).unwrap();
-    //
-    // gapp.connect_startup(move |app| {
-    //     let mut _appwindow = ::relm::init::<ApplicationWindow>((app.to_owned(), settings.clone(), dbman.clone()));
-    // });
-    // gapp.connect_activate(|_| {
-    //
-    // });
-    //
-    //
-    // Run GTK application with command line args
-    // let args: Vec<String> = std::env::args().collect();
-    // gapp.run(args.as_slice());
 }
