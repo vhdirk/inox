@@ -28,30 +28,13 @@ use std::sync::Arc;
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
 
-#[derive(Debug, Clone)]
-pub enum Action {
-    RefreshAllViews,
-    RefreshEpisodesView,
-    RefreshEpisodesViewBGR,
-    RefreshShowsView,
-    // ReplaceWidget(Arc<Show>),
-    RefreshWidgetIfSame(i32),
-    // ShowWidgetAnimated,
-    // ShowShowsAnimated,
-    HeaderBarShowTile(String),
-    HeaderBarNormal,
-    HeaderBarShowUpdateIndicator,
-    HeaderBarHideUpdateIndicator,
-    // MarkAllPlayerNotification(Arc<Show>),
-    // RemoveShow(Arc<Show>),
-    // ErrorNotification(String),
-    // InitEpisode(i32),
-}
+use controller::Action;
+use uibuilder;
 
 #[derive(Debug, Clone)]
 pub(crate) struct EnamelApp {
     instance: gtk::Application,
-    window: Rc<MainWindow>,
+    window: gtk::ApplicationWindow,
     // overlay: gtk::Overlay,
     settings: Rc<Settings>,
     // gio_settings: gio::Settings,
@@ -64,17 +47,20 @@ pub(crate) struct EnamelApp {
 
 impl EnamelApp {
     pub(crate) fn new(application: &gtk::Application,
-                      settings: Rc<Settings>, dbman: Rc<DBManager>) -> Rc<Self> {
+                      settings: Rc<Settings>) -> Rc<Self> {
         // let settings = gio::Settings::new("com.github.vhdirk.Enamel");
 
         let (sender, receiver) = unbounded();
 
-        let window = MainWindow::new(&sender);
-        window.container.set_application(application);
+        let ui = uibuilder::UI::new();
+        let window: gtk::ApplicationWindow = ui.builder
+                .get_object("main_window")
+                .expect("Couldn't find main_window in ui file.");
+        window.set_application(application);
 
         //let weak_s = settings.downgrade();
         let weak_app = application.downgrade();
-        window.container.connect_delete_event(move |window, _| {
+        window.connect_delete_event(move |window, _| {
             let app = match weak_app.upgrade() {
                 Some(a) => a,
                 None => return Inhibit(false),
@@ -132,8 +118,8 @@ impl EnamelApp {
 
         let app = EnamelApp {
             instance: application.clone(),
-            window,
             settings,
+            window,
             // overlay,
             // headerbar: header,
             // content,
@@ -302,7 +288,7 @@ impl EnamelApp {
         glib::Continue(true)
     }
 
-    pub fn run(settings: Rc<Settings>, dbman: Rc<DBManager>) {
+    pub fn run(settings: Rc<Settings>) {
         let application = gtk::Application::new("com.github.vhdirk.Enamel", ApplicationFlags::empty())
             .expect("Application Initialization failed...");
 
@@ -323,7 +309,7 @@ impl EnamelApp {
         application.connect_startup(move |_| {
             info!("GApplication::startup");
             weak_app.upgrade().map(|application| {
-                let app = Self::new(&application, settings.clone(), dbman.clone());
+                let app = Self::new(&application, settings.clone());
                 Self::init(&app);
 
                 let weak = Rc::downgrade(&app);
