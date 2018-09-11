@@ -2,7 +2,7 @@ extern crate gtk;
 use uibuilder::gtk::BuilderExt;
 
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct UI {
     pub builder: gtk::Builder,
 }

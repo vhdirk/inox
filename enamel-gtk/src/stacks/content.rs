@@ -4,7 +4,7 @@ use gtk::prelude::*;
 use crossbeam_channel::Sender;
 use failure::Error;
 
-use controller::Action;
+use app::Action;
 // use stacks::{HomeStack, ShowStack};
 
 use std::cell::RefCell;
