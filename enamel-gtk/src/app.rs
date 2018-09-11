@@ -28,12 +28,34 @@ use std::sync::Arc;
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
 
-use controller::Action;
 use uibuilder;
+
+#[derive(Debug, Clone)]
+pub enum Action {
+    RefreshAllViews,
+    RefreshEpisodesView,
+    RefreshEpisodesViewBGR,
+    RefreshShowsView,
+    // ReplaceWidget(Arc<Show>),
+    RefreshWidgetIfSame(i32),
+    // ShowWidgetAnimated,
+    // ShowShowsAnimated,
+    HeaderBarShowTile(String),
+    HeaderBarNormal,
+    HeaderBarShowUpdateIndicator,
+    HeaderBarHideUpdateIndicator,
+    // MarkAllPlayerNotification(Arc<Show>),
+    // RemoveShow(Arc<Show>),
+    // ErrorNotification(String),
+    // InitEpisode(i32),
+}
+
+
 
 #[derive(Debug, Clone)]
 pub(crate) struct EnamelApp {
     instance: gtk::Application,
+    ui: uibuilder::UI,
     window: gtk::ApplicationWindow,
     // overlay: gtk::Overlay,
     settings: Rc<Settings>,
@@ -78,7 +100,7 @@ impl EnamelApp {
             app.quit();
             Inhibit(false)
         });
-
+        
 
         // let window = gtk::ApplicationWindow::new(application);
         // window.set_title(constants::APPLICATION_NAME);
@@ -120,6 +142,7 @@ impl EnamelApp {
             instance: application.clone(),
             settings,
             window,
+            ui,
             // overlay,
             // headerbar: header,
             // content,
@@ -139,7 +162,7 @@ impl EnamelApp {
         app.setup_gactions();
         app.setup_timed_callbacks();
 
-        app.instance.connect_activate(move |_| ());
+        app.instance.connect_activate(clone!(app => move |_| app.activate()));
 
         // Retrieve the previous window position and size.
         // WindowGeometry::from_settings(&app.settings).apply(&app.window);
@@ -147,6 +170,15 @@ impl EnamelApp {
         // Setup the Action channel
         gtk::timeout_add(25, clone!(app => move || app.setup_action_channel()));
     }
+
+    pub fn activate(&self) {
+        let window: gtk::Window = self.ui.builder
+            .get_object("main_window")
+            .expect("Couldn't find main_window in ui file.");
+        window.show();
+        window.present();
+    }
+
 
     fn setup_timed_callbacks(&self) {
         // self.setup_dark_theme();
@@ -294,42 +326,15 @@ impl EnamelApp {
 
         application.set_resource_base_path("/com/github/vhdirk/Enamel");
 
-
-        // application.connect_startup(clone!(application => move |_| {
-        //     info!("CONNECT STARTUP RUN");
-        //     println!("CONNECT STARTUP RUN");
-        //     let app = Self::new(&application, settings.clone(), dbman.clone());
-        //     Self::init(&app);
-        //     app.window.show_all();
-        //     app.window.activate();
-        // }));
-
-
         let weak_app = application.downgrade();
         application.connect_startup(move |_| {
             info!("GApplication::startup");
             weak_app.upgrade().map(|application| {
                 let app = Self::new(&application, settings.clone());
                 Self::init(&app);
-
-                let weak = Rc::downgrade(&app);
-                application.connect_activate(move |_| {
-                    info!("GApplication::activate");
-                    if let Some(app) = weak.upgrade() {
-                        // Ideally Gtk4/GtkBuilder make this irrelvent
-
-                        app.window.show_all();
-                        app.window.present();
-                        info!("Window presented");
-                    } else {
-                        debug_assert!(false, "I hate computers");
-                    }
-                });
-
                 info!("Init complete");
             });
         });
-
 
         // Weird magic I copy-pasted that sets the Application Name in the Shell.
         glib::set_application_name(constants::APPLICATION_NAME);
@@ -337,14 +342,6 @@ impl EnamelApp {
 
         // We need out own Enamel icon
         gtk::Window::set_default_icon_name(constants::APPLICATION_ICON_NAME);
-
-
-        // gapp.connect_startup(move |app| {
-        //     let mut _appwindow = ::relm::init::<ApplicationWindow>((app.to_owned(), settings.clone(), dbman.clone()));
-        // });
-        application.connect_activate(|_| {
-        //
-        });
 
         // Run GTK application with command line args
         let args: Vec<String> = std::env::args().collect();

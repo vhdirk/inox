@@ -13,7 +13,7 @@ use rayon;
 // use hammond_data::{dbqueries, Source};
 
 use app::EnamelApp;
-use controller::Action;
+use app::Action;
 use stacks::Content;
 // use utils::{itunes_to_rss, refresh};
 
