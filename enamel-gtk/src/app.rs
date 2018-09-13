@@ -11,9 +11,8 @@ use gtk::SettingsExt as GtkSettingsExt;
 
 use crossbeam_channel::{unbounded, Receiver, Sender};
 // use hammond_data::Show;
-
+use relm::Component;
 use constants;
-use headerbar::Header;
 use settings::{self, WindowGeometry};
 use stacks::Content; //, PopulatedState};
 use main_window::MainWindow;
@@ -24,10 +23,6 @@ use widgets::{about_dialog}; //, mark_all_notif, remove_show_notif};
 
 use std::rc::Rc;
 use std::sync::Arc;
-
-use riker::actors::{ActorSystem, ActorMsg};
-use riker_default::DefaultModel;
-
 
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
@@ -54,19 +49,11 @@ pub enum Action {
     // InitEpisode(i32),
 }
 
-impl Into<ActorMsg<Action>> for Action {
-    fn into(self) -> ActorMsg<Action> {
-        ActorMsg::User(self)
-    }
-}
-
-
-
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) struct EnamelApp {
     instance: gtk::Application,
     ui: uibuilder::UI,
-    window: Rc<MainWindow>,
+    window: Component<MainWindow>,
     // overlay: gtk::Overlay,
     settings: Rc<Settings>,
     // gio_settings: gio::Settings,
@@ -82,12 +69,11 @@ impl EnamelApp {
                       settings: Rc<Settings>) -> Rc<Self> {
         // let settings = gio::Settings::new("com.github.vhdirk.Enamel");
 
-        let model: DefaultModel<Action> = DefaultModel::new();
-        let sys = ActorSystem::new(&model).unwrap();
+        // let (sender, receiver) = unbounded();
 
         let ui = uibuilder::UI::new();
 
-        let window = MainWindow::new(ui.clone(), application.clone());
+        let window = ::relm::init::<MainWindow>((ui.clone(), application.clone())).unwrap();
 
 
         //let weak_s = settings.downgrade();
@@ -360,3 +346,5 @@ impl EnamelApp {
         ApplicationExtManual::run(&application, &args);
     }
 }
+
+
