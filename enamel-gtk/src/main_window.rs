@@ -17,34 +17,117 @@ use uibuilder::UI;
 use app::Action;
 use stacks::Content;
 // use utils::{itunes_to_rss, refresh};
+use headerbar::HeaderBar;
 
 use std::rc::Rc;
 
-#[derive(Debug, Clone)]
+use relm::{Relm, Component, Update, Widget, WidgetTest};
+
+
+#[derive(Msg)]
+pub enum Msg {
+    Change,
+    Quit,
+}
+
+#[derive(Debug)]
+pub struct Model {
+    ui: UI,
+    gapp: gtk::Application,
+    content: String,
+}
+
+#[derive(Clone)]
+struct Widgets {
+    headerbar: Component<HeaderBar>,
+}
+
+
+
 // TODO: Factor out the hamburger menu
 // TODO: Make a proper state machine for the headerbar states
 pub struct MainWindow {
-    ui: UI,
-    pub(crate) container: gtk::ApplicationWindow,
+    
+    model: Model,
+    container: gtk::ApplicationWindow,
+    widgets: Widgets
+    // pub(crate) container: gtk::ApplicationWindow,
+    // header: Rc<HeaderBar>
 }
 
 impl MainWindow {
-    pub(crate) fn new(ui: UI, 
-                      application: gtk::Application) -> Rc<Self> {
-        let window = Rc::new(MainWindow{
-            ui: ui.clone(),
-            container: ui.builder
-                .get_object("main_window")
-                .expect("Couldn't find main_window in ui file.")
-        });
-        window.container.set_application(&application);
-        Self::init(&window);
-        window
+    // fn new(ui: UI, application: gtk::Application) -> Self {
+    //     let window = ui.builder.get_object("main_window")
+    //                            .expect("Couldn't find main_window in ui file.");
+    //     window.set_application(&model.gapp);
+
+    // //     window
+    // }
+
+    // pub(crate) fn init(this: &Rc<Self>/*, sender: &Sender<Action>*/) {
+    //     let weak = Rc::downgrade(this);
+
+    //     //self.switch.set_stack(&content.get_stack());
+    // }
+}
+
+impl Update for MainWindow{
+    type Model = Model;
+    type ModelParam = (UI, gtk::Application);
+    type Msg = Msg;
+
+    fn model(r: &Relm<Self>, (ui, gapp): Self::ModelParam) -> Model {
+        Self::Model {
+            ui,
+            gapp,
+            content: String::new(),
+        }
     }
 
-    pub(crate) fn init(this: &Rc<Self>/*, sender: &Sender<Action>*/) {
-        let weak = Rc::downgrade(this);
-
-        //self.switch.set_stack(&content.get_stack());
+    fn update(&mut self, event: Msg) {
+        match event {
+            Change => {
+                // self.model.content = self.widgets.input.get_text()
+                //                                        .expect("get_text failed")
+                //                                        .chars()
+                //                                        .rev()
+                //                                        .collect();
+                // self.widgets.label.set_text(&self.model.content);
+            },
+            Quit => gtk::main_quit(),
+        }
     }
+}
+
+impl Widget for MainWindow {
+    type Root = gtk::ApplicationWindow;
+
+    fn root(&self) -> Self::Root {
+        self.container.clone()
+    }
+
+    fn view(r: &Relm<Self>, model: Self::Model) -> Self {
+        
+        let window = model.ui.builder.get_object::<gtk::ApplicationWindow>("main_window")
+                               .expect("Couldn't find main_window in ui file.");
+        window.set_application(&model.gapp);
+
+
+        let headerbar = ::relm::init::<HeaderBar>((model.ui.clone(),)).unwrap(); 
+
+        MainWindow {
+            model,
+            container: window,
+            widgets: Widgets{
+                headerbar
+            }
+        }
+
+    }
+
+    fn init_view(&mut self) {
+
+        self.container.show_all();
+    }
+
 }

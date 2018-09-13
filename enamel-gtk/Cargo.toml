@@ -63,6 +63,9 @@ gmime = { git = "https://github.com/vhdirk/gmime-rs"}
 riker = "0.1.7"
 riker-default = "0.1.7"
 
+relm = { git = "https://github.com/vhdirk/relm" }
+relm-derive = { git = "https://github.com/vhdirk/relm" }
+
 
 [features]
 default = ["gtk/v3_16",

@@ -55,8 +55,10 @@ extern crate gio_subclass;
 #[macro_use]
 extern crate gtk_subclass;
 
-extern crate riker;
-extern crate riker_default;
+#[macro_use]
+extern crate relm;
+#[macro_use]
+extern crate relm_derive;
 
 extern crate enamel_core;
 
