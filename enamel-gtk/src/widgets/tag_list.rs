@@ -10,6 +10,8 @@ use glib;
 use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
+use relm;
+use relm::{Relm, Component, Update, Widget, WidgetTest};
 
 use notmuch;
 use notmuch::DatabaseMode;
@@ -86,12 +88,12 @@ fn append_text_column(tree: &gtk::TreeView, id: i32) {
 //
 // }
 
-// #[derive(Msg)]
-// pub enum Msg {
-//     Refresh,
-//     SelectionChanged,
-//     ItemSelect(Option<String>)
-// }
+#[derive(Msg)]
+pub enum Msg {
+    Refresh,
+    SelectionChanged,
+    ItemSelect(Option<String>)
+}
 
 pub struct TagList {
     model: TagListModel,
@@ -101,26 +103,27 @@ pub struct TagList {
 }
 
 pub struct TagListModel {
-    // relm: ::relm::Relm<TagList>,
-    settings: Rc<Settings>,
-    dbmanager: Arc<DBManager>,
+    rlm: Relm<TagList>,
+    builder: gtk::Builder
+    // settings: Rc<Settings>,
+    // dbmanager: Arc<DBManager>,
 }
 
 impl TagList{
-    fn refresh(&mut self){
-        let mut dbman = self.model.dbmanager.clone();
-        let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
-        let mut tags = db.all_tags().unwrap();
+    // fn refresh(&mut self){
+    //     let mut dbman = self.model.dbmanager.clone();
+    //     let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
+    //     let mut tags = db.all_tags().unwrap();
 
-        loop {
-         match tags.next() {
-             Some(tag) => {
-                 self.add_tag(&tag);
-             },
-             None => { break }
-         }
-        }
-    }
+    //     loop {
+    //      match tags.next() {
+    //          Some(tag) => {
+    //              self.add_tag(&tag);
+    //          },
+    //          None => { break }
+    //      }
+    //     }
+    // }
 
 
     fn add_tag(self: &mut Self, tag: &String){
@@ -142,30 +145,30 @@ impl TagList{
 }
 
 
-// impl ::relm::Update for TagList {
-//     type Model = TagListModel;
-//     type ModelParam = (Rc<Settings>, Arc<DBManager>);
-//     type Msg = Msg;
+impl Update for TagList {
+    type Model = TagListModel;
+    type ModelParam = (gtk::Builder,);
+    type Msg = Msg;
 
-//     fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): Self::ModelParam) -> Self::Model {
-//         TagListModel {
-//             relm: relm.clone(),
-//             settings,
-//             dbmanager
-//         }
-//     }
+    fn model(rlm: &Relm<Self>, (builder, ): Self::ModelParam) -> Self::Model {
+        TagListModel {
+            rlm: rlm.clone(),
+            builder
+        }
+    }
 
-//     fn update(&mut self, event: Self::Msg) {
-//         match event {
-//             Msg::Refresh => self.refresh(),
-//             Msg::SelectionChanged => self.on_selection_changed(),
-//             Msg::ItemSelect(_) => ()
-//         }
-//     }
-// }
+    fn update(&mut self, event: Self::Msg) {
+        match event {
+            Msg::Refresh => /*self.refresh*/(),
+            Msg::SelectionChanged => self.on_selection_changed(),
+            Msg::ItemSelect(_) => ()
+        }
+    }
+
+}
 
 
-impl ::relm::Widget for TagList {
+impl Widget for TagList {
 
     type Root = gtk::ScrolledWindow;
 
@@ -175,8 +178,10 @@ impl ::relm::Widget for TagList {
 
     fn view(rlm: &Relm<Self>, model: Self::Model) -> Self
     {
-        let scrolled_window = gtk::ScrolledWindow::new(None, None);
+        let scrolled_window = model.builder.get_object::<gtk::ScrolledWindow>("tag_list_scrolled")
+                                           .expect("Couldn't find tag_list_scrolled in ui file.");
 
+        // let headerbar = relm::init::<HeaderBar>((model.builder.clone(),)).unwrap(); 
         let tree_model = gtk::ListStore::new(&[String::static_type()]);
         let tree_view = gtk::TreeView::new_with_model(&tree_model);
         tree_view.set_headers_visible(false);
@@ -184,7 +189,7 @@ impl ::relm::Widget for TagList {
 
         scrolled_window.add(&tree_view);
 
-        connect!(relm, tree_view.get_selection(), connect_changed(_), Msg::SelectionChanged);
+        connect!(rlm, tree_view.get_selection(), connect_changed(_), Msg::SelectionChanged);
 
         TagList {
             model,

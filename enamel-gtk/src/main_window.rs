@@ -17,9 +17,11 @@ use app::Action;
 use stacks::Content;
 // use utils::{itunes_to_rss, refresh};
 use headerbar::HeaderBar;
+use widgets::tag_list::TagList;
 
 use std::rc::Rc;
 
+use relm;
 use relm::{Relm, Component, Update, Widget, WidgetTest};
 
 
@@ -39,8 +41,7 @@ pub struct Model {
 #[derive(Clone)]
 struct Widgets {
     headerbar: Component<HeaderBar>,
-    
-    //taglist
+    taglist: Component<TagList>
     //threadlist
     //threadview
 }
@@ -117,12 +118,14 @@ impl Widget for MainWindow {
 
 
         let headerbar = relm::init::<HeaderBar>((model.builder.clone(),)).unwrap(); 
+        let taglist = relm::init::<TagList>((model.builder.clone(),)).unwrap(); 
 
         MainWindow {
             model,
             container: window,
             widgets: Widgets{
-                headerbar
+                headerbar,
+                taglist
             }
         }
 
