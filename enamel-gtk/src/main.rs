@@ -86,7 +86,6 @@ mod headerbar;
 mod stacks;
 mod widgets;
 mod main_window;
-mod uibuilder;
 
 // mod main_content;
 // mod tag_list;
