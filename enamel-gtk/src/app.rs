@@ -27,7 +27,7 @@ use std::sync::Arc;
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
 
-use uibuilder;
+use static_resource::new_builder;
 
 #[derive(Debug, Clone)]
 pub enum Action {
@@ -52,7 +52,7 @@ pub enum Action {
 #[derive(Clone)]
 pub(crate) struct EnamelApp {
     instance: gtk::Application,
-    ui: uibuilder::UI,
+    builder: gtk::Builder,
     window: Component<MainWindow>,
     // overlay: gtk::Overlay,
     settings: Rc<Settings>,
@@ -71,9 +71,9 @@ impl EnamelApp {
 
         // let (sender, receiver) = unbounded();
 
-        let ui = uibuilder::UI::new();
+        let builder = new_builder().unwrap();
 
-        let window = ::relm::init::<MainWindow>((ui.clone(), application.clone())).unwrap();
+        let window = ::relm::init::<MainWindow>((builder.clone(), application.clone())).unwrap();
 
 
         //let weak_s = settings.downgrade();
@@ -138,7 +138,7 @@ impl EnamelApp {
             instance: application.clone(),
             settings,
             window,
-            ui,
+            builder,
             // overlay,
             // headerbar: header,
             // content,
@@ -169,9 +169,8 @@ impl EnamelApp {
 
     pub fn activate(&self) {
         // TODO: broadcast activate signal
-        let window: gtk::Window = self.ui.builder
-            .get_object("main_window")
-            .expect("Couldn't find main_window in ui file.");
+        let window: gtk::Window = self.builder.get_object("main_window")
+                                              .expect("Couldn't find main_window in ui file.");
         window.show();
         window.present();
     }

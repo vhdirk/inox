@@ -13,7 +13,6 @@ use rayon;
 // use hammond_data::{dbqueries, Source};
 
 use app::EnamelApp;
-use uibuilder::UI;
 use app::Action;
 use stacks::Content;
 // use utils::{itunes_to_rss, refresh};
@@ -32,7 +31,7 @@ pub enum Msg {
 
 #[derive(Debug)]
 pub struct Model {
-    ui: UI,
+    builder: gtk::Builder,
     gapp: gtk::Application,
     content: String,
 }
@@ -40,6 +39,10 @@ pub struct Model {
 #[derive(Clone)]
 struct Widgets {
     headerbar: Component<HeaderBar>,
+    
+    //taglist
+    //threadlist
+    //threadview
 }
 
 
@@ -73,12 +76,12 @@ impl MainWindow {
 
 impl Update for MainWindow{
     type Model = Model;
-    type ModelParam = (UI, gtk::Application);
+    type ModelParam = (gtk::Builder, gtk::Application);
     type Msg = Msg;
 
-    fn model(r: &Relm<Self>, (ui, gapp): Self::ModelParam) -> Model {
+    fn model(rlm: &Relm<Self>, (builder, gapp): Self::ModelParam) -> Model {
         Self::Model {
-            ui,
+            builder,
             gapp,
             content: String::new(),
         }
@@ -106,14 +109,14 @@ impl Widget for MainWindow {
         self.container.clone()
     }
 
-    fn view(r: &Relm<Self>, model: Self::Model) -> Self {
+    fn view(rlm: &Relm<Self>, model: Self::Model) -> Self {
         
-        let window = model.ui.builder.get_object::<gtk::ApplicationWindow>("main_window")
-                               .expect("Couldn't find main_window in ui file.");
+        let window = model.builder.get_object::<gtk::ApplicationWindow>("main_window")
+                                  .expect("Couldn't find main_window in ui file.");
         window.set_application(&model.gapp);
 
 
-        let headerbar = ::relm::init::<HeaderBar>((model.ui.clone(),)).unwrap(); 
+        let headerbar = relm::init::<HeaderBar>((model.builder.clone(),)).unwrap(); 
 
         MainWindow {
             model,
