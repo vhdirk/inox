@@ -14,7 +14,6 @@ use rayon;
 
 use app::EnamelApp;
 use app::Action;
-use stacks::Content;
 // use utils::{itunes_to_rss, refresh};
 use headerbar::HeaderBar;
 use widgets::tag_list::TagList;
@@ -80,7 +79,7 @@ impl Update for MainWindow{
     type ModelParam = (gtk::Builder, gtk::Application);
     type Msg = Msg;
 
-    fn model(rlm: &Relm<Self>, (builder, gapp): Self::ModelParam) -> Model {
+    fn model(stream: &Relm<Self>, (builder, gapp): Self::ModelParam) -> Model {
         Self::Model {
             builder,
             gapp,
@@ -110,7 +109,7 @@ impl Widget for MainWindow {
         self.container.clone()
     }
 
-    fn view(rlm: &Relm<Self>, model: Self::Model) -> Self {
+    fn view(stream: &Relm<Self>, model: Self::Model) -> Self {
         
         let window = model.builder.get_object::<gtk::ApplicationWindow>("main_window")
                                   .expect("Couldn't find main_window in ui file.");
