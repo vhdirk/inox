@@ -103,7 +103,7 @@ pub struct TagList {
 }
 
 pub struct TagListModel {
-    rlm: Relm<TagList>,
+    stream: Relm<TagList>,
     builder: gtk::Builder
     // settings: Rc<Settings>,
     // dbmanager: Arc<DBManager>,
@@ -150,9 +150,9 @@ impl Update for TagList {
     type ModelParam = (gtk::Builder,);
     type Msg = Msg;
 
-    fn model(rlm: &Relm<Self>, (builder, ): Self::ModelParam) -> Self::Model {
+    fn model(stream: &Relm<Self>, (builder, ): Self::ModelParam) -> Self::Model {
         TagListModel {
-            rlm: rlm.clone(),
+            stream: stream.clone(),
             builder
         }
     }
@@ -176,7 +176,7 @@ impl Widget for TagList {
         self.scrolled_window.clone()
     }
 
-    fn view(rlm: &Relm<Self>, model: Self::Model) -> Self
+    fn view(stream: &Relm<Self>, model: Self::Model) -> Self
     {
         let scrolled_window = model.builder.get_object::<gtk::ScrolledWindow>("tag_list_scrolled")
                                            .expect("Couldn't find tag_list_scrolled in ui file.");
@@ -189,7 +189,7 @@ impl Widget for TagList {
 
         scrolled_window.add(&tree_view);
 
-        connect!(rlm, tree_view.get_selection(), connect_changed(_), Msg::SelectionChanged);
+        connect!(stream, tree_view.get_selection(), connect_changed(_), Msg::SelectionChanged);
 
         TagList {
             model,

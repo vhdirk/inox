@@ -9,7 +9,6 @@ use rayon;
 use relm::{Relm, Update, Widget, WidgetTest};
 
 use app::Action;
-use stacks::Content;
 // use utils::{itunes_to_rss, refresh};
 
 use std::rc::Rc;
@@ -131,7 +130,7 @@ impl Update for HeaderBar{
     type Msg = Msg;
 
 
-    fn model(rlm: &Relm<Self>, (builder,): Self::ModelParam) -> Model {
+    fn model(stream: &Relm<Self>, (builder,): Self::ModelParam) -> Model {
         Self::Model {
             builder
         }
@@ -159,7 +158,7 @@ impl Widget for HeaderBar {
         self.container.clone()
     }
 
-    fn view(rlm: &Relm<Self>, model: Self::Model) -> Self {
+    fn view(stream: &Relm<Self>, model: Self::Model) -> Self {
         
         let container = model.builder.get_object::<gtk::Box>("main_header")
                                      .expect("Couldn't find main_header in ui file.");

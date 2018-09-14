@@ -83,7 +83,6 @@ mod constants;
 mod app;
 mod settings;
 mod headerbar;
-mod stacks;
 mod widgets;
 mod main_window;
 

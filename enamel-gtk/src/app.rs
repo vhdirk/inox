@@ -14,7 +14,6 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use relm::Component;
 use constants;
 use settings::{self, WindowGeometry};
-use stacks::Content; //, PopulatedState};
 use main_window::MainWindow;
 // use utils;
 // use widgets::appnotif::{InAppNotification, UndoState};
