@@ -15,7 +15,7 @@ use glib::prelude::*;
 use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
-use relm;
+use relm::init as relm_init;
 use relm_attributes::widget;
 use relm::ToGlib;
 
@@ -26,7 +26,7 @@ use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
 use inox_core::database::Thread;
 
-use thread_list_cell_renderer::CellRendererThread;
+use widgets::thread_list_cell_renderer::CellRendererThread;
 
 const COLUMN_ID:u8 = 0;
 const COLUMN_THREAD:u8 = 1;
@@ -44,14 +44,14 @@ fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
     tree.append_column(&column);
 }
 
-pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &::relm::EventStream<MSG>, constructor: F, single_shot:Option<bool>) -> glib::source::SourceId {
-    let stream = stream.clone();
-    gtk::idle_add(move || {
-        let msg = constructor();
-        stream.emit(msg);
-        Continue(!single_shot.unwrap_or(false))
-    })
-}
+// pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG>, constructor: F, single_shot:Option<bool>) -> glib::source::SourceId {
+//     let stream = stream.clone();
+//     gtk::idle_add(move || {
+//         let msg = constructor();
+//         stream.emit(msg);
+//         Continue(!single_shot.unwrap_or(false))
+//     })
+// }
 
 
 
@@ -90,7 +90,7 @@ pub struct ThreadList{
 }
 
 pub struct ThreadListModel {
-    relm: ::relm::Relm<ThreadList>,
+    relm: Relm<ThreadList>,
     settings: Rc<Settings>,
     dbmanager: Arc<DBManager>,
 
@@ -177,12 +177,12 @@ impl ThreadList{
 }
 
 
-impl ::relm::Update for ThreadList {
+impl Update for ThreadList {
     type Model = ThreadListModel;
     type ModelParam = (Rc<Settings>, Arc<DBManager>);
     type Msg = Msg;
 
-    fn model(relm: &::relm::Relm<Self>, (settings, dbmanager): Self::ModelParam) -> Self::Model {
+    fn model(relm: &Relm<Self>, (settings, dbmanager): Self::ModelParam) -> Self::Model {
         ThreadListModel {
             relm: relm.clone(),
             settings,
@@ -218,7 +218,7 @@ impl ::relm::Update for ThreadList {
 }
 
 
-impl ::relm::Widget for ThreadList {
+impl Widget for ThreadList {
 
     type Root = gtk::ScrolledWindow;
 
@@ -226,7 +226,7 @@ impl ::relm::Widget for ThreadList {
         self.scrolled_window.clone()
     }
 
-    fn view(relm: &::relm::Relm<Self>, model: Self::Model) -> Self
+    fn view(stream: &Relm<Self>, model: Self::Model) -> Self
     {
         let scrolled_window = gtk::ScrolledWindow::new(None, None);
         let tree_model = create_liststore();

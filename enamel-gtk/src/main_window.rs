@@ -20,8 +20,8 @@ use widgets::tag_list::TagList;
 
 use std::rc::Rc;
 
-use relm;
 use relm::{Relm, Component, Update, Widget, WidgetTest};
+use relm::init as relm_init;
 
 
 #[derive(Msg)]
@@ -79,7 +79,7 @@ impl Update for MainWindow{
     type ModelParam = (gtk::Builder, gtk::Application);
     type Msg = Msg;
 
-    fn model(stream: &Relm<Self>, (builder, gapp): Self::ModelParam) -> Model {
+    fn model(relm: &Relm<Self>, (builder, gapp): Self::ModelParam) -> Model {
         Self::Model {
             builder,
             gapp,
@@ -109,15 +109,15 @@ impl Widget for MainWindow {
         self.container.clone()
     }
 
-    fn view(stream: &Relm<Self>, model: Self::Model) -> Self {
+    fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         
         let window = model.builder.get_object::<gtk::ApplicationWindow>("main_window")
                                   .expect("Couldn't find main_window in ui file.");
         window.set_application(&model.gapp);
 
 
-        let headerbar = relm::init::<HeaderBar>((model.builder.clone(),)).unwrap(); 
-        let taglist = relm::init::<TagList>((model.builder.clone(),)).unwrap(); 
+        let headerbar = relm_init::<HeaderBar>((model.builder.clone(),)).unwrap(); 
+        let taglist = relm_init::<TagList>((model.builder.clone(),)).unwrap(); 
 
         MainWindow {
             model,
@@ -131,6 +131,22 @@ impl Widget for MainWindow {
     }
 
     fn init_view(&mut self) {
+
+        let main_paned = self.model.builder.get_object::<gtk::Paned>("main_paned")
+                                   .expect("Couldn't find main_paned in ui file.");
+
+        let taglist_header = self.model.builder.get_object::<gtk::HeaderBar>("taglist_header")
+                                 .expect("Couldn't find taglist_header in ui file.");
+
+        // TODO: do I need to unbind this at some point?
+        let width_bind = main_paned.bind_property("position", &taglist_header, "width-request")
+                                   .flags(glib::BindingFlags::SYNC_CREATE)
+                                   .transform_to(move |binding, value| {
+                                      let offset = 48; //TODO: this offset was trial and error.
+                                                       // we should calculate it somehow.
+                                      return Some((value.get::<i32>().unwrap_or(0) + offset).to_value());
+                                   })
+                                   .build();
 
         self.container.show_all();
     }

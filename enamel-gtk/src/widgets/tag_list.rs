@@ -10,7 +10,7 @@ use glib;
 use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
-use relm;
+use relm::init as relm_init;
 use relm::{Relm, Component, Update, Widget, WidgetTest};
 
 use notmuch;
@@ -103,7 +103,7 @@ pub struct TagList {
 }
 
 pub struct TagListModel {
-    stream: Relm<TagList>,
+    relm: Relm<TagList>,
     builder: gtk::Builder
     // settings: Rc<Settings>,
     // dbmanager: Arc<DBManager>,
@@ -150,9 +150,9 @@ impl Update for TagList {
     type ModelParam = (gtk::Builder,);
     type Msg = Msg;
 
-    fn model(stream: &Relm<Self>, (builder, ): Self::ModelParam) -> Self::Model {
+    fn model(relm: &Relm<Self>, (builder, ): Self::ModelParam) -> Self::Model {
         TagListModel {
-            stream: stream.clone(),
+            relm: relm.clone(),
             builder
         }
     }
