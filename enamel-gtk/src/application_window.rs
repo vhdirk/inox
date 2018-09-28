@@ -103,7 +103,7 @@ impl ::relm::Widget for ApplicationWindow {
     {
         let window = gtk::ApplicationWindow::new(&model.gapp);
 
-        let header = ::relm::create_component::<Header>(());
+        let header = relm::create_component::<Header>(());
 
         // Connect the signal `delete_event` to send the `Quit` message.
         connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), gtk::Inhibit(false)));
