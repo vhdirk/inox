@@ -9,6 +9,8 @@ use rayon;
 use relm::{Relm, Update, Widget, WidgetTest};
 
 use app::Action;
+use app::EnamelApp;
+
 // use utils::{itunes_to_rss, refresh};
 
 use std::rc::Rc;
@@ -23,7 +25,7 @@ pub enum Msg {
 
 
 pub struct Model{
-    builder: gtk::Builder,
+    app: Rc<EnamelApp>,
 }
 
 struct Widgets{}
@@ -126,13 +128,13 @@ impl HeaderBar {
 
 impl Update for HeaderBar{
     type Model = Model;
-    type ModelParam = (gtk::Builder,);
+    type ModelParam = Rc<EnamelApp>;
     type Msg = Msg;
 
 
-    fn model(stream: &Relm<Self>, (builder,): Self::ModelParam) -> Model {
+    fn model(stream: &Relm<Self>, app: Self::ModelParam) -> Model {
         Self::Model {
-            builder
+            app
         }
     }
 
@@ -160,7 +162,7 @@ impl Widget for HeaderBar {
 
     fn view(stream: &Relm<Self>, model: Self::Model) -> Self {
         
-        let container = model.builder.get_object::<gtk::Box>("main_header")
+        let container = model.app.builder.get_object::<gtk::Box>("main_header")
                                      .expect("Couldn't find main_header in ui file.");
         HeaderBar {
             model,

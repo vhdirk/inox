@@ -115,8 +115,7 @@ fn init() {
 
         // run initialization here
         gtk::init().expect("Error initializing gtk.");
-
-        static_resource::init().expect("Something went wrong with the resource file initialization.");
+        static_resource::init().expect("Error initializing static resources.");
     });
 }
 

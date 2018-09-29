@@ -20,6 +20,16 @@
               <placeholder/>
             </child>
             <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="pack_type">end</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkToggleButton" id="search_conversations_button">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -35,16 +45,6 @@
               <packing>
                 <property name="pack_type">end</property>
                 <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkSeparator">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-              </object>
-              <packing>
-                <property name="pack_type">end</property>
-                <property name="position">2</property>
               </packing>
             </child>
             <style>
