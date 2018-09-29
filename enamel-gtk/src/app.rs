@@ -1,5 +1,6 @@
 #![allow(new_without_default)]
 use std;
+use std::cell::RefCell;
 use gio::{
     self, ActionMapExt, ApplicationExt, ApplicationExtManual, ApplicationFlags, SettingsExt,
     SimpleAction, SimpleActionExt,
@@ -11,6 +12,7 @@ use gtk::SettingsExt as GtkSettingsExt;
 
 use crossbeam_channel::{unbounded, Receiver, Sender};
 // use hammond_data::Show;
+use relm::init as relm_init;
 use relm::Component;
 use constants;
 use settings::{self, WindowGeometry};
@@ -49,12 +51,12 @@ pub enum Action {
 }
 
 #[derive(Clone)]
-pub(crate) struct EnamelApp {
-    instance: gtk::Application,
-    builder: gtk::Builder,
-    window: Component<MainWindow>,
+pub struct EnamelApp {
+    pub instance: gtk::Application,
+    pub builder: gtk::Builder,
+    window: RefCell<Option<Component<MainWindow>>>,
     // overlay: gtk::Overlay,
-    settings: Rc<Settings>,
+    pub settings: Rc<Settings>,
     // gio_settings: gio::Settings,
     // content: Rc<Content>,
     // headerbar: Rc<Header>,
@@ -71,9 +73,6 @@ impl EnamelApp {
         // let (sender, receiver) = unbounded();
 
         let builder = new_builder().unwrap();
-
-        let window = ::relm::init::<MainWindow>((builder.clone(), application.clone())).unwrap();
-
 
         //let weak_s = settings.downgrade();
         // let weak_app = application.downgrade();
@@ -136,7 +135,7 @@ impl EnamelApp {
         let app = EnamelApp {
             instance: application.clone(),
             settings,
-            window,
+            window: RefCell::new(None),
             builder,
             // overlay,
             // headerbar: header,
@@ -153,6 +152,9 @@ impl EnamelApp {
         // let cleanup_date = settings::get_cleanup_date(&app.settings);
         // Garbage collect watched episodes from the disk
         // utils::cleanup(cleanup_date);
+
+        let window = relm_init::<MainWindow>(app.clone()).ok();
+        app.window.replace(window);
 
         app.setup_gactions();
         app.setup_timed_callbacks();
@@ -317,7 +319,7 @@ impl EnamelApp {
     }
 
     pub fn run(settings: Rc<Settings>) {
-        let application = gtk::Application::new("com.github.vhdirk.Enamel", ApplicationFlags::empty())
+        let application = gtk::Application::new(constants::APPLICATION_ID, ApplicationFlags::empty())
             .expect("Application Initialization failed...");
 
         application.set_resource_base_path("/com/github/vhdirk/Enamel");
@@ -326,8 +328,8 @@ impl EnamelApp {
         application.connect_startup(move |_| {
             info!("GApplication::startup");
             weak_app.upgrade().map(|application| {
-                let app = Self::new(&application, settings.clone());
-                Self::init(&app);
+                let mut app = Self::new(&application, settings.clone());
+                Self::init(&mut app);
                 info!("Init complete");
             });
         });

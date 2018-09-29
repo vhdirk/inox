@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use gio::ActionMapExt;
 use gtk::GtkWindowExt;
 use gtk;
@@ -18,8 +19,6 @@ use app::Action;
 use headerbar::HeaderBar;
 use widgets::tag_list::TagList;
 
-use std::rc::Rc;
-
 use relm::{Relm, Component, Update, Widget, WidgetTest};
 use relm::init as relm_init;
 
@@ -30,10 +29,9 @@ pub enum Msg {
     Quit,
 }
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct Model {
-    builder: gtk::Builder,
-    gapp: gtk::Application,
+    app: Rc<EnamelApp>,
     content: String,
 }
 
@@ -76,13 +74,12 @@ impl MainWindow {
 
 impl Update for MainWindow{
     type Model = Model;
-    type ModelParam = (gtk::Builder, gtk::Application);
+    type ModelParam = Rc<EnamelApp>;
     type Msg = Msg;
 
-    fn model(relm: &Relm<Self>, (builder, gapp): Self::ModelParam) -> Model {
+    fn model(relm: &Relm<Self>, app: Self::ModelParam) -> Model {
         Self::Model {
-            builder,
-            gapp,
+            app,
             content: String::new(),
         }
     }
@@ -111,13 +108,13 @@ impl Widget for MainWindow {
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         
-        let window = model.builder.get_object::<gtk::ApplicationWindow>("main_window")
+        let window = model.app.builder.get_object::<gtk::ApplicationWindow>("main_window")
                                   .expect("Couldn't find main_window in ui file.");
-        window.set_application(&model.gapp);
+        window.set_application(&model.app.instance);
 
 
-        let headerbar = relm_init::<HeaderBar>((model.builder.clone(),)).unwrap(); 
-        let taglist = relm_init::<TagList>((model.builder.clone(),)).unwrap(); 
+        let headerbar = relm_init::<HeaderBar>(model.app.clone()).unwrap(); 
+        let taglist = relm_init::<TagList>(model.app.clone()).unwrap(); 
 
         MainWindow {
             model,
@@ -132,21 +129,21 @@ impl Widget for MainWindow {
 
     fn init_view(&mut self) {
 
-        let main_paned = self.model.builder.get_object::<gtk::Paned>("main_paned")
+        let main_paned = self.model.app.builder.get_object::<gtk::Paned>("main_paned")
                                    .expect("Couldn't find main_paned in ui file.");
 
-        let taglist_header = self.model.builder.get_object::<gtk::HeaderBar>("taglist_header")
+        let taglist_header = self.model.app.builder.get_object::<gtk::HeaderBar>("taglist_header")
                                  .expect("Couldn't find taglist_header in ui file.");
 
         // TODO: do I need to unbind this at some point?
-        let width_bind = main_paned.bind_property("position", &taglist_header, "width-request")
-                                   .flags(glib::BindingFlags::SYNC_CREATE)
-                                   .transform_to(move |binding, value| {
-                                      let offset = 48; //TODO: this offset was trial and error.
-                                                       // we should calculate it somehow.
-                                      return Some((value.get::<i32>().unwrap_or(0) + offset).to_value());
-                                   })
-                                   .build();
+        let _width_bind = main_paned.bind_property("position", &taglist_header, "width-request")
+                                    .flags(glib::BindingFlags::SYNC_CREATE)
+                                    .transform_to(move |_binding, value| {
+                                        let offset = 6; //TODO: this offset was trial and error.
+                                                        // we should calculate it somehow.
+                                        return Some((value.get::<i32>().unwrap_or(0) + offset).to_value());
+                                    })
+                                    .build();
 
         self.container.show_all();
     }

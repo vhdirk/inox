@@ -19,7 +19,7 @@ use notmuch::DatabaseMode;
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
 
-
+use app::EnamelApp;
 // pub struct TagList {
 //     pub container: gtk::TreeView,
 //
@@ -104,7 +104,7 @@ pub struct TagList {
 
 pub struct TagListModel {
     relm: Relm<TagList>,
-    builder: gtk::Builder
+    app: Rc<EnamelApp>
     // settings: Rc<Settings>,
     // dbmanager: Arc<DBManager>,
 }
@@ -147,13 +147,13 @@ impl TagList{
 
 impl Update for TagList {
     type Model = TagListModel;
-    type ModelParam = (gtk::Builder,);
+    type ModelParam = Rc<EnamelApp>;
     type Msg = Msg;
 
-    fn model(relm: &Relm<Self>, (builder, ): Self::ModelParam) -> Self::Model {
+    fn model(relm: &Relm<Self>, app: Self::ModelParam) -> Self::Model {
         TagListModel {
             relm: relm.clone(),
-            builder
+            app
         }
     }
 
@@ -178,10 +178,9 @@ impl Widget for TagList {
 
     fn view(stream: &Relm<Self>, model: Self::Model) -> Self
     {
-        let scrolled_window = model.builder.get_object::<gtk::ScrolledWindow>("tag_list_scrolled")
+        let scrolled_window = model.app.builder.get_object::<gtk::ScrolledWindow>("tag_list_scrolled")
                                            .expect("Couldn't find tag_list_scrolled in ui file.");
 
-        // let headerbar = relm::init::<HeaderBar>((model.builder.clone(),)).unwrap(); 
         let tree_model = gtk::ListStore::new(&[String::static_type()]);
         let tree_view = gtk::TreeView::new_with_model(&tree_model);
         tree_view.set_headers_visible(false);
