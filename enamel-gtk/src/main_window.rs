@@ -17,9 +17,10 @@ use app::EnamelApp;
 use app::Action;
 // use utils::{itunes_to_rss, refresh};
 use headerbar::HeaderBar;
-use widgets::tag_list::TagList;
+use widgets::tag_list::{TagList, Msg as TagListMsg};
 
-use relm::{Relm, Component, Update, Widget, WidgetTest};
+
+use relm::{Relm, Component, Update, Widget};
 use relm::init as relm_init;
 
 
@@ -48,7 +49,6 @@ struct Widgets {
 // TODO: Factor out the hamburger menu
 // TODO: Make a proper state machine for the headerbar states
 pub struct MainWindow {
-    
     model: Model,
     container: gtk::ApplicationWindow,
     widgets: Widgets
@@ -146,6 +146,8 @@ impl Widget for MainWindow {
                                     .build();
 
         self.container.show_all();
+
+        self.widgets.taglist.emit(TagListMsg::Refresh);
     }
 
 }

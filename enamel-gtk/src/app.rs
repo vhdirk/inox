@@ -57,6 +57,8 @@ pub struct EnamelApp {
     window: RefCell<Option<Component<MainWindow>>>,
     // overlay: gtk::Overlay,
     pub settings: Rc<Settings>,
+    pub dbmanager: Rc<DBManager>,
+
     // gio_settings: gio::Settings,
     // content: Rc<Content>,
     // headerbar: Rc<Header>,
@@ -73,6 +75,8 @@ impl EnamelApp {
         // let (sender, receiver) = unbounded();
 
         let builder = new_builder().unwrap();
+        let dbmanager = Rc::new(DBManager::new(&settings));
+
 
         //let weak_s = settings.downgrade();
         // let weak_app = application.downgrade();
@@ -137,6 +141,7 @@ impl EnamelApp {
             settings,
             window: RefCell::new(None),
             builder,
+            dbmanager
             // overlay,
             // headerbar: header,
             // content,
@@ -155,17 +160,19 @@ impl EnamelApp {
 
         let window = relm_init::<MainWindow>(app.clone()).ok();
         app.window.replace(window);
+        
 
         app.setup_gactions();
         app.setup_timed_callbacks();
 
         app.instance.connect_activate(clone!(app => move |_| app.activate()));
 
+
         // Retrieve the previous window position and size.
         // WindowGeometry::from_settings(&app.settings).apply(&app.window);
 
         // Setup the Action channel
-        gtk::timeout_add(25, clone!(app => move || app.setup_action_channel()));
+        //gtk::timeout_add(25, clone!(app => move || app.setup_action_channel()));
     }
 
     pub fn activate(&self) {
