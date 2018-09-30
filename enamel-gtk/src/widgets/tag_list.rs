@@ -110,20 +110,20 @@ pub struct TagListModel {
 }
 
 impl TagList{
-    // fn refresh(&mut self){
-    //     let mut dbman = self.model.dbmanager.clone();
-    //     let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
-    //     let mut tags = db.all_tags().unwrap();
+    fn refresh(&mut self){
+        let mut dbman = self.model.app.dbmanager.clone();
+        let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
+        let mut tags = db.all_tags().unwrap();
 
-    //     loop {
-    //      match tags.next() {
-    //          Some(tag) => {
-    //              self.add_tag(&tag);
-    //          },
-    //          None => { break }
-    //      }
-    //     }
-    // }
+        loop {
+         match tags.next() {
+             Some(tag) => {
+                 self.add_tag(&tag);
+             },
+             None => { break }
+         }
+        }
+    }
 
 
     fn add_tag(self: &mut Self, tag: &String){
@@ -159,7 +159,7 @@ impl Update for TagList {
 
     fn update(&mut self, event: Self::Msg) {
         match event {
-            Msg::Refresh => /*self.refresh*/(),
+            Msg::Refresh => self.refresh(),
             Msg::SelectionChanged => self.on_selection_changed(),
             Msg::ItemSelect(_) => ()
         }

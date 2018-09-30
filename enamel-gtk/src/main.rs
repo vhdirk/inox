@@ -182,7 +182,6 @@ fn main() {
     let conf_path:PathBuf = PathBuf::from(conf_location);
     let settings = Rc::new(Settings::new(&conf_path.as_path()));
 
-    //let dbman = Rc::new(DBManager::new(&settings));
 
     //
     // let gapp = InoxApplication::new(constants::APPLICATION_ID,
