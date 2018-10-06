@@ -45,8 +45,7 @@ pub struct ThreadViewModel {
 
 }
 
-#[widget]
-impl ::relm::Widget for ThreadView {
+impl Widget for ThreadView {
 
     fn init_view(&mut self) {
         let settings = webkit2gtk::WebViewExt::get_settings(&self.webview).unwrap();
@@ -83,14 +82,5 @@ impl ::relm::Widget for ThreadView {
 
     fn update(&mut self, _event: ThreadViewMsg) {
         // self.label.set_text("");
-    }
-
-    view! {
-        gtk::ScrolledWindow{
-            #[name="webview"]
-            webkit2gtk::WebView{
-
-            }
-        }
     }
 }
