@@ -42,52 +42,6 @@ fn append_text_column(tree: &gtk::TreeView, id: i32) {
 }
 
 
-// impl TagList {
-//     pub fn new(dbmanager: Arc<DBManager>) -> Self {
-//
-//         let model = gtk::ListStore::new(&[String::static_type()]);
-//
-//
-//         let container = gtk::TreeView::new_with_model(&model);
-//         container.set_headers_visible(false);
-//         append_text_column(&container, 0);
-//
-//
-//         let mut tl = TagList {
-//             container,
-//             model,
-//             dbmanager,
-//         };
-//
-//         return tl;
-//     }
-//
-//     pub fn refresh(self: &mut Self){
-//
-//         self.model.clear();
-//
-//         let mut dbman = self.dbmanager.clone();
-//
-//         let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
-//
-//         let mut tags = db.all_tags().unwrap();
-//
-//         loop {
-//             match tags.next() {
-//                 Some(tag) => {
-//                     self.add_tag(&tag);
-//                 },
-//                 None => { break }
-//             }
-//         }
-//
-//
-//     }
-//
-
-//
-// }
-
 #[derive(Msg)]
 pub enum Msg {
     Refresh,
@@ -105,8 +59,6 @@ pub struct TagList {
 pub struct TagListModel {
     relm: Relm<TagList>,
     app: Rc<EnamelApp>
-    // settings: Rc<Settings>,
-    // dbmanager: Arc<DBManager>,
 }
 
 impl TagList{
@@ -179,7 +131,7 @@ impl Widget for TagList {
     fn view(stream: &Relm<Self>, model: Self::Model) -> Self
     {
         let scrolled_window = model.app.builder.get_object::<gtk::ScrolledWindow>("tag_list_scrolled")
-                                           .expect("Couldn't find tag_list_scrolled in ui file.");
+                                               .expect("Couldn't find tag_list_scrolled in ui file.");
 
         let tree_model = gtk::ListStore::new(&[String::static_type()]);
         let tree_view = gtk::TreeView::new_with_model(&tree_model);
@@ -198,3 +150,9 @@ impl Widget for TagList {
         }
     }
 }
+
+
+
+
+
+

@@ -7,6 +7,9 @@ use std::cell::RefCell;
 #[macro_use]
 extern crate log;
 
+#[macro_use]
+extern crate rental;
+
 extern crate regex;
 
 #[macro_use]
