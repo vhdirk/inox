@@ -21,10 +21,13 @@ const TAG_ATTACHMENT: &'static str = "attachment";
 
 rental! {
     pub mod rent_notmuch {
+        use super::*;
 
-        use notmuch;
-        use std::rc::Rc;
-        use std::sync::Arc;
+        #[rental]
+        pub struct Query {
+            db: Arc<notmuch::Database>,
+            query: Rc<notmuch::Query<'db>>
+        }
 
         #[rental]
         pub struct Thread {
@@ -32,6 +35,7 @@ rental! {
             query: Rc<notmuch::Query<'db>>,
             inner: notmuch::Thread<'query, 'db>
         }
+
     }
 }
 

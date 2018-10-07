@@ -86,13 +86,12 @@ impl TagList{
     fn on_selection_changed(self: &mut Self){
         let (model, iter) = self.tree_view.get_selection().get_selected().unwrap();
 
-
-        // if(self.tree_model.iter_is_valid(&iter)){
-        //     let val: String = model.get_value(&iter, 0).get().unwrap();
-        //     self.model.relm.stream().emit(Msg::ItemSelect(Some(val)));
-        // }else{
-        //     self.model.relm.stream().emit(Msg::ItemSelect(None));
-        // }
+        if(self.tree_model.iter_is_valid(&iter)){
+            let val: String = model.get_value(&iter, 0).get().unwrap();
+            self.model.relm.stream().emit(Msg::ItemSelect(Some(val)));
+        }else{
+            self.model.relm.stream().emit(Msg::ItemSelect(None));
+        }
     }
 }
 
