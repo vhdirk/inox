@@ -26,12 +26,14 @@ use relm::init as relm_init;
 
 #[derive(Msg)]
 pub enum Msg {
+    TagSelect(Option<String>),
     Change,
     Quit,
 }
 
 #[derive(Clone)]
 pub struct Model {
+    relm: Relm<MainWindow>,
     app: Rc<EnamelApp>,
     content: String,
 }
@@ -70,6 +72,23 @@ impl MainWindow {
 
     //     //self.switch.set_stack(&content.get_stack());
     // }
+
+
+    fn on_tag_changed(self: &mut Self, tag: Option<String>){
+
+
+        // TODO: build a new query and refresh the thread list.
+
+        let qs = match tag{
+            Some(tag) => format!("tag:{}", tag).to_string(),
+            None => "".to_string()
+        };
+        debug!("qs: {:?}", qs);
+
+
+        //self.thread_list.emit(ThreadListMsg::Update(qs));
+    }
+
 }
 
 impl Update for MainWindow{
@@ -79,6 +98,7 @@ impl Update for MainWindow{
 
     fn model(relm: &Relm<Self>, app: Self::ModelParam) -> Model {
         Self::Model {
+            relm: relm.clone(),
             app,
             content: String::new(),
         }
@@ -86,7 +106,8 @@ impl Update for MainWindow{
 
     fn update(&mut self, event: Msg) {
         match event {
-            Change => {
+            Msg::TagSelect(tag) => self.on_tag_changed(tag),
+            Msg::Change => {
                 // self.model.content = self.widgets.input.get_text()
                 //                                        .expect("get_text failed")
                 //                                        .chars()
@@ -94,7 +115,7 @@ impl Update for MainWindow{
                 //                                        .collect();
                 // self.widgets.label.set_text(&self.model.content);
             },
-            Quit => gtk::main_quit(),
+            Msg::Quit => gtk::main_quit(),
         }
     }
 }
@@ -115,6 +136,13 @@ impl Widget for MainWindow {
 
         let headerbar = relm_init::<HeaderBar>(model.app.clone()).unwrap(); 
         let taglist = relm_init::<TagList>(model.app.clone()).unwrap(); 
+
+        
+        use self::TagListMsg::ItemSelect as TagList_ItemSelect;
+
+        connect!(taglist@TagList_ItemSelect(ref tag), relm, Msg::TagSelect(tag.clone()));
+
+
 
         MainWindow {
             model,
