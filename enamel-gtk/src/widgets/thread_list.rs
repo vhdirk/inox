@@ -16,17 +16,18 @@ use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 use relm::init as relm_init;
-use relm_attributes::widget;
-use relm::ToGlib;
+use relm::{Relm, ToGlib, EventStream, Widget, Update};
 
 use notmuch;
 use notmuch::DatabaseMode;
 
-use inox_core::settings::Settings;
-use inox_core::database::Manager as DBManager;
-use inox_core::database::Thread;
+use enamel_core::settings::Settings;
+use enamel_core::database::Manager as DBManager;
+use enamel_core::database::{Thread, Query, Threads};
 
-use widgets::thread_list_cell_renderer::CellRendererThread;
+use app::EnamelApp;
+
+//use widgets::thread_list_cell_renderer::CellRendererThread;
 
 const COLUMN_ID:u8 = 0;
 const COLUMN_THREAD:u8 = 1;
@@ -35,7 +36,7 @@ const COLUMN_AUTHORS:u8 = 2;
 
 fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
     let column = gtk::TreeViewColumn::new();
-    let cell = CellRendererThread::new();
+    let cell = gtk::CellRendererText::new(); //CellRendererThread::new();
 
     column.pack_start(&cell, false);
     // Association of the view's column with the model's `id` column.
@@ -44,14 +45,14 @@ fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
     tree.append_column(&column);
 }
 
-// pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG>, constructor: F, single_shot:Option<bool>) -> glib::source::SourceId {
-//     let stream = stream.clone();
-//     gtk::idle_add(move || {
-//         let msg = constructor();
-//         stream.emit(msg);
-//         Continue(!single_shot.unwrap_or(false))
-//     })
-// }
+pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG>, constructor: F, single_shot:Option<bool>) -> glib::source::SourceId {
+    let stream = stream.clone();
+    gtk::idle_add(move || {
+        let msg = constructor();
+        stream.emit(msg);
+        Continue(!single_shot.unwrap_or(false))
+    })
+}
 
 
 
@@ -91,11 +92,10 @@ pub struct ThreadList{
 
 pub struct ThreadListModel {
     relm: Relm<ThreadList>,
-    settings: Rc<Settings>,
-    dbmanager: Arc<DBManager>,
+    app: Rc<EnamelApp>,
 
     idle_handle: Option<glib::SourceId>,
-    thread_list: Option<notmuch::Threads>,
+    thread_list: Option<Threads>,
 
     num_threads: u32,
     num_threads_loaded: u32
@@ -119,20 +119,22 @@ impl ThreadList{
 
 
 
-        let mut dbman = self.model.dbmanager.clone();
-        let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
+        // let mut dbman = self.model.app.dbmanager.clone();
+        // let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
 
-        let query = db.create_query(&qs).unwrap();
+        // let query = db.create_query(&qs).unwrap();
+
+        // //self.model.thread_list = Threads::new(db, query, query.search_threads().unwrap());
 
 
-        self.model.thread_list = Some(query.search_threads().unwrap());
+        // // = Some();
 
 
-        // let do_run = run.clone();
-        gtk::idle_add(move || {
-            debug!("thread count: {:?}", query.count_threads().unwrap());
-            Continue(false)
-        });
+        // // let do_run = run.clone();
+        // gtk::idle_add(move || {
+        //     debug!("thread count: {:?}", query.count_threads().unwrap());
+        //     Continue(false)
+        // });
 
 
         gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init), Some(true));
@@ -140,19 +142,19 @@ impl ThreadList{
     }
 
 
-    fn add_thread(&mut self, thread: Thread){
+    // fn add_thread(&mut self, thread: Thread){
 
-        let val = AnyValue::new(thread.clone()).to_value();
+    //     let val = AnyValue::new(thread.clone()).to_value();
 
-        let subject = &thread.subject();
-        self.tree_model.insert_with_values(None,
-            &[COLUMN_ID as u32,
-              COLUMN_THREAD as u32
-            ],
-            &[&thread.id().to_value(),
-              &val
-            ]);
-    }
+    //     let subject = &thread.subject();
+    //     self.tree_model.insert_with_values(None,
+    //         &[COLUMN_ID as u32,
+    //           COLUMN_THREAD as u32
+    //         ],
+    //         &[&thread.id().to_value(),
+    //           &val
+    //         ]);
+    // }
 
     fn next_thread(&mut self){
         if self.model.thread_list.is_none(){
@@ -160,16 +162,16 @@ impl ThreadList{
             return ();
         }
 
-        match self.model.thread_list.as_mut().unwrap().next() {
-            Some(mthread) => {
-                gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init), Some(true));
-                self.add_thread(mthread.into());
+        // match self.model.thread_list.as_mut().unwrap().next() {
+        //     Some(mthread) => {
+        //         gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init), Some(true));
+        //         // self.add_thread(mthread.into());
 
-            },
-            None => {
+        //     },
+        //     None => {
 
-            }
-        }
+        //     }
+        // }
 
     }
 
@@ -179,14 +181,13 @@ impl ThreadList{
 
 impl Update for ThreadList {
     type Model = ThreadListModel;
-    type ModelParam = (Rc<Settings>, Arc<DBManager>);
+    type ModelParam = Rc<EnamelApp>;
     type Msg = Msg;
 
-    fn model(relm: &Relm<Self>, (settings, dbmanager): Self::ModelParam) -> Self::Model {
+    fn model(relm: &Relm<Self>, app: Self::ModelParam) -> Self::Model {
         ThreadListModel {
             relm: relm.clone(),
-            settings,
-            dbmanager,
+            app,
 
             thread_list: None,
             idle_handle: None,
@@ -226,9 +227,11 @@ impl Widget for ThreadList {
         self.scrolled_window.clone()
     }
 
-    fn view(stream: &Relm<Self>, model: Self::Model) -> Self
+    fn view(relm: &Relm<Self>, model: Self::Model) -> Self
     {
-        let scrolled_window = gtk::ScrolledWindow::new(None, None);
+        let scrolled_window = model.app.builder.get_object::<gtk::ScrolledWindow>("thread_list_scrolled")
+                                               .expect("Couldn't find thread_list_scrolled in ui file.");
+
         let tree_model = create_liststore();
         let tree_filter = gtk::TreeModelFilter::new(&tree_model, None);
         let tree_view = gtk::TreeView::new();

@@ -26,16 +26,16 @@ use glib::value::AnyValue;
 use notmuch;
 
 
-use inox_core::settings::Settings;
-use inox_core::database::Manager as DBManager;
-use inox_core::database::Thread;
+use enamel_core::settings::Settings;
+use enamel_core::database::Manager as DBManager;
+use enamel_core::database::Thread;
 
 use notmuch::DatabaseMode;
 
 use gobject_subclass::object::*;
 use gobject_subclass::properties::*;
 
-use cell_renderer::*;
+use gtk_subclass::cell_renderer::*;
 use util::*;
 
 pub trait CellRendererThreadImpl: 'static {
@@ -335,7 +335,7 @@ impl CellRendererThread {
         pango_layout.set_font_description(&settings.font_description);
 
            /* set color */
-        let stylecontext = widget.get_style_context().unwrap();
+        let stylecontext = widget.get_style_context();
         let color = stylecontext.get_color(gtk::StateFlags::NORMAL);
 
         cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
@@ -508,7 +508,7 @@ impl CellRendererThread {
         pango_layout.set_font_description(&settings.font_description);
 
         /* set color */
-        let stylecontext = widget.get_style_context().unwrap();
+        let stylecontext = widget.get_style_context();
         let color = stylecontext.get_color(gtk::StateFlags::NORMAL);
         cr.set_source_rgb(color.red, color.green, color.blue);
 
@@ -541,10 +541,13 @@ impl CellRendererThread {
 
        /* format authors string */
         let mut authors = "".to_string();
+        let num_authors = {
+            thread.suffix().authors().len()
+        };
 
-        if thread.authors().len() == 1 {
+        if num_authors == 1 {
             /* if only one, show full name */
-            let mut author = thread.authors()[0].clone();
+            let mut author = thread.ref_rent(|inner| inner).authors()[0].clone();
 
             if author.len() >= settings.authors_length as usize {
                 author.truncate(settings.authors_length as usize);
@@ -566,7 +569,7 @@ impl CellRendererThread {
 
             let mut len = 0;
 
-            for author_orig in thread.authors()
+            for author_orig in thread.ref_rent(|inner| inner).authors()
             {
                 let mut author = author_orig.clone();
                 if !first{ len += 1; } // comma
@@ -613,18 +616,18 @@ impl CellRendererThread {
 
         let mut font_description = settings.font_description.clone();
 
-        if thread.is_unread() {
-            font_description.set_weight(pango::Weight::Normal);
-        }
+        // if thread.is_unread() {
+        //     font_description.set_weight(pango::Weight::Normal);
+        // }
 
         pango_layout.set_font_description(&font_description);
 
-        if thread.is_unread() {
-            font_description.set_weight(pango::Weight::Bold);
-        }
+        // if thread.is_unread() {
+        //     font_description.set_weight(pango::Weight::Bold);
+        // }
 
        /* set color */
-       let stylecontext = widget.get_style_context().unwrap();
+       let stylecontext = widget.get_style_context();
        let color = stylecontext.get_color(gtk::StateFlags::NORMAL);
        cr.set_source_rgb(color.red, color.green, color.blue);
 
@@ -655,7 +658,7 @@ impl CellRendererThread {
 
 
         /* set color */
-        let stylecontext = widget.get_style_context().unwrap();
+        let stylecontext = widget.get_style_context();
         let color = stylecontext.get_color(gtk::StateFlags::NORMAL);
         cr.set_source_rgb(color.red, color.green, color.blue);
 
@@ -681,7 +684,7 @@ impl CellRendererThread {
   //     if (!thread_index->plugins->format_tags (tags, bg.to_string (), (flags & Gtk::CELL_RENDERER_SELECTED) != 0, tag_string)) {
   // # endif
 
-        let tags: Vec<String> = thread.tags().collect();
+        let tags: Vec<String> = thread.ref_rent(|inner| inner).tags().collect();
         tag_string = concat_tags_color(&tags, true, settings.tags_length, &bg);
   // # ifndef DISABLE_PLUGINS
   //     }
@@ -712,7 +715,7 @@ impl ObjectImpl<CellRenderer> for CellRendererThread
         match *prop {
             Property::Boxed("thread", ..) => {
                 let any_v = value.get::<&AnyValue>().expect("Value did not actually contain an AnyValue");
-                *(self.thread.borrow_mut()) = Some(any_v.downcast_ref::<Thread>().unwrap().clone());
+                //*(self.thread.borrow_mut()) = Some(any_v.downcast_ref::<Thread>().unwrap().clone());
             },
             _ => unimplemented!(),
         }
@@ -753,16 +756,16 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
 
         let thread = self.thread.borrow().as_ref().unwrap().clone();
 
-        if thread.is_unread() {
-          self.settings.borrow_mut().font_description.set_weight(pango::Weight::Bold);
-        } else  {
-          self.settings.borrow_mut().font_description.set_weight(pango::Weight::Normal);
-        }
+        // if thread.ref_rent(|inner| inner).is_unread() {
+        //   self.settings.borrow_mut().font_description.set_weight(pango::Weight::Bold);
+        // } else  {
+        //   self.settings.borrow_mut().font_description.set_weight(pango::Weight::Normal);
+        // }
 
         self.render_background(&renderer, &cr, &widget, &background_area, &cell_area, flags);
         self.render_date(&renderer, &cr, &widget, &background_area, &cell_area, flags); // returns height
 
-        if thread.total_messages() > 1 {
+        if thread.ref_rent(|inner| inner).total_messages() > 1 {
           //render_message_count (cr, widget, cell_area);
           //self.render_authors(&renderer, &cr, &widget, &background_area, &cell_area, flags);
         }
@@ -784,10 +787,10 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         // if (thread->flagged)
         //   render_flagged (cr, widget, cell_area);
         //
-        if thread.has_attachment(){
-            self.render_attachment(&renderer, &cr, &widget, &background_area, &cell_area, flags);
+        // if thread.ref_rent(|inner| inner).has_attachment(){
+        //     self.render_attachment(&renderer, &cr, &widget, &background_area, &cell_area, flags);
 
-        }
+        // }
         // /*
         // if (marked)
         //   render_marked (cr, widget, cell_area);
