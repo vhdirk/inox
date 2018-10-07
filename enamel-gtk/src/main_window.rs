@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::sync::Arc;
 use gio::ActionMapExt;
 use gtk::GtkWindowExt;
 use gtk;
@@ -13,6 +14,13 @@ use rayon;
 
 // use hammond_data::{dbqueries, Source};
 
+use relm::{Relm, Component, Update, Widget};
+use relm::init as relm_init;
+
+use notmuch::DatabaseMode;
+
+use enamel_core::database::Query;
+
 use app::EnamelApp;
 use app::Action;
 // use utils::{itunes_to_rss, refresh};
@@ -20,8 +28,7 @@ use headerbar::HeaderBar;
 use widgets::tag_list::{TagList, Msg as TagListMsg};
 
 
-use relm::{Relm, Component, Update, Widget};
-use relm::init as relm_init;
+
 
 
 #[derive(Msg)]
@@ -78,12 +85,17 @@ impl MainWindow {
 
 
         // TODO: build a new query and refresh the thread list.
+        let mut dbman = self.model.app.dbmanager.clone();
+        let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
 
         let qs = match tag{
             Some(tag) => format!("tag:{}", tag).to_string(),
             None => "".to_string()
         };
         debug!("qs: {:?}", qs);
+
+        let query = Query::new(Arc::new(db), |db| db.create_query(&qs).unwrap());
+
 
 
         //self.thread_list.emit(ThreadListMsg::Update(qs));
@@ -137,9 +149,8 @@ impl Widget for MainWindow {
         let headerbar = relm_init::<HeaderBar>(model.app.clone()).unwrap(); 
         let taglist = relm_init::<TagList>(model.app.clone()).unwrap(); 
 
-        
+        // TODO: what would be the best place to connect all UI signals?
         use self::TagListMsg::ItemSelect as TagList_ItemSelect;
-
         connect!(taglist@TagList_ItemSelect(ref tag), relm, Msg::TagSelect(tag.clone()));
 
 

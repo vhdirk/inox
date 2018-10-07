@@ -78,6 +78,7 @@ use structopt::clap::{App, Arg};
 
 #[macro_use]
 mod macros;
+mod util;
 mod static_resource;
 mod constants;
 mod app;
@@ -85,6 +86,7 @@ mod settings;
 mod headerbar;
 mod widgets;
 mod main_window;
+
 
 // mod main_content;
 // mod tag_list;

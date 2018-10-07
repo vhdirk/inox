@@ -26,20 +26,30 @@ rental! {
         #[rental]
         pub struct Query {
             db: Arc<notmuch::Database>,
-            query: Rc<notmuch::Query<'db>>
+            query: notmuch::Query<'db>
         }
 
         #[rental]
         pub struct Thread {
-            db: Arc<notmuch::Database>,
-            query: Rc<notmuch::Query<'db>>,
-            inner: notmuch::Thread<'query, 'db>
+            #[subrental = 2]
+            query: Rc<Query>,
+            inner: notmuch::Thread<'query_1, 'query_0>
         }
+
+        #[rental]
+        pub struct Threads {
+            #[subrental = 2]
+            query: Rc<Query>,
+            inner: notmuch::Thread<'query_1, 'query_0>
+        }
+
 
     }
 }
 
-
+pub use self::rent_notmuch::Query;
+pub use self::rent_notmuch::Thread;
+pub use self::rent_notmuch::Threads;
 
 
 // #[derive(Default, Debug)]
@@ -65,10 +75,10 @@ rental! {
 // }
 
 
-// impl Thread{
+// impl rent_notmuch::Thread{
 
 //     // Does this thread carry the unread tag
-//     pub fn is_unread(&self) -> bool{
+//     pub fn is_unread(&s: ) -> bool{
 //         let tags:Vec<String> = self.inner.tags().collect();
 //         tags.contains(&TAG_UNREAD.to_string())
 //     }
