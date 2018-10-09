@@ -65,7 +65,7 @@ pub enum Msg {
 
     // inbound
     /// signals a request to update the event list. String is a notmuch query string
-    Update(String),
+    Update(Rc<Query>),
 
     // private
     ItemSelect,
@@ -109,7 +109,7 @@ fn create_liststore() -> gtk::ListStore{
 
 impl ThreadList{
 
-    fn update(&mut self, qs: String){
+    fn update(&mut self, query: Rc<Query>){
 
         if self.model.idle_handle.is_some(){
             glib::source::source_remove(self.model.idle_handle.take().unwrap());
@@ -117,17 +117,7 @@ impl ThreadList{
         self.tree_model = create_liststore();
         self.tree_view.set_model(&self.tree_model);
 
-
-
-        // let mut dbman = self.model.app.dbmanager.clone();
-        // let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
-
-        // let query = db.create_query(&qs).unwrap();
-
-        // //self.model.thread_list = Threads::new(db, query, query.search_threads().unwrap());
-
-
-        // // = Some();
+        self.model.thread_list = Some(Threads::new(query, |q| q.query.search_threads().unwrap()));
 
 
         // // let do_run = run.clone();
@@ -196,8 +186,8 @@ impl Update for ThreadList {
         }
     }
 
-    fn update(&mut self, event: Self::Msg) {
-        match event {
+    fn update(&mut self, msg: Self::Msg) {
+        match msg {
             Msg::Update(ref qs) => self.update(qs.clone()),
             Msg::ItemSelect => {
                 let selection = self.tree_view.get_selection();
