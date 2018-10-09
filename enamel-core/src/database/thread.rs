@@ -23,24 +23,24 @@ rental! {
     pub mod rent_notmuch {
         use super::*;
 
-        #[rental]
+        #[rental(debug)]
         pub struct Query {
             db: Arc<notmuch::Database>,
             query: notmuch::Query<'db>
         }
 
-        #[rental]
-        pub struct Thread {
-            #[subrental = 2]
-            query: Rc<Query>,
-            inner: notmuch::Thread<'query_1, 'query_0>
-        }
-
-        #[rental]
+        #[rental(debug)]
         pub struct Threads {
             #[subrental = 2]
             query: Rc<Query>,
-            inner: notmuch::Thread<'query_1, 'query_0>
+            inner: notmuch::Threads<'query_0, 'query_1>
+        }
+
+        #[rental(debug)]
+        pub struct Thread {
+            #[subrental = 2]
+            query: Rc<Query>,
+            inner: notmuch::Thread<'query_0, 'query_1>
         }
 
 

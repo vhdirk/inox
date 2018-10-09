@@ -26,7 +26,7 @@ use app::Action;
 // use utils::{itunes_to_rss, refresh};
 use headerbar::HeaderBar;
 use widgets::tag_list::{TagList, Msg as TagListMsg};
-
+use widgets::thread_list::{ThreadList, Msg as ThreadListMsg};
 
 
 
@@ -41,15 +41,14 @@ pub enum Msg {
 #[derive(Clone)]
 pub struct Model {
     relm: Relm<MainWindow>,
-    app: Rc<EnamelApp>,
-    content: String,
+    app: Rc<EnamelApp>
 }
 
 #[derive(Clone)]
 struct Widgets {
     headerbar: Component<HeaderBar>,
-    taglist: Component<TagList>
-    //threadlist
+    taglist: Component<TagList>,
+    threadlist: Component<ThreadList>
     //threadview
 }
 
@@ -61,25 +60,9 @@ pub struct MainWindow {
     model: Model,
     container: gtk::ApplicationWindow,
     widgets: Widgets
-    // pub(crate) container: gtk::ApplicationWindow,
-    // header: Rc<HeaderBar>
 }
 
 impl MainWindow {
-    // fn new(ui: UI, application: gtk::Application) -> Self {
-    //     let window = ui.builder.get_object("main_window")
-    //                            .expect("Couldn't find main_window in ui file.");
-    //     window.set_application(&model.gapp);
-
-    // //     window
-    // }
-
-    // pub(crate) fn init(this: &Rc<Self>/*, sender: &Sender<Action>*/) {
-    //     let weak = Rc::downgrade(this);
-
-    //     //self.switch.set_stack(&content.get_stack());
-    // }
-
 
     fn on_tag_changed(self: &mut Self, tag: Option<String>){
 
@@ -98,7 +81,7 @@ impl MainWindow {
 
 
 
-        //self.thread_list.emit(ThreadListMsg::Update(qs));
+        self.widgets.threadlist.emit(ThreadListMsg::Update(Rc::new(query)));
     }
 
 }
@@ -111,8 +94,7 @@ impl Update for MainWindow{
     fn model(relm: &Relm<Self>, app: Self::ModelParam) -> Model {
         Self::Model {
             relm: relm.clone(),
-            app,
-            content: String::new(),
+            app
         }
     }
 
@@ -148,6 +130,8 @@ impl Widget for MainWindow {
 
         let headerbar = relm_init::<HeaderBar>(model.app.clone()).unwrap(); 
         let taglist = relm_init::<TagList>(model.app.clone()).unwrap(); 
+        let threadlist = relm_init::<ThreadList>(model.app.clone()).unwrap(); 
+
 
         // TODO: what would be the best place to connect all UI signals?
         use self::TagListMsg::ItemSelect as TagList_ItemSelect;
@@ -160,7 +144,8 @@ impl Widget for MainWindow {
             container: window,
             widgets: Widgets{
                 headerbar,
-                taglist
+                taglist,
+                threadlist
             }
         }
 
