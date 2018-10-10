@@ -14,13 +14,13 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 // use hammond_data::Show;
 use relm::init as relm_init;
 use relm::Component;
-use constants;
-use settings::{self, WindowGeometry};
-use main_window::MainWindow;
+use crate::constants;
+use crate::settings::{self, WindowGeometry};
+use crate::main_window::MainWindow;
 // use utils;
 // use widgets::appnotif::{InAppNotification, UndoState};
 // use widgets::player;
-use widgets::{about_dialog}; //, mark_all_notif, remove_show_notif};
+use crate::widgets::{about_dialog}; //, mark_all_notif, remove_show_notif};
 
 use std::rc::Rc;
 use std::sync::Arc;
@@ -28,7 +28,7 @@ use std::sync::Arc;
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
 
-use static_resource::new_builder;
+use crate::static_resource::new_builder;
 
 #[derive(Debug, Clone)]
 pub enum Action {

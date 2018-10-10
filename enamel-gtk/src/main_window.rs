@@ -21,12 +21,12 @@ use notmuch::DatabaseMode;
 
 use enamel_core::database::Query;
 
-use app::EnamelApp;
-use app::Action;
-// use utils::{itunes_to_rss, refresh};
-use headerbar::HeaderBar;
-use widgets::tag_list::{TagList, Msg as TagListMsg};
-use widgets::thread_list::{ThreadList, Msg as ThreadListMsg};
+use crate::app::EnamelApp;
+use crate::app::Action;
+// use crate::utils::{itunes_to_rss, refresh};
+use crate::headerbar::HeaderBar;
+use crate::widgets::tag_list::{TagList, Msg as TagListMsg};
+use crate::widgets::thread_list::{ThreadList, Msg as ThreadListMsg};
 
 
 

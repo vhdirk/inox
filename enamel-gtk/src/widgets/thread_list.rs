@@ -25,7 +25,7 @@ use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
 use enamel_core::database::{Thread, Query, Threads};
 
-use app::EnamelApp;
+use crate::app::EnamelApp;
 
 //use widgets::thread_list_cell_renderer::CellRendererThread;
 

@@ -33,13 +33,13 @@ impl Config{
             Ok(mut file) => {
                 file.read_to_string(&mut conf_contents);
             },
-            Err(err) => {
+            Err(_err) => {
                 conf_contents = "".to_string();
             },
         };
 
 
-        let mut conf: Config = toml::from_str(&conf_contents).unwrap();
+        let conf: Config = toml::from_str(&conf_contents).unwrap();
 
         return conf;
     }

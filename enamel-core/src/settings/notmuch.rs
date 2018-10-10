@@ -26,7 +26,7 @@ impl Config{
     #[serde(skip_serializing)]
     pub fn load(location: &Path) -> Self {
         let mut conf_contents = String::new();
-        let mut expanded = shellexpand::full(location.to_str().unwrap()).unwrap().into_owned();
+        let expanded = shellexpand::full(location.to_str().unwrap()).unwrap().into_owned();
 
         let expanded_path = Path::new(&expanded);
 
@@ -40,7 +40,7 @@ impl Config{
             },
         };
 
-        let mut conf: Config = serde_ini::from_str(&conf_contents).unwrap();
+        let conf: Config = serde_ini::from_str(&conf_contents).unwrap();
 
         return conf;
     }

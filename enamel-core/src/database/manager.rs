@@ -8,7 +8,7 @@ use toml;
 use serde;
 
 use notmuch;
-use settings::Settings;
+use crate::settings::Settings;
 
 pub struct Manager{
     notmuch_db_path: PathBuf
