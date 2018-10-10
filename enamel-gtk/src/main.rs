@@ -104,7 +104,7 @@ use enamel_core::database::Manager as DBManager;
 // use application::Application as InoxApplication;
 
 // use application_window::ApplicationWindow;
-use app::EnamelApp;
+use self::app::EnamelApp;
 
 /// Init Gtk and logger.
 fn init() {

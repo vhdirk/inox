@@ -10,8 +10,8 @@ use serde;
 mod enamel;
 mod notmuch;
 
-use settings::enamel::Config as EnamelConfig;
-use settings::notmuch::Config as NotMuchConfig;
+use crate::settings::enamel::Config as EnamelConfig;
+use crate::settings::notmuch::Config as NotMuchConfig;
 
 
 #[derive(Clone, Debug)]
@@ -32,7 +32,7 @@ impl Settings{
 
         let enamel_conf = EnamelConfig::load(location);
 
-        let mut notmuch_config_path = PathBuf::from(&enamel_conf.notmuch.path);
+        let notmuch_config_path = PathBuf::from(&enamel_conf.notmuch.path);
 
         debug!("Loading notmuch config from {0:?}", notmuch_config_path);
 

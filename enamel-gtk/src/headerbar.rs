@@ -8,8 +8,8 @@ use rayon;
 // use url::Url;
 use relm::{Relm, Update, Widget, WidgetTest};
 
-use app::Action;
-use app::EnamelApp;
+use crate::app::Action;
+use crate::app::EnamelApp;
 
 // use utils::{itunes_to_rss, refresh};
 

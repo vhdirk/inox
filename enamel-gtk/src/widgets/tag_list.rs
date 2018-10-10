@@ -19,7 +19,7 @@ use notmuch::DatabaseMode;
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
 
-use app::EnamelApp;
+use crate::app::EnamelApp;
 // pub struct TagList {
 //     pub container: gtk::TreeView,
 //

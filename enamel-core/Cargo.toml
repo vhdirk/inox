@@ -2,6 +2,7 @@
 name = "enamel-core"
 version = "0.0.1"
 authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
+edition = '2018'
 
 [lib]
 name = "enamel_core"

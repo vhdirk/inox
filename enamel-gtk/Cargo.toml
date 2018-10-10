@@ -4,7 +4,7 @@ version = "0.0.1"
 authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
 build = "build.rs"
 workspace = "../"
-
+edition = '2018'
 
 [[bin]]
 name = "enamel-gtk"
