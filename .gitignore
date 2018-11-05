@@ -2,6 +2,7 @@
 **/*.rs.bk
 Cargo.lock
 .vscode
+*.code-workspace
 *.ui~
 resources.gresource
 _build

@@ -78,7 +78,6 @@ use structopt::clap::{App, Arg};
 
 #[macro_use]
 mod macros;
-mod util;
 mod static_resource;
 mod constants;
 mod app;

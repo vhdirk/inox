@@ -23,11 +23,13 @@ use notmuch::DatabaseMode;
 
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
-use enamel_core::database::{Thread, Query, Threads};
+// use enamel_core::database::{Thread, Query, Threads};
 
 use crate::app::EnamelApp;
 
-//use widgets::thread_list_cell_renderer::CellRendererThread;
+type Threads = notmuch::Threads<'static, notmuch::Query<'static>>;
+
+use super::thread_list_cell_renderer::CellRendererThread;
 
 const COLUMN_ID:u8 = 0;
 const COLUMN_THREAD:u8 = 1;
@@ -36,7 +38,7 @@ const COLUMN_AUTHORS:u8 = 2;
 
 fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
     let column = gtk::TreeViewColumn::new();
-    let cell = gtk::CellRendererText::new(); //CellRendererThread::new();
+    let cell = CellRendererThread::new();
 
     column.pack_start(&cell, false);
     // Association of the view's column with the model's `id` column.
@@ -65,7 +67,7 @@ pub enum Msg {
 
     // inbound
     /// signals a request to update the event list. String is a notmuch query string
-    Update(Rc<Query>),
+    Update(Option<Threads>),
 
     // private
     ItemSelect,
@@ -95,7 +97,7 @@ pub struct ThreadListModel {
     app: Rc<EnamelApp>,
 
     idle_handle: Option<glib::SourceId>,
-    thread_list: Option<Threads>,
+    thread_list: Option<Arc<Threads>>,
 
     num_threads: u32,
     num_threads_loaded: u32
@@ -109,7 +111,7 @@ fn create_liststore() -> gtk::ListStore{
 
 impl ThreadList{
 
-    fn update(&mut self, query: Rc<Query>){
+    fn update(&mut self, threads: Option<Threads>){
 
         if self.model.idle_handle.is_some(){
             glib::source::source_remove(self.model.idle_handle.take().unwrap());
@@ -117,7 +119,7 @@ impl ThreadList{
         self.tree_model = create_liststore();
         self.tree_view.set_model(&self.tree_model);
 
-        self.model.thread_list = Some(Threads::new(query, |q| q.query.search_threads().unwrap()));
+        self.model.thread_list = threads.map(Arc::new);
 
 
         // // let do_run = run.clone();
@@ -132,19 +134,19 @@ impl ThreadList{
     }
 
 
-    // fn add_thread(&mut self, thread: Thread){
+    fn add_thread(&mut self, thread: Rc<notmuch::Thread<'static, notmuch::Threads<'static, notmuch::Query<'static>>>>){
 
-    //     let val = AnyValue::new(thread.clone()).to_value();
+        let thread_id = thread.id().clone();
+        let val = AnyValue::new(thread).to_value();
 
-    //     let subject = &thread.subject();
-    //     self.tree_model.insert_with_values(None,
-    //         &[COLUMN_ID as u32,
-    //           COLUMN_THREAD as u32
-    //         ],
-    //         &[&thread.id().to_value(),
-    //           &val
-    //         ]);
-    // }
+        self.tree_model.insert_with_values(None,
+            &[COLUMN_ID as u32,
+              COLUMN_THREAD as u32
+            ],
+            &[&thread_id.to_value(),
+              &val
+            ]);
+    }
 
     fn next_thread(&mut self){
         if self.model.thread_list.is_none(){
@@ -152,16 +154,10 @@ impl ThreadList{
             return ();
         }
 
-        // match self.model.thread_list.as_mut().unwrap().next() {
-        //     Some(mthread) => {
-        //         gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init), Some(true));
-        //         // self.add_thread(mthread.into());
-
-        //     },
-        //     None => {
-
-        //     }
-        // }
+        if let Some(thread) = <notmuch::Threads<_> as notmuch::StreamingIteratorExt<_>>::next(self.model.thread_list.as_mut().unwrap().clone()){
+            gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init), Some(true));
+            self.add_thread(Rc::new(thread));
+        }
 
     }
 
@@ -188,7 +184,7 @@ impl Update for ThreadList {
 
     fn update(&mut self, msg: Self::Msg) {
         match msg {
-            Msg::Update(ref qs) => self.update(qs.clone()),
+            Msg::Update(threads) => self.update(threads),
             Msg::ItemSelect => {
                 let selection = self.tree_view.get_selection();
                 if let Some((list_model, iter)) = selection.get_selected() {

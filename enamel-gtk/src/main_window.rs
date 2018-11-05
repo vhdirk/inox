@@ -6,6 +6,7 @@ use gtk;
 use gio;
 use glib;
 use gtk::prelude::*;
+use owning_ref::{ArcRef, OwningHandle};
 
 use crossbeam_channel::Sender;
 use failure::Error;
@@ -18,8 +19,6 @@ use relm::{Relm, Component, Update, Widget};
 use relm::init as relm_init;
 
 use notmuch::DatabaseMode;
-
-use enamel_core::database::Query;
 
 use crate::app::EnamelApp;
 use crate::app::Action;
@@ -77,11 +76,11 @@ impl MainWindow {
         };
         debug!("qs: {:?}", qs);
 
-        let query = Query::new(Arc::new(db), |db| db.create_query(&qs).unwrap());
 
+        let query = <notmuch::Database as notmuch::DatabaseExt>::create_query(db, &qs).unwrap();
+        let threads = <notmuch::Query as notmuch::QueryExt>::search_threads(query).unwrap();
 
-
-        self.widgets.threadlist.emit(ThreadListMsg::Update(Rc::new(query)));
+        self.widgets.threadlist.emit(ThreadListMsg::Update(Some(threads)));
     }
 
 }
