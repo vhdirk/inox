@@ -2,7 +2,9 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::iter::Iterator;
 use std::path::{Path, PathBuf};
+use std::clone::Clone;
 use std::convert::From;
 use std::ops::Deref;
 
@@ -16,79 +18,36 @@ use notmuch;
 const TAG_UNREAD: &'static str = "unread";
 const TAG_ATTACHMENT: &'static str = "attachment";
 
-// Tiny wrapper around a notmuch Thread that does some basic caching and centralizes some
-// functionality
 
-rental! {
-    pub mod rent_notmuch {
-        use super::*;
-
-        #[rental(debug)]
-        pub struct Query {
-            db: Arc<notmuch::Database>,
-            query: notmuch::Query<'db>
-        }
-
-        #[rental(debug)]
-        pub struct Threads {
-            #[subrental = 2]
-            query: Rc<Query>,
-            inner: notmuch::Threads<'query_0, 'query_1>
-        }
-
-        #[rental(debug)]
-        pub struct Thread {
-            #[subrental = 2]
-            query: Rc<Query>,
-            inner: notmuch::Thread<'query_0, 'query_1>
-        }
-
-
-    }
+pub trait ThreadEx {
+    fn is_unread(&self) -> bool;
+    fn has_attachment(&self) -> bool;
 }
 
-pub use self::rent_notmuch::Query;
-pub use self::rent_notmuch::Thread;
-pub use self::rent_notmuch::Threads;
+impl<'o, Owner: notmuch::ThreadOwner + 'o> ThreadEx for notmuch::Thread<'o, Owner>{
 
+    // Does this thread carry the unread tag
+    fn is_unread(&self) -> bool{
+        let tags:Vec<String> = self.tags().collect();
+        tags.contains(&TAG_UNREAD.to_string())
+    }
 
-// #[derive(Default, Debug)]
-// struct ThreadCache{
+    fn has_attachment(&self) -> bool{
+        let tags:Vec<String> = self.tags().collect();
+        tags.contains(&TAG_ATTACHMENT.to_string())
+    }
 
-// }
+}
 
+// impl Iterator for Threads {
+//     type Item = Thread;
 
-// impl From<notmuch::Thread> for Thread{
-//     fn from(thread: notmuch::Thread) -> Self{
-//         Thread{
-//             inner: thread,
-//             cache: Rc::new(ThreadCache::default())
-//         }
+//     fn next(self: &mut Self) -> Option<Self::Item> {
+//         self.ref_rent_all_mut(|t| {
+//             Thread::new(t.db.clone(), |db| t.query.clone(), |db, query| t.threads.next().unwrap());
+//             true
+//         });
+//         None
+//         //Some(Self::Item::new(cthread))
 //     }
-// }
-
-// impl Deref for Thread{
-//     type Target = notmuch::Thread;
-//     fn deref(&self) -> &notmuch::Thread{
-//         &self.inner
-//     }
-// }
-
-
-// impl rent_notmuch::Thread{
-
-//     // Does this thread carry the unread tag
-//     pub fn is_unread(&s: ) -> bool{
-//         let tags:Vec<String> = self.inner.tags().collect();
-//         tags.contains(&TAG_UNREAD.to_string())
-//     }
-
-//     pub fn has_attachment(&self) -> bool{
-//         let tags:Vec<String> = self.inner.tags().collect();
-//         tags.contains(&TAG_ATTACHMENT.to_string())
-//     }
-
-
-
-
 // }

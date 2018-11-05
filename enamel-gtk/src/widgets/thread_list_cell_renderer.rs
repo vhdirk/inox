@@ -1,6 +1,7 @@
 use std::sync::{Once, ONCE_INIT};
 use std::cell::{RefCell};
 use std::ptr;
+use std::rc::Rc;
 use std::cmp::max;
 use std::str::FromStr;
 use std::ops::AddAssign;
@@ -13,7 +14,7 @@ use gdk_pixbuf;
 use gdk_pixbuf::prelude::*;
 use cairo;
 use pangocairo;
-use gobject_ffi;
+use gobject_sys as gobject_ffi;
 use glib::translate::*;
 use gtk::prelude::*;
 use chrono;
@@ -28,7 +29,6 @@ use notmuch;
 
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
-use enamel_core::database::Thread;
 
 use notmuch::DatabaseMode;
 
@@ -36,7 +36,9 @@ use gobject_subclass::object::*;
 use gobject_subclass::properties::*;
 
 use gtk_subclass::cell_renderer::*;
-use util::*;
+use super::util::*;
+
+type Thread = notmuch::Thread<'static, notmuch::Threads<'static, notmuch::Query<'static>>>;
 
 pub trait CellRendererThreadImpl: 'static {
 
@@ -178,7 +180,7 @@ impl Default for CellRendererThreadSettings{
 
 
 pub struct CellRendererThread {
-    thread: RefCell<Option<Thread>>,
+    thread: RefCell<Option<Rc<Thread>>>,
     settings: RefCell<CellRendererThreadSettings>,
     cache: RefCell<CellRendererThreadCache>,
 }
@@ -533,7 +535,9 @@ impl CellRendererThread {
                              cell_area: &gtk::Rectangle,
                              flags: gtk::CellRendererState) -> i32
     {
-        let thread = self.thread.borrow().as_ref().unwrap().clone();
+        let rthread = self.thread.borrow();
+        let thread = rthread.as_ref().unwrap();
+        
         let settings = self.settings.borrow();
         let mut cache = self.cache.borrow_mut();
 
@@ -541,13 +545,11 @@ impl CellRendererThread {
 
        /* format authors string */
         let mut authors = "".to_string();
-        let num_authors = {
-            thread.suffix().authors().len()
-        };
+        let num_authors = thread.authors().len();
 
         if num_authors == 1 {
             /* if only one, show full name */
-            let mut author = thread.ref_rent(|inner| inner).authors()[0].clone();
+            let mut author = thread.authors()[0].clone();
 
             if author.len() >= settings.authors_length as usize {
                 author.truncate(settings.authors_length as usize);
@@ -569,7 +571,7 @@ impl CellRendererThread {
 
             let mut len = 0;
 
-            for author_orig in thread.ref_rent(|inner| inner).authors()
+            for author_orig in thread.authors()
             {
                 let mut author = author_orig.clone();
                 if !first{ len += 1; } // comma
@@ -648,7 +650,9 @@ impl CellRendererThread {
                           cell_area: &gtk::Rectangle,
                           flags: gtk::CellRendererState) -> i32
     {
-        let thread = self.thread.borrow().as_ref().unwrap().clone();
+        let rthread = self.thread.borrow();
+        let thread = rthread.as_ref().unwrap();
+        
         let settings = self.settings.borrow();
         let mut cache = self.cache.borrow_mut();
 
@@ -684,7 +688,7 @@ impl CellRendererThread {
   //     if (!thread_index->plugins->format_tags (tags, bg.to_string (), (flags & Gtk::CELL_RENDERER_SELECTED) != 0, tag_string)) {
   // # endif
 
-        let tags: Vec<String> = thread.ref_rent(|inner| inner).tags().collect();
+        let tags: Vec<String> = thread.tags().collect();
         tag_string = concat_tags_color(&tags, true, settings.tags_length, &bg);
   // # ifndef DISABLE_PLUGINS
   //     }
@@ -715,7 +719,7 @@ impl ObjectImpl<CellRenderer> for CellRendererThread
         match *prop {
             Property::Boxed("thread", ..) => {
                 let any_v = value.get::<&AnyValue>().expect("Value did not actually contain an AnyValue");
-                //*(self.thread.borrow_mut()) = Some(any_v.downcast_ref::<Thread>().unwrap().clone());
+                *(self.thread.borrow_mut()) = Some(any_v.downcast_ref::<Rc<Thread>>().unwrap().clone());
             },
             _ => unimplemented!(),
         }
@@ -754,9 +758,10 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
             return;
         }
 
-        let thread = self.thread.borrow().as_ref().unwrap().clone();
+        let rthread = self.thread.borrow();
+        let thread = rthread.as_ref().unwrap();
 
-        // if thread.ref_rent(|inner| inner).is_unread() {
+        // if thread.is_unread() {
         //   self.settings.borrow_mut().font_description.set_weight(pango::Weight::Bold);
         // } else  {
         //   self.settings.borrow_mut().font_description.set_weight(pango::Weight::Normal);
@@ -765,9 +770,9 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         self.render_background(&renderer, &cr, &widget, &background_area, &cell_area, flags);
         self.render_date(&renderer, &cr, &widget, &background_area, &cell_area, flags); // returns height
 
-        if thread.ref_rent(|inner| inner).total_messages() > 1 {
+        if thread.total_messages() > 1 {
           //render_message_count (cr, widget, cell_area);
-          //self.render_authors(&renderer, &cr, &widget, &background_area, &cell_area, flags);
+          self.render_authors(&renderer, &cr, &widget, &background_area, &cell_area, flags);
         }
 
         self.render_authors(&renderer, &cr, &widget, &background_area, &cell_area, flags);
