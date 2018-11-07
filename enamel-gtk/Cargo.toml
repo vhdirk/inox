@@ -44,8 +44,8 @@ gtk-sys = { git = "https://github.com/gtk-rs/sys" }
 gdk-sys = { git = "https://github.com/gtk-rs/sys" }
 gdk-pixbuf-sys = { git = "https://github.com/gtk-rs/sys" }
 cairo-sys-rs = { git = "https://github.com/gtk-rs/cairo" }
-# webkit2gtk    = { git = "https://github.com/gtk-rs/webkit2gtk-rs" }
-# webkit2gtk-webextension = { git = "https://github.com/gtk-rs/webkit2gtk-webextension-rs" }
+webkit2gtk    = { git = "https://github.com/gtk-rs/webkit2gtk-rs" }
+webkit2gtk-webextension = { git = "https://github.com/gtk-rs/webkit2gtk-webextension-rs" }
 
 gobject-subclass = { git = "https://github.com/gtk-rs/gobject-subclass" }
 gio-subclass = { git = "https://github.com/gtk-rs/gobject-subclass" }

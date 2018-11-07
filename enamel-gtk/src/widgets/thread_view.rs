@@ -9,43 +9,85 @@ use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 use webkit2gtk;
-use webkit2gtk::prelude::*;
 use webkit2gtk::SettingsExt;
 
-use relm_attributes::widget;
+use relm::init as relm_init;
+use relm::{Relm, ToGlib, EventStream, Widget, Update};
 
 use notmuch;
+use notmuch::DatabaseMode;
 
-use inox_core::settings::Settings;
+use enamel_core::settings::Settings;
+use enamel_core::database::Manager as DBManager;
 
+use crate::app::EnamelApp;
 
-// pub struct ThreadView {
-//     pub container: gtk::ListBox,
-//
-// }
-//
-//
-//
-// impl ThreadView {
-//     pub fn new() -> Self {
-//
-//         let container = gtk::ListBox::new();
-//
-//         ThreadView { container }
-//     }
-// }
+type Thread = notmuch::Thread<'static, notmuch::Threads<'static, notmuch::Query<'static>>>;
 
 
-#[derive(Msg)]
-pub enum ThreadViewMsg {
+pub struct ThreadView{
+    model: ThreadViewModel,
+    scrolled_window: gtk::ScrolledWindow,
+    webview: webkit2gtk::WebView
+
+}
+
+pub struct ThreadViewModel {
+    relm: Relm<ThreadView>,
+    app: Rc<EnamelApp>
 }
 
 
-pub struct ThreadViewModel {
 
+
+#[derive(Msg, Debug)]
+pub enum Msg {
+}
+
+
+impl Update for ThreadView {
+    type Model = ThreadViewModel;
+    type ModelParam = Rc<EnamelApp>;
+    type Msg = Msg;
+
+
+    fn model(relm: &Relm<Self>, app: Self::ModelParam) -> Self::Model {
+        ThreadViewModel {
+            relm: relm.clone(),
+            app
+        }
+    }
+
+
+    fn update(&mut self, _event: Msg) {
+        // self.label.set_text("");
+    }
 }
 
 impl Widget for ThreadView {
+
+    type Root = gtk::ScrolledWindow;
+
+    fn root(&self) -> Self::Root {
+        self.scrolled_window.clone()
+    }
+
+    fn view(relm: &Relm<Self>, model: Self::Model) -> Self
+    {
+        let scrolled_window = model.app.builder.get_object::<gtk::ScrolledWindow>("thread_list_scrolled")
+                                               .expect("Couldn't find thread_list_scrolled in ui file.");
+
+
+        let context = webkit2gtk::WebContext::get_default().unwrap();
+        let webview = webkit2gtk::WebView::new_with_context(&context);
+
+        ThreadView {
+            model,
+            scrolled_window,
+            webview
+        }
+    }
+
 
     fn init_view(&mut self) {
         let settings = webkit2gtk::WebViewExt::get_settings(&self.webview).unwrap();
@@ -59,7 +101,7 @@ impl Widget for ThreadView {
         settings.set_enable_html5_database(false);
         settings.set_enable_html5_local_storage(false);
         //settings.set_enable_mediastream(false);
-        settings.set_enable_mediasource(false);
+        // settings.set_enable_mediasource(false);
         settings.set_enable_offline_web_application_cache(false);
         settings.set_enable_page_cache(false);
         settings.set_enable_private_browsing(true);
@@ -74,13 +116,5 @@ impl Widget for ThreadView {
     }
 
 
-    fn model() -> ThreadViewModel {
-        ThreadViewModel {
 
-        }
-    }
-
-    fn update(&mut self, _event: ThreadViewMsg) {
-        // self.label.set_text("");
-    }
 }
