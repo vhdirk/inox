@@ -26,13 +26,14 @@ use crate::app::Action;
 use crate::headerbar::HeaderBar;
 use crate::widgets::tag_list::{TagList, Msg as TagListMsg};
 use crate::widgets::thread_list::{ThreadList, Msg as ThreadListMsg};
-
+use crate::widgets::thread_view::{ThreadView, Msg as ThreadViewMsg};
 
 
 
 #[derive(Msg)]
 pub enum Msg {
     TagSelect(Option<String>),
+    // ThreadSelect(Option<notmuch::Thread<'static, notmuch::Threads<'static, notmuch::Query<'static>>>>),
     Change,
     Quit,
 }
@@ -47,8 +48,8 @@ pub struct Model {
 struct Widgets {
     headerbar: Component<HeaderBar>,
     taglist: Component<TagList>,
-    threadlist: Component<ThreadList>
-    //threadview
+    threadlist: Component<ThreadList>,
+    threadview: Component<ThreadView>
 }
 
 
@@ -64,7 +65,6 @@ pub struct MainWindow {
 impl MainWindow {
 
     fn on_tag_changed(self: &mut Self, tag: Option<String>){
-
 
         // TODO: build a new query and refresh the thread list.
         let mut dbman = self.model.app.dbmanager.clone();
@@ -130,6 +130,7 @@ impl Widget for MainWindow {
         let headerbar = relm_init::<HeaderBar>(model.app.clone()).unwrap(); 
         let taglist = relm_init::<TagList>(model.app.clone()).unwrap(); 
         let threadlist = relm_init::<ThreadList>(model.app.clone()).unwrap(); 
+        let threadview = relm_init::<ThreadView>(model.app.clone()).unwrap(); 
 
 
         // TODO: what would be the best place to connect all UI signals?
@@ -144,7 +145,8 @@ impl Widget for MainWindow {
             widgets: Widgets{
                 headerbar,
                 taglist,
-                threadlist
+                threadlist,
+                threadview
             }
         }
 
