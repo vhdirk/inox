@@ -84,6 +84,7 @@ mod app;
 mod settings;
 mod headerbar;
 mod widgets;
+mod components;
 mod main_window;
 
 

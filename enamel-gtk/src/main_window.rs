@@ -24,9 +24,10 @@ use crate::app::EnamelApp;
 use crate::app::Action;
 // use crate::utils::{itunes_to_rss, refresh};
 use crate::headerbar::HeaderBar;
-use crate::widgets::tag_list::{TagList, Msg as TagListMsg};
-use crate::widgets::thread_list::{ThreadList, Msg as ThreadListMsg};
-use crate::widgets::thread_view::{ThreadView, Msg as ThreadViewMsg};
+
+use crate::components::tag_list::{TagList, Msg as TagListMsg};
+use crate::components::thread_list::{ThreadList, Msg as ThreadListMsg};
+use crate::components::thread_view::{ThreadView, Msg as ThreadViewMsg};
 
 
 
