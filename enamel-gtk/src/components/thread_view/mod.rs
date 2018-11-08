@@ -9,7 +9,7 @@ use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 use webkit2gtk;
-use webkit2gtk::SettingsExt;
+use webkit2gtk::{SettingsExt, WebViewExt};
 
 use relm::init as relm_init;
 use relm::{Relm, ToGlib, EventStream, Widget, Update};
@@ -27,9 +27,8 @@ type Thread = notmuch::Thread<'static, notmuch::Threads<'static, notmuch::Query<
 
 pub struct ThreadView{
     model: ThreadViewModel,
-    scrolled_window: gtk::ScrolledWindow,
+    container: gtk::Box,
     webview: webkit2gtk::WebView
-
 }
 
 pub struct ThreadViewModel {
@@ -42,6 +41,17 @@ pub struct ThreadViewModel {
 
 #[derive(Msg, Debug)]
 pub enum Msg {
+    LoadChanged(webkit2gtk::LoadEvent),
+    DecidePolicy(webkit2gtk::PolicyDecision, webkit2gtk::PolicyDecisionType)
+
+}
+
+
+impl ThreadView{
+
+    fn render_messages(&self){
+
+    }
 }
 
 
@@ -59,37 +69,45 @@ impl Update for ThreadView {
     }
 
 
-    fn update(&mut self, _event: Msg) {
-        // self.label.set_text("");
+    fn update(&mut self, msg: Msg) {
+        match msg {
+            Msg::LoadChanged(event) => (),
+            Msg::DecidePolicy(decision, decision_type) => ()
+
+        }
     }
 }
 
 impl Widget for ThreadView {
 
-    type Root = gtk::ScrolledWindow;
+    type Root = gtk::Box;
 
     fn root(&self) -> Self::Root {
-        self.scrolled_window.clone()
+        self.container.clone()
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self
     {
-        let scrolled_window = model.app.builder.get_object::<gtk::ScrolledWindow>("thread_list_scrolled")
+        let container = model.app.builder.get_object::<gtk::Box>("thread_view_box")
                                                .expect("Couldn't find thread_list_scrolled in ui file.");
 
 
         let context = webkit2gtk::WebContext::get_default().unwrap();
         let webview = webkit2gtk::WebView::new_with_context(&context);
 
+        container.pack_start(&webview, true, true, 0);
+
+
         ThreadView {
             model,
-            scrolled_window,
+            container,
             webview
         }
     }
 
 
     fn init_view(&mut self) {
+
         let settings = webkit2gtk::WebViewExt::get_settings(&self.webview).unwrap();
 
         // settings.set_enable_scripts(true);
@@ -111,6 +129,19 @@ impl Widget for ThreadView {
         settings.set_media_playback_requires_user_gesture(true);
         settings.set_enable_developer_extras(true); // TODO: should only enabled conditionally
 
+        self.webview.load_uri("https://crates.io/");
+
+        connect!(self.model.relm, self.webview, connect_load_changed(_,event), Msg::LoadChanged(event));
+
+    // add_events (Gdk::KEY_PRESS_MASK);
+
+        connect!(self.model.relm, self.webview, connect_decide_policy(_,decision, decision_type),
+                 return (Msg::DecidePolicy(decision.clone(), decision_type), false));
+
+
+    // load_html ();
+
+    // register_keys ();
 
 
     }

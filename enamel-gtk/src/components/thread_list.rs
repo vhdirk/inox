@@ -29,7 +29,7 @@ use crate::app::EnamelApp;
 
 type Threads = notmuch::Threads<'static, notmuch::Query<'static>>;
 
-use super::thread_list_cell_renderer::CellRendererThread;
+use crate::widgets::thread_list_cell_renderer::CellRendererThread;
 
 const COLUMN_ID:u8 = 0;
 const COLUMN_THREAD:u8 = 1;
