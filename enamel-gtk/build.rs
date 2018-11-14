@@ -5,6 +5,12 @@ fn main() {
     println!("cargo:rerun-if-changed=resources");
     println!("cargo:rerun-if-changed=resources/*");
 
+    Command::new("sassc")
+        .args(&["-t", "compressed", "html/thread_view.scss", "html/thread_view.css"])
+        .current_dir("resources")
+        .status()
+        .unwrap();
+
     Command::new("glib-compile-resources")
         .args(&["--generate", "resources.xml"])
         .current_dir("resources")
