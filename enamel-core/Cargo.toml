@@ -26,8 +26,7 @@ vte = "0.3.2"
 chrono = { version = "0.4", features = ["serde"] }
 md5 = "0.3.7"
 notmuch = "*"
-rental = "0.5"
-owning_ref = "0.4.0"
+supercow = "0.1.0"
 dirs = "1.0"
 
 gio = { git = "https://github.com/gtk-rs/gio", features=["futures"]}

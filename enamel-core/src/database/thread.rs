@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::clone::Clone;
 use std::convert::From;
 use std::ops::Deref;
+use supercow::Supercow;
 
 use std::collections::BTreeMap;
 use toml;
@@ -19,24 +20,64 @@ const TAG_UNREAD: &'static str = "unread";
 const TAG_ATTACHMENT: &'static str = "attachment";
 
 
-pub trait ThreadEx {
+pub trait ThreadExtra<'o, O>
+where
+    O: notmuch::ThreadOwner + 'o,
+    Self: Sized
+{
+    fn has_tag(&self, tag: &str) -> bool;
     fn is_unread(&self) -> bool;
     fn has_attachment(&self) -> bool;
+
+    // {
+    //     let tags:Vec<String> = thread.tags().collect();
+    //     tags.contains(&TAG_UNREAD.to_string())
+    // }
+    // fn has_attachment<'s, S>(thread: S) -> bool
+    // where
+    //     S: Into<Supercow<'s, notmuch::Thread<'o, O>>>,
+    // {
+    //     let tags:Vec<String> = notmuch::ThreadExt::tags(thread.into()).collect();
+    //     tags.contains(&TAG_ATTACHMENT.to_string())
+    // }  
 }
 
-impl<'o, Owner: notmuch::ThreadOwner + 'o> ThreadEx for notmuch::Thread<'o, Owner>{
+impl<'o, O> ThreadExtra<'o, O> for notmuch::Thread<'o, O> where O: notmuch::ThreadOwner + 'o {
 
-    // Does this thread carry the unread tag
-    fn is_unread(&self) -> bool{
+    fn has_tag(&self, tag: &str) -> bool
+    {
         let tags:Vec<String> = self.tags().collect();
-        tags.contains(&TAG_UNREAD.to_string())
+        tags.contains(&tag.to_string())
     }
 
-    fn has_attachment(&self) -> bool{
-        let tags:Vec<String> = self.tags().collect();
-        tags.contains(&TAG_ATTACHMENT.to_string())
+    fn is_unread(&self) -> bool
+    {
+        self.has_tag(TAG_UNREAD)
     }
 
+    fn has_attachment(&self) -> bool
+    {
+        self.has_tag(TAG_ATTACHMENT)
+    }
+}
+
+impl<'o, O> ThreadExtra<'o, O> for Rc<notmuch::Thread<'o, O>> where O: notmuch::ThreadOwner + 'o {
+
+    fn has_tag(&self, tag: &str) -> bool
+    {
+        let tags:Vec<String> = self.tags().collect();
+        tags.contains(&tag.to_string())
+    }
+
+    fn is_unread(&self) -> bool
+    {
+        self.has_tag(TAG_UNREAD)
+    }
+
+    fn has_attachment(&self) -> bool
+    {
+        self.has_tag(TAG_ATTACHMENT)
+    }
 }
 
 // impl Iterator for Threads {
