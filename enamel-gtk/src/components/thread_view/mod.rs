@@ -9,7 +9,7 @@ use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 use webkit2gtk;
-use webkit2gtk::{SettingsExt, WebViewExt};
+use webkit2gtk::{SettingsExt, WebViewExt, PolicyDecisionExt, NavigationPolicyDecisionExt, URIRequestExt};
 
 use relm::init as relm_init;
 use relm::{Relm, ToGlib, EventStream, Widget, Update};
@@ -49,75 +49,71 @@ pub enum Msg {
 
 impl ThreadView{
 
+    // general message adding and rendering
+    fn load_html(&self) {
+        info!("render: loading html..");
+        let wk_loaded = false;
+        let ready = false;
+
+        let html = gio::resources_lookup_data(&"/com/github/vhdirk/Enamel/html/thread_view.html", gio::ResourceLookupFlags::NONE).unwrap();
+        let h = glib::String::new(&*html);
+
+        self.webview.load_html(h.to_str().unwrap(), None);
+
+        // swebkit_web_view_load_html (webview, theme.thread_view_html.c_str (), home_uri.c_str ());
+    }
+
     fn render_messages(&self){
 
     }
 
 
-    fn decide_policy(&mut self, decision: webkit2gtk::PolicyDecision, decision_type: webkit2gtk::PolicyDecisionType)
+    fn decide_policy(&mut self, decision: &webkit2gtk::PolicyDecision, decision_type: webkit2gtk::PolicyDecisionType)
     {
 
         debug!("tv: decide policy");
 
         match decision_type {
+            // navigate to
             webkit2gtk::PolicyDecisionType::NavigationAction => {
 
-            },
-            webkit2gtk::PolicyDecisionType::NewWindowAction => {
+                let navigation_decision:webkit2gtk::NavigationPolicyDecision = decision.clone().downcast::<webkit2gtk::NavigationPolicyDecision>().unwrap();
+                
+                if navigation_decision.get_navigation_type() == webkit2gtk::NavigationType::LinkClicked{
+                    decision.ignore();
+
+                    // TODO: don't unwrap unconditionally
+                    let uri = navigation_decision.get_request().unwrap().get_uri().unwrap();
+                    info!("tv: navigating to: {}", uri);
+
+                    let scheme = glib::uri_parse_scheme(&uri).unwrap();
+
+                    match scheme.as_str() {
+                        "mailto" => {
+                            //uri = uri.substr (scheme.length ()+1, uri.length () - scheme.length()-1);
+                            //           UstringUtils::trim(uri);
+                            //           main_window->add_mode (new EditMessage (main_window, uri));
+                        },
+                        "id" | "mid" => {
+                            //main_window->add_mode (new ThreadIndex (main_window, uri));
+                        },
+                        "http" | "https" | "ftp" => {
+                            //open_link (uri);
+                        },
+                        _ => {
+                            error!("tv: unknown uri scheme '{}'. not opening. ", scheme);
+                        }
+
+                    };
+
+                }
 
             },
-            _ => ()
+            _ => {
+                decision.ignore();
+            }
         };
-    //   case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION: // navigate to {{{
-    //     {
-    //       WebKitNavigationPolicyDecision * navigation_decision = WEBKIT_NAVIGATION_POLICY_DECISION (decision);
-    //       WebKitNavigationAction * nav_action = webkit_navigation_policy_decision_get_navigation_action (navigation_decision);
 
-    //       if (webkit_navigation_action_get_navigation_type (nav_action)
-    //           == WEBKIT_NAVIGATION_TYPE_LINK_CLICKED) {
-
-    //         webkit_policy_decision_ignore (decision);
-
-    //         const gchar * uri_c = webkit_uri_request_get_uri (
-    //             webkit_navigation_action_get_request (nav_action));
-
-
-    //         ustring uri (uri_c);
-    //         LOG (info) << "tv: navigating to: " << uri;
-
-    //         ustring scheme = Glib::uri_parse_scheme (uri);
-
-    //         if (scheme == "mailto") {
-
-    //           uri = uri.substr (scheme.length ()+1, uri.length () - scheme.length()-1);
-    //           UstringUtils::trim(uri);
-
-    //           main_window->add_mode (new EditMessage (main_window, uri));
-
-    //         } else if (scheme == "id" || scheme == "mid" ) {
-    //           main_window->add_mode (new ThreadIndex (main_window, uri));
-
-    //         } else if (scheme == "http" || scheme == "https" || scheme == "ftp") {
-    //           open_link (uri);
-
-    //         } else {
-
-    //           LOG (error) << "tv: unknown uri scheme. not opening.";
-    //         }
-    //       }
-    //     } // }}}
-    //     break;
-
-    //   case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION:
-    //     webkit_policy_decision_ignore (decision);
-    //     break;
-
-    //   default:
-    //     webkit_policy_decision_ignore (decision);
-    //     return true; // stop event
-    // }
-
-    // return true; // stop event
   }
 
 }
@@ -140,7 +136,7 @@ impl Update for ThreadView {
     fn update(&mut self, msg: Msg) {
         match msg {
             Msg::LoadChanged(event) => (),
-            Msg::DecidePolicy(decision, decision_type) => self.decide_policy(decision, decision_type)
+            Msg::DecidePolicy(decision, decision_type) => self.decide_policy(&decision, decision_type)
         }
     }
 }
@@ -195,9 +191,7 @@ impl Widget for ThreadView {
         settings.set_enable_xss_auditor(true);
         settings.set_media_playback_requires_user_gesture(true);
         settings.set_enable_developer_extras(true); // TODO: should only enabled conditionally
-
-        self.webview.load_uri("https://crates.io/");
-
+ 
         connect!(self.model.relm, self.webview, connect_load_changed(_,event), Msg::LoadChanged(event));
 
     // add_events (Gdk::KEY_PRESS_MASK);
@@ -206,7 +200,7 @@ impl Widget for ThreadView {
                  return (Msg::DecidePolicy(decision.clone(), decision_type), false));
 
 
-    // load_html ();
+        self.load_html();
 
     // register_keys ();
 

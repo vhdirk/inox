@@ -1,4 +1,5 @@
-use gio::{resources_register, Error, Resource};
+use gio;
+use gio::{Error, Resource};
 use glib::Bytes;
 use gtk;
 use gtk::BuilderExt;
@@ -14,7 +15,7 @@ pub fn init() -> Result<(), Error> {
 
     // Register the resource so It wont be dropped and will continue to live in
     // memory.
-    resources_register(&resource);
+    gio::resources_register(&resource);
 
     Ok(())
 }
