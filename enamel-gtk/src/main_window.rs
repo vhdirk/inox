@@ -6,7 +6,6 @@ use gtk;
 use gio;
 use glib;
 use gtk::prelude::*;
-use owning_ref::{ArcRef, OwningHandle};
 
 use crossbeam_channel::Sender;
 use failure::Error;

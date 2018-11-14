@@ -29,6 +29,7 @@ use notmuch;
 
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
+use enamel_core::database::ThreadExtra;
 
 use notmuch::DatabaseMode;
 
@@ -618,15 +619,15 @@ impl CellRendererThread {
 
         let mut font_description = settings.font_description.clone();
 
-        // if thread.is_unread() {
-        //     font_description.set_weight(pango::Weight::Normal);
-        // }
+        if thread.is_unread() {
+            font_description.set_weight(pango::Weight::Normal);
+        }
 
         pango_layout.set_font_description(&font_description);
 
-        // if thread.is_unread() {
-        //     font_description.set_weight(pango::Weight::Bold);
-        // }
+        if thread.is_unread() {
+            font_description.set_weight(pango::Weight::Bold);
+        }
 
        /* set color */
        let stylecontext = widget.get_style_context();
@@ -761,11 +762,11 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         let rthread = self.thread.borrow();
         let thread = rthread.as_ref().unwrap();
 
-        // if thread.is_unread() {
-        //   self.settings.borrow_mut().font_description.set_weight(pango::Weight::Bold);
-        // } else  {
-        //   self.settings.borrow_mut().font_description.set_weight(pango::Weight::Normal);
-        // }
+        if thread.is_unread() {
+          self.settings.borrow_mut().font_description.set_weight(pango::Weight::Bold);
+        } else  {
+          self.settings.borrow_mut().font_description.set_weight(pango::Weight::Normal);
+        }
 
         self.render_background(&renderer, &cr, &widget, &background_area, &cell_area, flags);
         self.render_date(&renderer, &cr, &widget, &background_area, &cell_area, flags); // returns height
@@ -792,10 +793,9 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
         // if (thread->flagged)
         //   render_flagged (cr, widget, cell_area);
         //
-        // if thread.ref_rent(|inner| inner).has_attachment(){
-        //     self.render_attachment(&renderer, &cr, &widget, &background_area, &cell_area, flags);
-
-        // }
+        if thread.has_attachment(){
+            self.render_attachment(&renderer, &cr, &widget, &background_area, &cell_area, flags);
+        }
         // /*
         // if (marked)
         //   render_marked (cr, widget, cell_area);

@@ -52,6 +52,74 @@ impl ThreadView{
     fn render_messages(&self){
 
     }
+
+
+    fn decide_policy(&mut self, decision: webkit2gtk::PolicyDecision, decision_type: webkit2gtk::PolicyDecisionType)
+    {
+
+        debug!("tv: decide policy");
+
+        match decision_type {
+            webkit2gtk::PolicyDecisionType::NavigationAction => {
+
+            },
+            webkit2gtk::PolicyDecisionType::NewWindowAction => {
+
+            },
+            _ => ()
+        };
+    //   case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION: // navigate to {{{
+    //     {
+    //       WebKitNavigationPolicyDecision * navigation_decision = WEBKIT_NAVIGATION_POLICY_DECISION (decision);
+    //       WebKitNavigationAction * nav_action = webkit_navigation_policy_decision_get_navigation_action (navigation_decision);
+
+    //       if (webkit_navigation_action_get_navigation_type (nav_action)
+    //           == WEBKIT_NAVIGATION_TYPE_LINK_CLICKED) {
+
+    //         webkit_policy_decision_ignore (decision);
+
+    //         const gchar * uri_c = webkit_uri_request_get_uri (
+    //             webkit_navigation_action_get_request (nav_action));
+
+
+    //         ustring uri (uri_c);
+    //         LOG (info) << "tv: navigating to: " << uri;
+
+    //         ustring scheme = Glib::uri_parse_scheme (uri);
+
+    //         if (scheme == "mailto") {
+
+    //           uri = uri.substr (scheme.length ()+1, uri.length () - scheme.length()-1);
+    //           UstringUtils::trim(uri);
+
+    //           main_window->add_mode (new EditMessage (main_window, uri));
+
+    //         } else if (scheme == "id" || scheme == "mid" ) {
+    //           main_window->add_mode (new ThreadIndex (main_window, uri));
+
+    //         } else if (scheme == "http" || scheme == "https" || scheme == "ftp") {
+    //           open_link (uri);
+
+    //         } else {
+
+    //           LOG (error) << "tv: unknown uri scheme. not opening.";
+    //         }
+    //       }
+    //     } // }}}
+    //     break;
+
+    //   case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION:
+    //     webkit_policy_decision_ignore (decision);
+    //     break;
+
+    //   default:
+    //     webkit_policy_decision_ignore (decision);
+    //     return true; // stop event
+    // }
+
+    // return true; // stop event
+  }
+
 }
 
 
@@ -72,8 +140,7 @@ impl Update for ThreadView {
     fn update(&mut self, msg: Msg) {
         match msg {
             Msg::LoadChanged(event) => (),
-            Msg::DecidePolicy(decision, decision_type) => ()
-
+            Msg::DecidePolicy(decision, decision_type) => self.decide_policy(decision, decision_type)
         }
     }
 }
