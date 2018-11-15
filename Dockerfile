@@ -30,7 +30,7 @@ RUN set -eux; \
     cargo --version; \
     rustc --version;
 
-RUN apt-get install -y libgmime-3.0-dev libgtk-3-dev libnotmuch-dev sassc
+RUN apt-get install -y libgmime-3.0-dev libgtk-3-dev libnotmuch-dev libsoup2.4-dev sassc
 RUN mkdir -p /opt/rust/src
 
 WORKDIR /opt/rust/src
