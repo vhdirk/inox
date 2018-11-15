@@ -3,13 +3,6 @@ FROM buildpack-deps:buster
 # The Rust toolchain to use when building our image.  Set by `hooks/build`.
 ARG TRAVIS_RUST_VERSION=nightly
 
-# Make sure we have basic dev tools for building C libraries.  Our goal
-# here is to support the musl-libc builds and Cargo builds needed for a
-# large selection of the most popular crates.
-#
-# We also set up a `rust` user by default, in whose account we'll install
-# the Rust toolchain.  This user has sudo privileges if you need to install
-# any more software.
 RUN apt-get update
 
 # Set up path
@@ -30,7 +23,7 @@ RUN set -eux; \
     cargo --version; \
     rustc --version;
 
-RUN apt-get install -y libgmime-3.0-dev libgtk-3-dev libnotmuch-dev libsoup2.4-dev sassc
+RUN apt-get install -y libgmime-3.0-dev libgtk-3-dev libnotmuch-dev libsoup2.4-dev libwebkit2gtk-4.0-dev sassc
 RUN mkdir -p /opt/rust/src
 
 WORKDIR /opt/rust/src
