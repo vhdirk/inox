@@ -10,12 +10,14 @@ use gtk;
 use gtk::prelude::*;
 use webkit2gtk;
 use webkit2gtk::{SettingsExt, WebViewExt, PolicyDecisionExt, NavigationPolicyDecisionExt, URIRequestExt};
+use gmime;
+use gmime::{ParserExt, PartExt};
 
 use relm::init as relm_init;
 use relm::{Relm, ToGlib, EventStream, Widget, Update};
 
 use notmuch;
-use notmuch::DatabaseMode;
+use notmuch::{DatabaseMode, StreamingIterator, StreamingIteratorExt};
 
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
@@ -42,8 +44,9 @@ pub struct ThreadViewModel {
 #[derive(Msg, Debug)]
 pub enum Msg {
     LoadChanged(webkit2gtk::LoadEvent),
-    DecidePolicy(webkit2gtk::PolicyDecision, webkit2gtk::PolicyDecisionType)
-
+    DecidePolicy(webkit2gtk::PolicyDecision, webkit2gtk::PolicyDecisionType),
+    
+    ShowThread(Rc<Thread>)
 }
 
 
@@ -56,14 +59,50 @@ impl ThreadView{
         let ready = false;
 
         let html = gio::resources_lookup_data(&"/com/github/vhdirk/Enamel/html/thread_view.html", gio::ResourceLookupFlags::NONE).unwrap();
-        let h = glib::String::new(&*html);
+        let htmlcontent = std::str::from_utf8(&*html);
 
-        self.webview.load_html(h.to_str().unwrap(), None);
+        self.webview.load_html(htmlcontent.unwrap(), None);
 
-        // swebkit_web_view_load_html (webview, theme.thread_view_html.c_str (), home_uri.c_str ());
     }
 
-    fn render_messages(&self){
+    fn show_thread(&mut self, thread: Rc<Thread>){
+        debug!("Showing thread {:?}", thread);
+        let mut messages = thread.messages();
+
+        debug!("Showing thread {:?} > messages {:?}", thread, messages);
+        while let Some(msg) = messages.next(){
+            let fname = msg.filename();
+            info!("message: {:?}", fname);
+
+            let stream = gmime::StreamFile::open(&fname.to_string_lossy(), &"r").unwrap();
+            let parser = gmime::Parser::new_with_stream(&stream);
+            let mmsg = parser.construct_message(None);
+
+            info!("created mime message: {:?}", mmsg);
+
+            let mut partiter = gmime::PartIter::new(&mmsg.unwrap());
+
+            let mut hasnext = partiter.next();
+            while hasnext {
+                let current = partiter.get_current().unwrap();
+                let parent = partiter.get_parent().unwrap();
+
+                let p = parent.downcast::<gmime::Multipart>();
+                let part = current.downcast::<gmime::Part>();
+
+                if p.is_ok() && part.is_ok() {
+                    if part.unwrap().is_attachment(){
+                        debug!("Found attachment");
+                    }
+                }
+                hasnext = partiter.next()
+            }
+
+        }
+    }
+
+
+    fn render_messages(&mut self){
 
     }
 
@@ -135,8 +174,9 @@ impl Update for ThreadView {
 
     fn update(&mut self, msg: Msg) {
         match msg {
-            Msg::LoadChanged(event) => (),
-            Msg::DecidePolicy(decision, decision_type) => self.decide_policy(&decision, decision_type)
+            Msg::LoadChanged(event) => (), 
+            Msg::DecidePolicy(decision, decision_type) => self.decide_policy(&decision, decision_type),
+            Msg::ShowThread(thread) => self.show_thread(thread)
         }
     }
 }
