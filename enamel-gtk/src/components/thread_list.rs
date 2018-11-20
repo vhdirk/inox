@@ -28,6 +28,7 @@ use enamel_core::database::Manager as DBManager;
 use crate::app::EnamelApp;
 
 type Threads = notmuch::Threads<'static, notmuch::Query<'static>>;
+type Thread = notmuch::Thread<'static, Threads>;
 
 use crate::widgets::thread_list_cell_renderer::CellRendererThread;
 
@@ -63,7 +64,7 @@ pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream
 #[derive(Msg, Debug)]
 pub enum Msg {
     // outbound
-    ThreadSelect(Option<String>),
+    ThreadSelect(Option<Rc<Thread>>),
 
     // inbound
     /// signals a request to update the event list. String is a notmuch query string
@@ -188,12 +189,12 @@ impl Update for ThreadList {
             Msg::ItemSelect => {
                 let selection = self.tree_view.get_selection();
                 if let Some((list_model, iter)) = selection.get_selected() {
-                    let thread_id: String = list_model.get_value(&iter, COLUMN_ID as i32)
-                                                      .get::<String>()
-                                                      .unwrap();
+                    let lval = list_model.get_value(&iter, COLUMN_THREAD as i32);
+                    let val = lval.get::<&AnyValue>().unwrap();
+                    let thread = Some(val.downcast_ref::<Rc<Thread>>().unwrap().clone());
 
-                    debug!("select thread: {:?}", thread_id);
-                    self.model.relm.stream().clone().emit(Msg::ThreadSelect(Some(thread_id)));
+                    debug!("select thread: {:?}", thread);
+                    self.model.relm.stream().clone().emit(Msg::ThreadSelect(thread));
                 }
             },
             Msg::ThreadSelect(ref _thread_id) => (),

@@ -28,12 +28,13 @@ use crate::components::tag_list::{TagList, Msg as TagListMsg};
 use crate::components::thread_list::{ThreadList, Msg as ThreadListMsg};
 use crate::components::thread_view::{ThreadView, Msg as ThreadViewMsg};
 
+type Thread = notmuch::Thread<'static, notmuch::Threads<'static, notmuch::Query<'static>>>;
 
 
 #[derive(Msg)]
 pub enum Msg {
     TagSelect(Option<String>),
-    // ThreadSelect(Option<notmuch::Thread<'static, notmuch::Threads<'static, notmuch::Query<'static>>>>),
+    ThreadSelect(Option<Rc<Thread>>),
     Change,
     Quit,
 }
@@ -83,6 +84,11 @@ impl MainWindow {
         self.widgets.threadlist.emit(ThreadListMsg::Update(Some(threads)));
     }
 
+    fn on_thread_selected(self: &mut Self, thread: Option<Rc<Thread>>){
+        self.widgets.threadview.emit(ThreadViewMsg::ShowThread(thread.unwrap()))
+    }
+
+
 }
 
 impl Update for MainWindow{
@@ -100,6 +106,7 @@ impl Update for MainWindow{
     fn update(&mut self, event: Msg) {
         match event {
             Msg::TagSelect(tag) => self.on_tag_changed(tag),
+            Msg::ThreadSelect(thread) => self.on_thread_selected(thread),
             Msg::Change => {
                 // self.model.content = self.widgets.input.get_text()
                 //                                        .expect("get_text failed")
@@ -136,6 +143,9 @@ impl Widget for MainWindow {
         // TODO: what would be the best place to connect all UI signals?
         use self::TagListMsg::ItemSelect as TagList_ItemSelect;
         connect!(taglist@TagList_ItemSelect(ref tag), relm, Msg::TagSelect(tag.clone()));
+
+        use self::ThreadListMsg::ThreadSelect as ThreadList_ThreadSelect;
+        connect!(threadlist@ThreadList_ThreadSelect(ref thread), relm, Msg::ThreadSelect(thread.clone()));
 
 
 
