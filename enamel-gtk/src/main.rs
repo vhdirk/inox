@@ -20,6 +20,7 @@ extern crate chrono;
 extern crate crossbeam_channel;
 extern crate rayon;
 extern crate md5;
+extern crate dirs;
 
 #[macro_use]
 extern crate failure;
@@ -139,7 +140,7 @@ impl Default for Args{
 }
 
 fn default_config_path() -> PathBuf{
-    let mut default_config = glib::get_user_config_dir().unwrap();
+    let mut default_config = dirs::config_dir().unwrap();
     default_config.push("enamel");
     default_config.push("config");
     default_config.set_extension("toml");
@@ -150,7 +151,7 @@ fn default_config_path() -> PathBuf{
 fn main() {
     init();
 
-    let mut default_config = glib::get_user_config_dir().unwrap();
+    let mut default_config = dirs::config_dir().unwrap();
     default_config.push("enamel");
 
     DirBuilder::new()
@@ -159,7 +160,7 @@ fn main() {
 
     // let args = Args::from_args();
 
-    let args = App::new("Inox")
+    let args = App::new("Enamel")
         .version("0.0.1")
         .author("Dirk Van Haerenborgh <vhdirk@gmail.com>")
         .about("An email client with notmuch rust.")

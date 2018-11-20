@@ -1,7 +1,8 @@
 [workspace]
 members = [
     "enamel-core",
-    "enamel-gtk"
+    "enamel-gtk",
+    "enamel-tui"
 ]
 
 [profile.release]
