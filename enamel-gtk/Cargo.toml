@@ -25,6 +25,7 @@ serde_ini = "*"
 lazy_static = "1.0"
 vte = "0.3.2"
 supercow = "0.1.0"
+dirs = "1.0.4"
 
 chrono = { version = "0.4", features = ["serde"] }
 
