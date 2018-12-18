@@ -20,9 +20,9 @@ const TAG_UNREAD: &'static str = "unread";
 const TAG_ATTACHMENT: &'static str = "attachment";
 
 
-pub trait ThreadExtra<'o, O>
+pub trait ThreadExtra<'d, 'q>
 where
-    O: notmuch::ThreadOwner + 'o,
+    'd: 'q,
     Self: Sized
 {
     fn has_tag(&self, tag: &str) -> bool;
@@ -42,7 +42,7 @@ where
     // }  
 }
 
-impl<'o, O> ThreadExtra<'o, O> for notmuch::Thread<'o, O> where O: notmuch::ThreadOwner + 'o {
+impl<'d, 'q> ThreadExtra<'d, 'q> for notmuch::Thread<'d, 'q> where 'd: 'q {
 
     fn has_tag(&self, tag: &str) -> bool
     {
@@ -61,7 +61,7 @@ impl<'o, O> ThreadExtra<'o, O> for notmuch::Thread<'o, O> where O: notmuch::Thre
     }
 }
 
-impl<'o, O> ThreadExtra<'o, O> for Rc<notmuch::Thread<'o, O>> where O: notmuch::ThreadOwner + 'o {
+impl<'d, 'q> ThreadExtra<'d, 'q> for Rc<notmuch::Thread<'d, 'q>> where 'd: 'q {
 
     fn has_tag(&self, tag: &str) -> bool
     {

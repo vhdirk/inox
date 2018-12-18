@@ -9,7 +9,7 @@ use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 use webkit2gtk;
-use webkit2gtk::{SettingsExt, WebViewExt, PolicyDecisionExt, NavigationPolicyDecisionExt, URIRequestExt};
+use webkit2gtk::{SettingsExt, WebViewExt, WebContextExt, PolicyDecisionExt, NavigationPolicyDecisionExt, URIRequestExt};
 use gmime;
 use gmime::{ParserExt, PartExt};
 
@@ -17,14 +17,14 @@ use relm::init as relm_init;
 use relm::{Relm, ToGlib, EventStream, Widget, Update};
 
 use notmuch;
-use notmuch::{DatabaseMode, StreamingIterator, StreamingIteratorExt};
+use notmuch::{DatabaseMode};
 
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
 
 use crate::app::EnamelApp;
 
-type Thread = notmuch::Thread<'static, notmuch::Threads<'static, notmuch::Query<'static>>>;
+type Thread = notmuch::Thread<'static, 'static>;
 
 
 pub struct ThreadView{
@@ -196,7 +196,7 @@ impl Widget for ThreadView {
 
 
         let context = webkit2gtk::WebContext::get_default().unwrap();
-        let webview = webkit2gtk::WebView::new_with_context(&context);
+        let webview = webkit2gtk::WebView::new_with_context_and_user_content_manager(&context, &webkit2gtk::UserContentManager::new());
 
         container.pack_start(&webview, true, true, 0);
 
@@ -230,7 +230,7 @@ impl Widget for ThreadView {
         // settings.set_enable_display_of_insecure_content(false);
         settings.set_enable_xss_auditor(true);
         settings.set_media_playback_requires_user_gesture(true);
-        settings.set_enable_developer_extras(true); // TODO: should only enabled conditionally
+        settings.set_enable_developer_extras(true   ); // TODO: should only enabled conditionally
  
         connect!(self.model.relm, self.webview, connect_load_changed(_,event), Msg::LoadChanged(event));
 
@@ -239,6 +239,9 @@ impl Widget for ThreadView {
         connect!(self.model.relm, self.webview, connect_decide_policy(_,decision, decision_type),
                  return (Msg::DecidePolicy(decision.clone(), decision_type), false));
 
+
+        let ctx = self.webview.get_context().unwrap();
+        ctx.set_web_extensions_directory("/home/dvhaeren/projects/enamel/target/debug");
 
         self.load_html();
 

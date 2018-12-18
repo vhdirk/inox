@@ -1,3 +1,5 @@
+cargo-features = ["default-run"]
+
 [package]
 name = "enamel-gtk"
 version = "0.0.1"
@@ -5,10 +7,16 @@ authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
 build = "build.rs"
 workspace = "../"
 edition = '2018'
+default-run = "enamel-gtk"
 
 [[bin]]
 name = "enamel-gtk"
 path = "src/main.rs"
+
+[lib]
+path = "src/webextension/lib.rs"
+name = "enamel_gtk_webext"
+crate-type = ["dylib"]
 
 [dependencies]
 structopt = "0.2"
@@ -26,6 +34,7 @@ lazy_static = "1.0"
 vte = "0.3.2"
 supercow = "0.1.0"
 dirs = "1.0.4"
+ipc-channel = "0.11.2"
 
 chrono = { version = "0.4", features = ["serde"] }
 
@@ -44,7 +53,9 @@ gtk-sys = { git = "https://github.com/gtk-rs/sys" }
 gdk-sys = { git = "https://github.com/gtk-rs/sys" }
 gdk-pixbuf-sys = { git = "https://github.com/gtk-rs/sys" }
 cairo-sys-rs = { git = "https://github.com/gtk-rs/cairo" }
-webkit2gtk    = { git = "https://github.com/gtk-rs/webkit2gtk-rs" }
+#webkit2gtk    = { git = "https://github.com/gtk-rs/webkit2gtk-rs" }
+webkit2gtk    = { path = "../../webkit2gtk-rs" }
+
 webkit2gtk-webextension = { git = "https://github.com/gtk-rs/webkit2gtk-webextension-rs" }
 
 gobject-subclass = { git = "https://github.com/gtk-rs/gobject-subclass" }
@@ -73,7 +84,7 @@ gmime = { path = "../../gmime-rs" }
 
 [features]
 default = ["gtk/v3_16",
-           #"webkit2gtk/v2_16",
+           "webkit2gtk/v2_16",
            "glib/futures",
            "gio/futures"]
 

@@ -29,6 +29,8 @@ extern crate failure;
 #[macro_use]
 extern crate pretty_assertions;
 
+extern crate ipc_channel;
+
 extern crate gtk;
 extern crate gio;
 extern crate gdk;
