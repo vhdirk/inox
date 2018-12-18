@@ -39,7 +39,7 @@ use gobject_subclass::properties::*;
 use gtk_subclass::cell_renderer::*;
 use super::util::*;
 
-type Thread = notmuch::Thread<'static, notmuch::Threads<'static, notmuch::Query<'static>>>;
+type Thread = notmuch::Thread<'static, 'static>;
 
 pub trait CellRendererThreadImpl: 'static {
 

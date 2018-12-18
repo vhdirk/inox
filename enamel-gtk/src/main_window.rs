@@ -28,7 +28,7 @@ use crate::components::tag_list::{TagList, Msg as TagListMsg};
 use crate::components::thread_list::{ThreadList, Msg as ThreadListMsg};
 use crate::components::thread_view::{ThreadView, Msg as ThreadViewMsg};
 
-type Thread = notmuch::Thread<'static, notmuch::Threads<'static, notmuch::Query<'static>>>;
+type Thread = notmuch::Thread<'static, 'static>;
 
 
 #[derive(Msg)]

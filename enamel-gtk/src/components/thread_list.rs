@@ -27,8 +27,8 @@ use enamel_core::database::Manager as DBManager;
 
 use crate::app::EnamelApp;
 
-type Threads = notmuch::Threads<'static, notmuch::Query<'static>>;
-type Thread = notmuch::Thread<'static, Threads>;
+type Threads = notmuch::Threads<'static, 'static>;
+type Thread = notmuch::Thread<'static, 'static>;
 
 use crate::widgets::thread_list_cell_renderer::CellRendererThread;
 
@@ -135,7 +135,7 @@ impl ThreadList{
     }
 
 
-    fn add_thread(&mut self, thread: Rc<notmuch::Thread<'static, notmuch::Threads<'static, notmuch::Query<'static>>>>){
+    fn add_thread(&mut self, thread: Rc<notmuch::Thread<'static, 'static>>){
 
         let thread_id = thread.id().clone();
         let val = AnyValue::new(thread).to_value();
@@ -155,7 +155,7 @@ impl ThreadList{
             return ();
         }
 
-        if let Some(thread) = <notmuch::Threads<_> as notmuch::StreamingIteratorExt<_>>::next(self.model.thread_list.as_mut().unwrap().clone()){
+        if let Some(thread) = Arc::get_mut(self.model.thread_list.as_mut().unwrap()).unwrap().next(){
             gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init), Some(true));
             self.add_thread(Rc::new(thread));
         }
