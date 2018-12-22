@@ -1,85 +1,19 @@
-#[macro_use]
-extern crate structopt;
+use std::rc::Rc;
+use std::path::PathBuf;
+use std::fs::DirBuilder;
 
-#[macro_use]
-extern crate log;
-extern crate env_logger;
-extern crate regex;
-
-#[macro_use]
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate toml;
-#[macro_use]
-extern crate lazy_static;
-
-extern crate shellexpand;
-extern crate notmuch;
-extern crate chrono;
-extern crate crossbeam_channel;
-extern crate rayon;
-extern crate md5;
-extern crate dirs;
-
-#[macro_use]
-extern crate failure;
+use log::*;
+use env_logger;
+use dirs;
 
 #[cfg(test)]
-#[macro_use]
-extern crate pretty_assertions;
+use pretty_assertions;
 
-extern crate ipc_channel;
-
-extern crate gtk;
-extern crate gio;
-extern crate gdk;
-extern crate gdk_pixbuf;
-#[macro_use]
-extern crate glib;
-extern crate gmime;
-extern crate cairo;
-extern crate pango;
-extern crate pangocairo;
-
-extern crate glib_sys as glib_ffi;
-extern crate gobject_sys as gobject_ffi;
-extern crate gio_sys as gio_ffi;
-extern crate gtk_sys as gtk_ffi;
-extern crate cairo_sys as cairo_ffi;
-extern crate gdk_sys as gdk_ffi;
-
-// extern crate webkit2gtk;
-
-#[macro_use]
-extern crate gobject_subclass;
-#[macro_use]
-extern crate gio_subclass;
-#[macro_use]
-extern crate gtk_subclass;
-
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-
-extern crate enamel_core;
-
-
-use std::rc::Rc;
-use std::cell::RefCell;
-use std::fs::{File, DirBuilder};
-use std::io::prelude::*;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-
-use gtk::prelude::*;
-use gio::prelude::*;
+use gtk;
 
 use structopt::StructOpt;
 use structopt::clap::{App, Arg};
 
-#[macro_use]
 mod macros;
 mod static_resource;
 mod constants;
@@ -90,24 +24,9 @@ mod widgets;
 mod components;
 mod main_window;
 
-
-// mod main_content;
-// mod tag_list;
-// mod thread_list;
-// mod cell_renderer;
-// mod thread_list_cell_renderer;
-// mod thread_view;
-// mod application_window;
-// mod util;
-
-// mod application;
-
 use enamel_core::settings::Settings;
-use enamel_core::database::Manager as DBManager;
-// use application::Application as InoxApplication;
 
-// use application_window::ApplicationWindow;
-use self::app::EnamelApp;
+use crate::app::EnamelApp;
 
 /// Init Gtk and logger.
 fn init() {
@@ -146,7 +65,7 @@ fn default_config_path() -> PathBuf{
     default_config.push("enamel");
     default_config.push("config");
     default_config.set_extension("toml");
-    return default_config;
+    default_config
 }
 
 /// Main entry point

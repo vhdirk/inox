@@ -1,23 +1,12 @@
 use std::rc::Rc;
-use std::borrow::Borrow;
-use std::cell::RefCell;
-use std::collections::VecDeque;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
-use gio;
-use glib;
-use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
-use relm::init as relm_init;
-use relm::{Relm, Component, Update, Widget, WidgetTest};
+use relm::{Relm, Update, Widget};
+use relm_state::connect;
+use relm_derive::Msg;
 
-use notmuch;
 use notmuch::DatabaseMode;
-
-use enamel_core::settings::Settings;
-use enamel_core::database::Manager as DBManager;
 
 use crate::app::EnamelApp;
 // pub struct TagList {
@@ -63,7 +52,7 @@ pub struct TagListModel {
 
 impl TagList{
     fn refresh(&mut self){
-        let mut dbman = self.model.app.dbmanager.clone();
+        let dbman = self.model.app.dbmanager.clone();
         let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
         let mut tags = db.all_tags().unwrap();
 
@@ -86,7 +75,7 @@ impl TagList{
     fn on_selection_changed(self: &mut Self){
         let (model, iter) = self.tree_view.get_selection().get_selected().unwrap();
 
-        if(self.tree_model.iter_is_valid(&iter)){
+        if self.tree_model.iter_is_valid(&iter){
             let val: String = model.get_value(&iter, 0).get().unwrap();
             self.model.relm.stream().emit(Msg::ItemSelect(Some(val)));
         }else{
@@ -149,9 +138,4 @@ impl Widget for TagList {
         }
     }
 }
-
-
-
-
-
 

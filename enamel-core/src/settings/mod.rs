@@ -1,11 +1,5 @@
-use std::fs::File;
-use std::io::prelude::*;
-
 use std::path::{Path, PathBuf};
-
-use std::collections::BTreeMap;
-use toml;
-use serde;
+use log::*;
 
 mod enamel;
 mod notmuch;
@@ -38,13 +32,10 @@ impl Settings{
 
         let notmuch_conf = NotMuchConfig::load(&notmuch_config_path);
 
-        let settings = Settings {
+        Settings {
             config_path: location.into(),
             enamel_config: enamel_conf,
             notmuch_config: notmuch_conf
-        };
-
-        return settings;
+        }
     }
-
 }

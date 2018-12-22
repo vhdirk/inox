@@ -22,7 +22,7 @@ impl ToHex for gdk::RGBA
     }
 }
 
-pub fn get_tag_color_rgba(tag: &String, canvascolor: &gdk::RGBA) -> (gdk::RGBA, gdk::RGBA)
+pub fn get_tag_color_rgba(tag: &str, canvascolor: &gdk::RGBA) -> (gdk::RGBA, gdk::RGBA)
 {
     //TODO: get from settings
     let tags_upper_color = gdk::RGBA::from_str(&"#e5e5e5".to_string()).unwrap();
@@ -52,9 +52,9 @@ pub fn get_tag_color_rgba(tag: &String, canvascolor: &gdk::RGBA) -> (gdk::RGBA, 
      */
 
     let bg = gdk::RGBA{
-        red: tc[0] as f64 * (tags_upper_color.red - tags_lower_color.red) + tags_lower_color.red,
-        green: tc[1] as f64 * (tags_upper_color.green - tags_lower_color.green) + tags_lower_color.green,
-        blue: tc[2] as f64 * (tags_upper_color.blue - tags_lower_color.blue) + tags_lower_color.blue,
+        red: f64::from(tc[0]) * (tags_upper_color.red - tags_lower_color.red) + tags_lower_color.red,
+        green: f64::from(tc[1]) * (tags_upper_color.green - tags_lower_color.green) + tags_lower_color.green,
+        blue: f64::from(tc[2]) * (tags_upper_color.blue - tags_lower_color.blue) + tags_lower_color.blue,
         alpha: 0.0
     };
 
@@ -65,30 +65,31 @@ pub fn get_tag_color_rgba(tag: &String, canvascolor: &gdk::RGBA) -> (gdk::RGBA, 
         alpha: (tags_alpha * (65535.0))
     };
 
-    let mut lum: f64 = ((bg.red * tags_alpha + (1.0 - tags_alpha) * canvascolor.red ) * 0.2126 +
+    let lum: f64 = ((bg.red * tags_alpha + (1.0 - tags_alpha) * canvascolor.red ) * 0.2126 +
                        (bg.green * tags_alpha + (1.0 - tags_alpha) * canvascolor.green) * 0.7152 +
                        (bg.blue * tags_alpha + (1.0 - tags_alpha) * canvascolor.blue) * 0.0722) / 255.0;
     /* float avg = (bg[0] + bg[1] + bg[2]) / (3 * 255.0); */
 
 
-    let mut fc = gdk::RGBA::from_str("#f2f2f2").unwrap();
-    if lum > 0.5 {
-      fc = gdk::RGBA::from_str("#000000").unwrap();
-    }
+    let fc = if lum > 0.5 {
+        gdk::RGBA::from_str("#000000").unwrap()
+    }else{
+        gdk::RGBA::from_str("#f2f2f2").unwrap()
+    };
 
     (fc, bc)
   }
 
 
 
-pub fn get_tag_color (tag: &String, canvascolor: &gdk::RGBA) -> (String, String){
+pub fn get_tag_color (tag: &str, canvascolor: &gdk::RGBA) -> (String, String){
   let clrs = get_tag_color_rgba(&tag, &canvascolor);
 
   (clrs.0.to_hex(), clrs.1.to_hex())
 }
 
 
-pub fn concat_tags_color(tags: &Vec<String>,
+pub fn concat_tags_color(tags: &[String],
                          use_pango: bool,
                          maxlen: i32,
                          canvascolor: &gdk::RGBA) ->String

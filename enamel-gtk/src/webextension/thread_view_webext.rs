@@ -32,6 +32,9 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: &Variant) {
     let _string = user_data.get_str();
 
     extension.connect_page_created(|_, page| {
+
+
+        
         page.connect_document_loaded(|page| {
             println!("Page {} created for {:?}", page.get_id(), page.get_uri());
             let document = page.get_dom_document().unwrap();

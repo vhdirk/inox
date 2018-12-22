@@ -3,7 +3,7 @@ name = "enamel-tui"
 version = "0.0.1"
 authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
 workspace = "../"
-edition = '2018'
+edition = "2018"
 
 [[bin]]
 name = "enamel-tui"

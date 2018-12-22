@@ -1,27 +1,19 @@
 use std::rc::Rc;
-use std::sync::Arc;
-use gio::ActionMapExt;
 use gtk::GtkWindowExt;
 use gtk;
-use gio;
 use glib;
 use gtk::prelude::*;
 
-use crossbeam_channel::Sender;
-use failure::Error;
-use rayon;
-// use url::Url;
+use log::*;
 
-// use hammond_data::{dbqueries, Source};
-
+use relm_state::{connect, connect_stream};
 use relm::{Relm, Component, Update, Widget};
 use relm::init as relm_init;
+use relm_derive::Msg;
 
 use notmuch::DatabaseMode;
 
 use crate::app::EnamelApp;
-use crate::app::Action;
-// use crate::utils::{itunes_to_rss, refresh};
 use crate::headerbar::HeaderBar;
 
 use crate::components::tag_list::{TagList, Msg as TagListMsg};
@@ -68,7 +60,7 @@ impl MainWindow {
     fn on_tag_changed(self: &mut Self, tag: Option<String>){
 
         // TODO: build a new query and refresh the thread list.
-        let mut dbman = self.model.app.dbmanager.clone();
+        let dbman = self.model.app.dbmanager.clone();
         let db = dbman.get(DatabaseMode::ReadOnly).unwrap();
 
         let qs = match tag{
@@ -79,7 +71,7 @@ impl MainWindow {
 
 
         let query = <notmuch::Database as notmuch::DatabaseExt>::create_query(db, &qs).unwrap();
-        let threads = <notmuch::Query as notmuch::QueryExt>::search_threads(query).unwrap();
+        let threads = <notmuch::Query<'_> as notmuch::QueryExt>::search_threads(query).unwrap();
 
         self.widgets.threadlist.emit(ThreadListMsg::Update(Some(threads)));
     }
@@ -176,7 +168,7 @@ impl Widget for MainWindow {
                                     .transform_to(move |_binding, value| {
                                         let offset = 6; //TODO: this offset was trial and error.
                                                         // we should calculate it somehow.
-                                        return Some((value.get::<i32>().unwrap_or(0) + offset).to_value());
+                                        Some((value.get::<i32>().unwrap_or(0) + offset).to_value())
                                     })
                                     .build();
 

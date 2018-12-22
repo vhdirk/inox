@@ -4,7 +4,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::collections::BTreeMap;
 use toml;
-use serde;
+use serde_derive::{Serialize, Deserialize};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Config {
@@ -39,9 +39,7 @@ impl Config{
         };
 
 
-        let conf: Config = toml::from_str(&conf_contents).unwrap();
-
-        return conf;
+        toml::from_str(&conf_contents).unwrap()
     }
 
     // #[serde(skip_serializing)]
@@ -96,13 +94,13 @@ pub struct AccountConfig {
 
 
 fn default_version() -> i16 {
-    return 1;
+    1
 }
 
 fn default_notmuch_config_path() -> String {
-    return "~/.notmuch-config".to_string();
+    "~/.notmuch-config".to_string()
 }
 
 fn default_debug_dryrun_sending() -> bool {
-    return false;
+    false
 }

@@ -1,33 +1,25 @@
 #![allow(new_without_default)]
 use std;
 use std::cell::RefCell;
+use std::rc::Rc;
+
+use log::*;
 use gio::{
-    self, ActionMapExt, ApplicationExt, ApplicationExtManual, ApplicationFlags, SettingsExt,
-    SimpleAction, SimpleActionExt,
+    ApplicationExt, ApplicationExtManual, ApplicationFlags,
 };
 use glib;
 use gtk;
 use gtk::prelude::*;
-use gtk::SettingsExt as GtkSettingsExt;
 
-use crossbeam_channel::{unbounded, Receiver, Sender};
-// use hammond_data::Show;
 use relm::init as relm_init;
 use relm::Component;
-use crate::constants;
-use crate::settings::{self, WindowGeometry};
-use crate::main_window::MainWindow;
-// use utils;
-// use widgets::appnotif::{InAppNotification, UndoState};
-// use widgets::player;
-use crate::widgets::{about_dialog}; //, mark_all_notif, remove_show_notif};
-
-use std::rc::Rc;
-use std::sync::Arc;
 
 use enamel_core::settings::Settings;
 use enamel_core::database::Manager as DBManager;
 
+use crate::constants;
+use crate::main_window::MainWindow;
+use crate::clone;
 use crate::static_resource::new_builder;
 
 #[derive(Debug, Clone)]
@@ -232,8 +224,8 @@ impl EnamelApp {
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn setup_gactions(&self) {
         //let sender = &self.sender;
-        let win = &self.window;
-        let instance = &self.instance;
+        let _win = &self.window;
+        let _instance = &self.instance;
         // let header = &self.headerbar;
 
         // Create the `refresh` action.

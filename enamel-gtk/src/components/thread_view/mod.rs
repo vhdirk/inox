@@ -1,11 +1,8 @@
 use std::rc::Rc;
-use std::cell::RefCell;
-use std::collections::VecDeque;
-use std::path::{Path, PathBuf};
 
+use log::*;
 use gio;
 use glib;
-use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
 use webkit2gtk;
@@ -13,14 +10,11 @@ use webkit2gtk::{SettingsExt, WebViewExt, WebContextExt, PolicyDecisionExt, Navi
 use gmime;
 use gmime::{ParserExt, PartExt};
 
-use relm::init as relm_init;
-use relm::{Relm, ToGlib, EventStream, Widget, Update};
+use relm::{Relm, Widget, Update};
+use relm_state::{connect, connect_stream};
+use relm_derive::Msg;
 
 use notmuch;
-use notmuch::{DatabaseMode};
-
-use enamel_core::settings::Settings;
-use enamel_core::database::Manager as DBManager;
 
 use crate::app::EnamelApp;
 
@@ -55,8 +49,8 @@ impl ThreadView{
     // general message adding and rendering
     fn load_html(&self) {
         info!("render: loading html..");
-        let wk_loaded = false;
-        let ready = false;
+        let _wk_loaded = false;
+        let _ready = false;
 
         let html = gio::resources_lookup_data(&"/com/github/vhdirk/Enamel/html/thread_view.html", gio::ResourceLookupFlags::NONE).unwrap();
         let htmlcontent = std::str::from_utf8(&*html);
@@ -67,10 +61,10 @@ impl ThreadView{
 
     fn show_thread(&mut self, thread: Rc<Thread>){
         debug!("Showing thread {:?}", thread);
-        let mut messages = thread.messages();
+        let messages = thread.messages();
 
         debug!("Showing thread {:?} > messages {:?}", thread, messages);
-        while let Some(msg) = messages.next(){
+        for msg in messages{
             let fname = msg.filename();
             info!("message: {:?}", fname);
 
@@ -122,7 +116,7 @@ impl ThreadView{
                     decision.ignore();
 
                     // TODO: don't unwrap unconditionally
-                    let uri = navigation_decision.get_request().unwrap().get_uri().unwrap();
+                    let uri: String = navigation_decision.get_request().unwrap().get_uri().unwrap();
                     info!("tv: navigating to: {}", uri);
 
                     let scheme = glib::uri_parse_scheme(&uri).unwrap();
@@ -174,7 +168,7 @@ impl Update for ThreadView {
 
     fn update(&mut self, msg: Msg) {
         match msg {
-            Msg::LoadChanged(event) => (), 
+            Msg::LoadChanged(_event) => (), 
             Msg::DecidePolicy(decision, decision_type) => self.decide_policy(&decision, decision_type),
             Msg::ShowThread(thread) => self.show_thread(thread)
         }
@@ -189,7 +183,7 @@ impl Widget for ThreadView {
         self.container.clone()
     }
 
-    fn view(relm: &Relm<Self>, model: Self::Model) -> Self
+    fn view(_relm: &Relm<Self>, model: Self::Model) -> Self
     {
         let container = model.app.builder.get_object::<gtk::Box>("thread_view_box")
                                                .expect("Couldn't find thread_list_scrolled in ui file.");

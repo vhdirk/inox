@@ -1,12 +1,8 @@
-use gio::MenuModel;
+#![allow(non_snake_case)]
 use gtk;
-use gtk::prelude::*;
 
-use crossbeam_channel::Sender;
-use failure::Error;
-use rayon;
-// use url::Url;
-use relm::{Relm, Update, Widget, WidgetTest};
+use relm::{Relm, Update, Widget};
+use relm_derive::Msg;
 
 use crate::app::Action;
 use crate::app::EnamelApp;
@@ -132,7 +128,7 @@ impl Update for HeaderBar{
     type Msg = Msg;
 
 
-    fn model(stream: &Relm<Self>, app: Self::ModelParam) -> Model {
+    fn model(_stream: &Relm<Self>, app: Self::ModelParam) -> Model {
         Self::Model {
             app
         }
@@ -140,7 +136,7 @@ impl Update for HeaderBar{
 
     fn update(&mut self, event: Msg) {
         match event {
-            Change => {
+            _Change => {
                 // self.model.content = self.widgets.input.get_text()
                 //                                        .expect("get_text failed")
                 //                                        .chars()
@@ -148,7 +144,7 @@ impl Update for HeaderBar{
                 //                                        .collect();
                 // self.widgets.label.set_text(&self.model.content);
             },
-            Quit => gtk::main_quit(),
+            _Quit => gtk::main_quit(),
         }
     }
 }
@@ -160,7 +156,7 @@ impl Widget for HeaderBar {
         self.container.clone()
     }
 
-    fn view(stream: &Relm<Self>, model: Self::Model) -> Self {
+    fn view(_stream: &Relm<Self>, model: Self::Model) -> Self {
         
         let container = model.app.builder.get_object::<gtk::Box>("main_header")
                                      .expect("Couldn't find main_header in ui file.");

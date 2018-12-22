@@ -6,6 +6,7 @@ use std::cmp::max;
 use std::str::FromStr;
 use std::ops::AddAssign;
 
+use log::*;
 use glib;
 use gtk;
 use gdk;
@@ -17,24 +18,16 @@ use pangocairo;
 use gobject_sys as gobject_ffi;
 use glib::translate::*;
 use gtk::prelude::*;
-use chrono;
 
 use pango;
-use pango::prelude::*;
 use pango::ContextExt as PangoContextExt;
 use pango::LayoutExt;
 use glib::value::AnyValue;
 use notmuch;
 
-
-use enamel_core::settings::Settings;
-use enamel_core::database::Manager as DBManager;
 use enamel_core::database::ThreadExtra;
 
-use notmuch::DatabaseMode;
-
 use gobject_subclass::object::*;
-use gobject_subclass::properties::*;
 
 use gtk_subclass::cell_renderer::*;
 use super::util::*;
@@ -187,7 +180,7 @@ pub struct CellRendererThread {
 }
 
 
-static PROPERTIES: [Property; 1] = [
+static PROPERTIES: [Property<'_>; 1] = [
     Property::Boxed(
         "thread",
         "Thread to display",
@@ -226,7 +219,7 @@ impl CellRendererThread {
         klass.install_properties(&PROPERTIES);
     }
 
-    fn init(_renderer: &CellRenderer) -> Box<CellRendererImpl<CellRenderer>>
+    fn init(_renderer: &CellRenderer) -> Box<dyn CellRendererImpl<CellRenderer>>
     {
         let imp = Self{
             thread: RefCell::new(None),
@@ -307,12 +300,10 @@ impl CellRendererThread {
             } else {
                 bg = gdk::RGBA::from_str(settings.background_color_marked_selected.as_ref().unwrap().as_str()).unwrap();
             }
+        } else if !cache.marked {
+            set = false;
         } else {
-            if !cache.marked {
-                set = false;
-            } else {
-                bg = gdk::RGBA::from_str(settings.background_color_marked.as_ref().unwrap().as_str()).unwrap();
-            }
+            bg = gdk::RGBA::from_str(settings.background_color_marked.as_ref().unwrap().as_str()).unwrap();
         }
 
         if set {
@@ -343,12 +334,11 @@ impl CellRendererThread {
 
         cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
 
-        let mut color_str = "".to_string();
-        if flags.contains(gtk::CellRendererState::SELECTED) {
-            color_str = settings.subject_color_selected.as_ref().unwrap().clone();
+        let color_str = if flags.contains(gtk::CellRendererState::SELECTED) { 
+            settings.subject_color_selected.as_ref().unwrap().clone()
         } else {
-            color_str = settings.subject_color.as_ref().unwrap().clone();
-        }
+            settings.subject_color.as_ref().unwrap().clone()
+        };
 
         pango_layout.set_markup(format!("<span color=\"{}\">{}</span>",
                color_str,
@@ -358,21 +348,21 @@ impl CellRendererThread {
         let (_, h) = pango_layout.get_size();
         let y = max(0,(cache.line_height / 2) - ((h / pango::SCALE) / 2));
 
-        cr.move_to((cell_area.x + cache.subject_start) as f64, (cell_area.y + y) as f64);
+        cr.move_to(f64::from(cell_area.x + cache.subject_start), f64::from(cell_area.y + y));
         pangocairo::functions::show_layout(&cr, &pango_layout);
     }
 
     fn render_icon(&self, _renderer: &CellRenderer,
-                          settings: &CellRendererThreadSettings,
-                          cache:  &CellRendererThreadCache,
-                          cr: &cairo::Context,
-                          widget: &gtk::Widget,
-                          background_area: &gtk::Rectangle,
-                          cell_area: &gtk::Rectangle,
-                          flags: gtk::CellRendererState,
-                          icon_name: &str,
-                          icon_cache: &mut Option<gdk_pixbuf::Pixbuf>,
-                          icon_offset: i32)
+                          _settings: &CellRendererThreadSettings,
+                          _cache:  &CellRendererThreadCache,
+                          _cr: &cairo::Context,
+                          _widget: &gtk::Widget,
+                          _background_area: &gtk::Rectangle,
+                          _cell_area: &gtk::Rectangle,
+                          _flags: gtk::CellRendererState,
+                          _icon_name: &str,
+                          _icon_cache: &mut Option<gdk_pixbuf::Pixbuf>,
+                          _icon_offset: i32)
     {
         //
         // if icon_cache.is_none() {
@@ -399,12 +389,12 @@ impl CellRendererThread {
     }
 
 
-    fn render_flagged(&self, renderer: &CellRenderer,
+    fn render_flagged(&self, _renderer: &CellRenderer,
                              cr: &cairo::Context,
-                             widget: &gtk::Widget,
-                             background_area: &gtk::Rectangle,
+                             _widget: &gtk::Widget,
+                             _background_area: &gtk::Rectangle,
                              cell_area: &gtk::Rectangle,
-                             flags: gtk::CellRendererState)
+                             _flags: gtk::CellRendererState)
     {
         let settings = self.settings.borrow();
         let mut cache = self.cache.borrow_mut();
@@ -435,12 +425,12 @@ impl CellRendererThread {
     }
 
 
-    fn render_attachment(&self, renderer: &CellRenderer,
+    fn render_attachment(&self, _renderer: &CellRenderer,
                                 cr: &cairo::Context,
-                                widget: &gtk::Widget,
-                                background_area: &gtk::Rectangle,
+                                _widget: &gtk::Widget,
+                                _background_area: &gtk::Rectangle,
                                 cell_area: &gtk::Rectangle,
-                                flags: gtk::CellRendererState)
+                                _flags: gtk::CellRendererState)
     {
         let settings = self.settings.borrow();
         let mut cache = self.cache.borrow_mut();
@@ -464,22 +454,22 @@ impl CellRendererThread {
         let y = cell_area.y + settings.left_icons_padding + settings.line_spacing / 2;
         let x = cell_area.x + icon_offset * (cache.left_icons_width + settings.left_icons_padding);
 
-        cr.set_source_pixbuf(cache.attachment_icon.as_ref().unwrap(), x as f64, y as f64);
+        cr.set_source_pixbuf(cache.attachment_icon.as_ref().unwrap(), f64::from(x), f64::from(y));
 
-        cr.rectangle(x as f64, y as f64, cache.left_icons_size as f64, cache.left_icons_size as f64);
+        cr.rectangle(f64::from(x), f64::from(y), f64::from(cache.left_icons_size), f64::from(cache.left_icons_size));
         cr.fill();
 
     }
 
-    fn render_delimiter(&self, renderer: &CellRenderer,
+    fn render_delimiter(&self, _renderer: &CellRenderer,
                                 cr: &cairo::Context,
-                                widget: &gtk::Widget,
-                                background_area: &gtk::Rectangle,
+                                _widget: &gtk::Widget,
+                                _background_area: &gtk::Rectangle,
                                 cell_area: &gtk::Rectangle,
-                                flags: gtk::CellRendererState)
+                                _flags: gtk::CellRendererState)
     {
-        let settings = self.settings.borrow();
-        let mut cache = self.cache.borrow_mut();
+        let _settings = self.settings.borrow();
+        let _cache = self.cache.borrow_mut();
 
         cr.set_line_width(0.5);
         cr.set_source_rgb(0.1, 0.1, 0.1);
@@ -488,17 +478,17 @@ impl CellRendererThread {
         cr.stroke();
     }
 
-    fn render_date(&self, renderer: &CellRenderer,
+    fn render_date(&self, _renderer: &CellRenderer,
                           cr: &cairo::Context,
                           widget: &gtk::Widget,
-                          background_area: &gtk::Rectangle,
+                          _background_area: &gtk::Rectangle,
                           cell_area: &gtk::Rectangle,
-                          flags: gtk::CellRendererState) -> i32
+                          _flags: gtk::CellRendererState) -> i32
     {
         use chrono::{DateTime, NaiveDateTime, Utc, Local};
 
         let settings = self.settings.borrow();
-        let mut cache = self.cache.borrow_mut();
+        let cache = self.cache.borrow_mut();
 
         let timestamp = self.thread.borrow().as_ref().unwrap().newest_date();
         let datetime_utc = DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(timestamp, 0), Utc);
@@ -516,31 +506,31 @@ impl CellRendererThread {
         cr.set_source_rgb(color.red, color.green, color.blue);
 
         /* align in the middle */
-        let (w, h) = pango_layout.get_size();
+        let (_w, h) = pango_layout.get_size();
         let y = max(0, (cache.line_height / 2) - ((h / pango::SCALE) / 2));
 
         /* update subject start */
         //subject_start = date_start + (w / Pango::SCALE) + padding;
 
-        cr.move_to((cell_area.x + cache.date_start) as f64, (cell_area.y + y) as f64);
+        cr.move_to(f64::from(cell_area.x + cache.date_start), f64::from(cell_area.y + y));
         pangocairo::functions::show_layout(&cr, &pango_layout);
 
-        return h;
+        h
     }
 
 
-    fn render_authors(&self, renderer: &CellRenderer,
+    fn render_authors(&self, _renderer: &CellRenderer,
                              cr: &cairo::Context,
                              widget: &gtk::Widget,
-                             background_area: &gtk::Rectangle,
+                             _background_area: &gtk::Rectangle,
                              cell_area: &gtk::Rectangle,
-                             flags: gtk::CellRendererState) -> i32
+                             _flags: gtk::CellRendererState) -> i32
     {
         let rthread = self.thread.borrow();
         let thread = rthread.as_ref().unwrap();
         
         let settings = self.settings.borrow();
-        let mut cache = self.cache.borrow_mut();
+        let cache = self.cache.borrow_mut();
 
         // TODO: move unread status and author splitting somewhere central
 
@@ -638,16 +628,16 @@ impl CellRendererThread {
        let (_, h) = pango_layout.get_size();
        let y = max(0,(cache.line_height / 2) - ((h / pango::SCALE) / 2));
 
-       cr.move_to((cell_area.x + cache.authors_start) as f64, (cell_area.y + y) as f64);
+       cr.move_to(f64::from(cell_area.x + cache.authors_start), f64::from(cell_area.y + y));
        pangocairo::functions::show_layout(&cr, &pango_layout);
 
        h
     }
 
-    fn render_tags(&self, renderer: &CellRenderer,
+    fn render_tags(&self, _renderer: &CellRenderer,
                           cr: &cairo::Context,
                           widget: &gtk::Widget,
-                          background_area: &gtk::Rectangle,
+                          _background_area: &gtk::Rectangle,
                           cell_area: &gtk::Rectangle,
                           flags: gtk::CellRendererState) -> i32
     {
@@ -655,7 +645,7 @@ impl CellRendererThread {
         let thread = rthread.as_ref().unwrap();
         
         let settings = self.settings.borrow();
-        let mut cache = self.cache.borrow_mut();
+        let cache = self.cache.borrow_mut();
 
 
         let pango_layout = widget.create_pango_layout("").unwrap();
@@ -675,7 +665,7 @@ impl CellRendererThread {
       //                 hidden_tags.end (),
       //                 back_inserter(tags));
 
-      let mut tag_string: String;
+      let tag_string: String;
 
       let mut bg: gdk::RGBA = gdk::RGBA::from_str("#ffffff").unwrap();
 
@@ -701,7 +691,7 @@ impl CellRendererThread {
       let (w, h) = pango_layout.get_size();
       let y = max(0, (cache.line_height / 2) - ((h / pango::SCALE) / 2));
 
-      cr.move_to((cell_area.x + cache.tags_start) as f64, (cell_area.y + y) as f64);
+      cr.move_to(f64::from(cell_area.x + cache.tags_start), f64::from(cell_area.y + y));
       pangocairo::functions::show_layout(&cr, &pango_layout);
 
       w
@@ -814,7 +804,7 @@ impl ImplTypeStatic<CellRenderer> for CellRendererThreadStatic {
         "CellRendererThread"
     }
 
-    fn new(&self, renderer: &CellRenderer) -> Box<CellRendererImpl<CellRenderer>> {
+    fn new(&self, renderer: &CellRenderer) -> Box<dyn CellRendererImpl<CellRenderer>> {
         CellRendererThread::init(renderer)
     }
 
