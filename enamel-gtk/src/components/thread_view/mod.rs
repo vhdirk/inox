@@ -189,8 +189,12 @@ impl Widget for ThreadView {
                                                .expect("Couldn't find thread_list_scrolled in ui file.");
 
 
-        let context = webkit2gtk::WebContext::get_default().unwrap();
-        let webview = webkit2gtk::WebView::new_with_context_and_user_content_manager(&context, &webkit2gtk::UserContentManager::new());
+        let ctx = webkit2gtk::WebContext::get_default().unwrap();
+        // TODO: deduce this
+        ctx.set_web_extensions_initialization_user_data(&"webkit".to_variant());
+        ctx.set_web_extensions_directory("/home/dvhaeren/projects/enamel/target/debug");
+
+        let webview = webkit2gtk::WebView::new_with_context_and_user_content_manager(&ctx, &webkit2gtk::UserContentManager::new());
 
         container.pack_start(&webview, true, true, 0);
 
@@ -219,7 +223,7 @@ impl Widget for ThreadView {
         // settings.set_enable_mediasource(false);
         settings.set_enable_offline_web_application_cache(false);
         settings.set_enable_page_cache(false);
-        settings.set_enable_private_browsing(true);
+        // settings.set_enable_private_browsing(true);
         // settings.set_enable_running_of_insecure_content(false);
         // settings.set_enable_display_of_insecure_content(false);
         settings.set_enable_xss_auditor(true);
@@ -234,8 +238,8 @@ impl Widget for ThreadView {
                  return (Msg::DecidePolicy(decision.clone(), decision_type), false));
 
 
-        let ctx = self.webview.get_context().unwrap();
-        ctx.set_web_extensions_directory("/home/dvhaeren/projects/enamel/target/debug");
+        // let ctx = self.webview.get_context().unwrap();
+
 
         self.load_html();
 

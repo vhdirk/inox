@@ -22,7 +22,6 @@ pub struct Config {
 
 
 impl Config{
-    #[serde(skip_serializing)]
     pub fn load(location: &Path) -> Self {
         let mut conf_contents = String::new();
         let expanded = shellexpand::full(location.to_str().unwrap()).unwrap().into_owned();
@@ -136,7 +135,7 @@ fn default_maildir_synchronize_flags() -> bool {
 fn parse_csv<'de, D>(d: D) -> Result<Vec<String>, D::Error> where D: Deserializer<'de> {
     serde::de::Deserialize::deserialize(d)
         .map(|x: Option<String>| {
-            x.unwrap().split(";").map(|s| s.to_string()).collect()
+            x.unwrap().split(';').map(|s| s.to_string()).collect()
         })
 }
 

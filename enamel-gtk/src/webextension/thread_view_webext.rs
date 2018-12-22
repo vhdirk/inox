@@ -1,3 +1,4 @@
+use log::*;
 use ipc_channel::ipc;
 use glib::Cast;
 use glib::Object;
@@ -13,6 +14,7 @@ use webkit2gtk_webextension::{
     WebExtensionExt,
     WebPage,
     WebPageExt,
+    web_extension_init_with_data
 };
 
 web_extension_init_with_data!();
@@ -30,6 +32,8 @@ impl ThreadViewWebExt{
 
 pub fn web_extension_initialize(extension: &WebExtension, user_data: &Variant) {
     let _string = user_data.get_str();
+
+    println!("Webextension: {:?}", user_data);
 
     extension.connect_page_created(|_, page| {
 
