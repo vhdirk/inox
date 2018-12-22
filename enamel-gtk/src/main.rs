@@ -106,11 +106,5 @@ fn main() {
     let conf_path:PathBuf = PathBuf::from(conf_location);
     let settings = Rc::new(Settings::new(&conf_path.as_path()));
 
-
-    //
-    // let gapp = InoxApplication::new(constants::APPLICATION_ID,
-    //                                           gio::ApplicationFlags::empty())
-    //                                      .expect("Initialization failed...");
-
     EnamelApp::run(settings);
 }

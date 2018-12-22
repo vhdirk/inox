@@ -25,7 +25,6 @@ pub struct Config {
 }
 
 impl Config{
-    #[serde(skip_serializing)]
     pub fn load(location: &Path) -> Self {
         let mut conf_contents = String::new();
 

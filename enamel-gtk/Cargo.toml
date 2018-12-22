@@ -16,7 +16,7 @@ path = "src/main.rs"
 [lib]
 path = "src/webextension/lib.rs"
 name = "enamel_gtk_webext"
-crate-type = ["dylib"]
+crate-type = ["cdylib"]
 
 [dependencies]
 structopt = "0.2"
