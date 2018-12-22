@@ -1,29 +1,17 @@
 use std::rc::Rc;
-use std::cell::RefCell;
-use std::collections::VecDeque;
-use std::path::{Path, PathBuf};
-use std::sync::mpsc::{channel, Sender, Receiver, TryRecvError};
-use std::sync::{Arc, Mutex, RwLock};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::thread;
-use std::time::Duration;
+use std::sync::{Arc};
 
-use gio;
+use log::*;
 use glib;
 use glib::value::AnyValue;
 use glib::prelude::*;
-use glib::translate::FromGlib;
 use gtk;
 use gtk::prelude::*;
-use relm::init as relm_init;
-use relm::{Relm, ToGlib, EventStream, Widget, Update};
+use relm::{Relm, EventStream, Widget, Update};
+use relm_state::connect;
+use relm_derive::Msg;
 
 use notmuch;
-use notmuch::DatabaseMode;
-
-use enamel_core::settings::Settings;
-use enamel_core::database::Manager as DBManager;
-// use enamel_core::database::{Thread, Query, Threads};
 
 use crate::app::EnamelApp;
 

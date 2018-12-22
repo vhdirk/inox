@@ -6,8 +6,8 @@ version = "0.0.1"
 authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
 build = "build.rs"
 workspace = "../"
-edition = '2018'
 default-run = "enamel-gtk"
+edition = "2018"
 
 [[bin]]
 name = "enamel-gtk"
@@ -73,6 +73,7 @@ enamel-core = { path = "../enamel-core" }
 
 relm = { git = "https://github.com/vhdirk/relm" }
 relm-derive = { git = "https://github.com/vhdirk/relm" }
+relm-state = { git = "https://github.com/vhdirk/relm" }
 
 # notmuch = "*"
 # gmime = { git = "https://github.com/vhdirk/gmime-rs"}

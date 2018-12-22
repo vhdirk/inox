@@ -1,5 +1,3 @@
-
-
 // http://gtk-rs.org/tuto/closures
 #[macro_export]
 macro_rules! clone {
@@ -20,6 +18,7 @@ macro_rules! clone {
 }
 
 /// Creates an action named $called in the action map $on with the handler $handle
+#[macro_export]
 macro_rules! action {
     ($on:expr, $called:expr, $handle:expr) => {{
         use gio::SimpleAction;

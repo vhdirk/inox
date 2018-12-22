@@ -1,23 +1,11 @@
-use std::fs::File;
-use std::io::prelude::*;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::iter::Iterator;
-use std::path::{Path, PathBuf};
-use std::clone::Clone;
-use std::convert::From;
-use std::ops::Deref;
-use supercow::Supercow;
-
-use std::collections::BTreeMap;
-use toml;
-use serde;
 
 use notmuch;
 
 // TODO: get from settings
-const TAG_UNREAD: &'static str = "unread";
-const TAG_ATTACHMENT: &'static str = "attachment";
+const TAG_UNREAD: &str = "unread";
+const TAG_ATTACHMENT: &str = "attachment";
 
 
 pub trait ThreadExtra<'d, 'q>

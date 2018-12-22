@@ -1,13 +1,7 @@
-use std::fs::File;
-use std::io::prelude::*;
 use std::sync::Arc;
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::path::{Path, PathBuf};
-
-use std::collections::BTreeMap;
-use toml;
-use serde;
+use std::path::PathBuf;
 
 use notmuch;
 use crate::settings::Settings;
@@ -16,7 +10,6 @@ pub struct Manager{
     notmuch_db_path: PathBuf,
     database: RefCell<Option<Arc<notmuch::Database>>>
 }
-
 
 
 impl Manager {
@@ -34,7 +27,7 @@ impl Manager {
 
         let current_db = self.database.borrow().clone();
         let open_new = match current_db{
-            Some(db) => {
+            Some(_db) => {
                 false
             },
             None => true

@@ -1,28 +1,17 @@
-extern crate tui;
-extern crate termion;
-extern crate dirs;
+use structopt;
 
-#[macro_use]
-extern crate structopt;
+use log;
+use env_logger;
 
-#[macro_use]
-extern crate log;
-extern crate env_logger;
-extern crate regex;
+use serde;
+use serde_derive;
 
-#[macro_use]
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate toml;
 
 use std::io;
-use std::rc::Rc;
-use std::cell::RefCell;
-use std::fs::{File, DirBuilder};
-use std::io::prelude::*;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::fs::DirBuilder;
+use std::path::PathBuf;
+
+use dirs;
 
 use structopt::StructOpt;
 use structopt::clap::{App, Arg};
@@ -102,7 +91,7 @@ fn main() -> Result<(), io::Error> {
 
     // let args = Args::from_args();
 
-    let args = App::new("Enamel")
+    let _args = App::new("Enamel")
         .version("0.0.1")
         .author("Dirk Van Haerenborgh <vhdirk@gmail.com>")
         .about("An email client with notmuch rust.")

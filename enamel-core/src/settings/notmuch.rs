@@ -3,10 +3,9 @@ use std::fs::File;
 use std::io::prelude::*;
 
 use std::path::Path;
-use std::collections::BTreeMap;
 use serde;
-use serde::de::{self, Deserialize, Deserializer, Visitor, MapAccess};
-
+use serde::de::Deserializer;
+use serde_derive::{Serialize, Deserialize};
 use shellexpand;
 
 use serde_ini;
@@ -40,9 +39,7 @@ impl Config{
             },
         };
 
-        let conf: Config = serde_ini::from_str(&conf_contents).unwrap();
-
-        return conf;
+        serde_ini::from_str(&conf_contents).unwrap()
     }
 
     // #[serde(skip_serializing)]
@@ -73,7 +70,7 @@ impl Default for DatabaseConfig{
 
 fn default_database_path() -> String {
     //Default: $MAILDIR variable if set, otherwise $HOME/mail.
-    return "~/mail".to_string();
+    "~/mail".to_string()
 }
 
 
@@ -95,7 +92,7 @@ fn default_user_name() -> String {
         return env_var.unwrap();
     };
 
-    return "".to_string();
+    "".to_string()
 }
 
 fn default_user_primary_email() -> String {
@@ -106,7 +103,7 @@ fn default_user_primary_email() -> String {
         return env_var.unwrap();
     };
 
-    return "".to_string();
+    "".to_string()
 }
 
 
@@ -132,20 +129,20 @@ pub struct MailDirConfig {
 }
 
 fn default_maildir_synchronize_flags() -> bool {
-    return true;
+    true
 }
 
 
 fn parse_csv<'de, D>(d: D) -> Result<Vec<String>, D::Error> where D: Deserializer<'de> {
-    Deserialize::deserialize(d)
+    serde::de::Deserialize::deserialize(d)
         .map(|x: Option<String>| {
-            return x.unwrap().split(";").map(|s| s.to_string()).collect();
+            x.unwrap().split(";").map(|s| s.to_string()).collect()
         })
 }
 
 fn parse_bool<'de, D>(d: D) -> Result<bool, D::Error> where D: Deserializer<'de> {
-    Deserialize::deserialize(d)
+    serde::de::Deserialize::deserialize(d)
         .map(|x: Option<String>| {
-            return x.unwrap().parse().unwrap();
+            x.unwrap().parse().unwrap()
         })
 }

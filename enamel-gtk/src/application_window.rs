@@ -13,6 +13,8 @@ use gtk::prelude::*;
 use relm;
 use relm::{UpdateNew, ContainerWidget};
 use relm_attributes::widget;
+#[macro_use]
+use relm_derive::Msg;
 
 use inox_core::settings::Settings;
 use inox_core::database::Manager as DBManager;
