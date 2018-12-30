@@ -22,17 +22,19 @@ use gtk::prelude::*;
 use pango;
 use pango::ContextExt as PangoContextExt;
 use pango::LayoutExt;
-use glib::value::AnyValue;
 use notmuch;
 
 use enamel_core::database::ThreadExtra;
 
-use gobject_subclass::object::*;
+use glib::subclass::object::ObjectImpl;
+use glib::subclass::{Property, register_type};
+use glib::subclass::types::ObjectSubclass;
+use glib::{glib_object_subclass, glib_object_impl};
 
 use gtk_subclass::cell_renderer::*;
 use super::util::*;
 
-type Thread = notmuch::Thread<'static, 'static>;
+use enamel_core::Thread;
 
 pub trait CellRendererThreadImpl: 'static {
 
@@ -181,19 +183,28 @@ pub struct CellRendererThread {
 
 
 static PROPERTIES: [Property<'_>; 1] = [
-    Property::Boxed(
+    glib::ParamSpec::Boxed(
         "thread",
         "Thread to display",
         "Handle of notmuch::Thread to display",
-        AnyValue::static_type,
-        PropertyMutability::ReadWrite,
+        Thread::static_type,
+        glib::ParamFlags::READWRITE,
     ),
 
 
 ];
 
-impl CellRendererThread {
-    pub fn new() -> CellRenderer {
+
+impl ObjectSubclass for CellRendererThread{
+
+    const NAME: &'static str = "CellRendererThread";
+    type ParentType = glib::Object;
+    type Instance = glib::subclass::simple::InstanceStruct<Self>;
+    type Class = glib::subclass::simple::ClassStruct<Self>;
+
+    glib_object_subclass!();
+
+    fn new() -> CellRenderer {
         use glib::object::Downcast;
 
         static ONCE: Once = ONCE_INIT;
@@ -218,6 +229,9 @@ impl CellRendererThread {
     fn class_init(klass: &mut CellRendererClass) {
         klass.install_properties(&PROPERTIES);
     }
+}
+
+impl CellRendererThread {
 
     fn init(_renderer: &CellRenderer) -> Box<dyn CellRendererImpl<CellRenderer>>
     {
@@ -701,16 +715,16 @@ impl CellRendererThread {
 }
 
 
+impl ObjectImpl for CellRendererThread {
+    glib_object_impl!();
 
-impl ObjectImpl<CellRenderer> for CellRendererThread
-{
     fn set_property(&self, _obj: &glib::Object, id: u32, value: &glib::Value) {
         let prop = &PROPERTIES[id as usize];
 
         match *prop {
             Property::Boxed("thread", ..) => {
-                let any_v = value.get::<&AnyValue>().expect("Value did not actually contain an AnyValue");
-                *(self.thread.borrow_mut()) = Some(any_v.downcast_ref::<Rc<Thread>>().unwrap().clone());
+                let thread = value.get::<&Thread>().expect("Value did not actually contain an AnyValue");
+                *(self.thread.borrow_mut()) = Some(thread);
             },
             _ => unimplemented!(),
         }
@@ -795,24 +809,3 @@ impl CellRendererImpl<CellRenderer> for CellRendererThread {
 
 }
 
-#[derive(Default)]
-struct CellRendererThreadStatic{}
-
-
-impl ImplTypeStatic<CellRenderer> for CellRendererThreadStatic {
-    fn get_name(&self) -> &str {
-        "CellRendererThread"
-    }
-
-    fn new(&self, renderer: &CellRenderer) -> Box<dyn CellRendererImpl<CellRenderer>> {
-        CellRendererThread::init(renderer)
-    }
-
-    fn class_init(&self, klass: &mut CellRendererClass) {
-        CellRendererThread::class_init(klass);
-    }
-
-    fn type_init(&self, _token: &TypeInitToken, _type: glib::Type) {
-
-    }
-}

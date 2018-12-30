@@ -35,15 +35,16 @@ vte = "0.3.2"
 supercow = "0.1.0"
 dirs = "1.0.4"
 ipc-channel = "0.11.2"
+bincode = "1.0.1"
 
 chrono = { version = "0.4", features = ["serde"] }
 
-gtk = { git = "https://github.com/gtk-rs/gtk" }
+gtk = { git = "https://github.com/vhdirk/gtk-rs", branch="subclassing", features=["futures", "subclassing"]}
 cairo-rs = { git = "https://github.com/gtk-rs/cairo" }
 pango = { git = "https://github.com/gtk-rs/pango" }
 gdk = { git = "https://github.com/gtk-rs/gdk" }
 gdk-pixbuf = { git = "https://github.com/gtk-rs/gdk-pixbuf" }
-gio = { git = "https://github.com/gtk-rs/gio", features=["futures"]}
+gio = { git = "https://github.com/vhdirk/gio-rs", branch="subclassing", features=["futures", "subclassing"]}
 glib = { git = "https://github.com/gtk-rs/glib" }
 pangocairo = { git = "https://github.com/gtk-rs/pangocairo" }
 glib-sys = { git = "https://github.com/gtk-rs/sys" }
@@ -58,10 +59,6 @@ webkit2gtk    = { path = "../../webkit2gtk-rs" }
 
 webkit2gtk-webextension = { git = "https://github.com/gtk-rs/webkit2gtk-webextension-rs" }
 
-gobject-subclass = { git = "https://github.com/gtk-rs/gobject-subclass" }
-gio-subclass = { git = "https://github.com/gtk-rs/gobject-subclass" }
-gtk-subclass = { git = "https://github.com/sdroege/gtk-subclass" }
-
 crossbeam-channel = "0.2.1"
 rayon = "1.0.1"
 send-cell = "0.1.3"
@@ -75,17 +72,18 @@ relm = { git = "https://github.com/vhdirk/relm" }
 relm-derive = { git = "https://github.com/vhdirk/relm" }
 relm-state = { git = "https://github.com/vhdirk/relm" }
 
-# notmuch = "*"
+notmuch = "*"
 # gmime = { git = "https://github.com/vhdirk/gmime-rs"}
 
 # [patch.crates-io]
-notmuch = { path = "../../notmuch-rs" }
+#notmuch = { path = "../../notmuch-rs" }
 gmime = { path = "../../gmime-rs" }
 
 
 [features]
 default = ["gtk/v3_16",
            "webkit2gtk/v2_16",
+           "glib/subclassing",
            "glib/futures",
            "gio/futures"]
 
