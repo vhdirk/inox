@@ -1,5 +1,6 @@
 use std::rc::Rc;
-
+use std::cell::Cell;
+use serde_derive::{Serialize, Deserialize};
 use log::*;
 use gio;
 use glib;
@@ -7,24 +8,26 @@ use gtk;
 use gtk::prelude::*;
 use webkit2gtk;
 use webkit2gtk::{SettingsExt, WebViewExt, WebContextExt, PolicyDecisionExt, NavigationPolicyDecisionExt, URIRequestExt};
+use std::sync::mpsc::{channel, Receiver};
 use gmime;
 use gmime::{ParserExt, PartExt};
-
+use bincode;
 use relm::{Relm, Widget, Update};
 use relm_state::{connect, connect_stream};
 use relm_derive::Msg;
 
 use notmuch;
 
+use enamel_core::Thread;
 use crate::app::EnamelApp;
 
-type Thread = notmuch::Thread<'static, 'static>;
 
 
 pub struct ThreadView{
     model: ThreadViewModel,
     container: gtk::Box,
-    webview: webkit2gtk::WebView
+    webview: webkit2gtk::WebView,
+    rx: Option<Receiver<IpcMsg>>
 }
 
 pub struct ThreadViewModel {
@@ -43,11 +46,25 @@ pub enum Msg {
     ShowThread(Rc<Thread>)
 }
 
+#[derive(Serialize, Deserialize)]
+pub enum IpcMsg{
+
+}
+
 
 impl ThreadView{
 
+    fn load_changed(&mut self, event: webkit2gtk::LoadEvent){
+        info!("ThreadView: load changed: {:?}", event);
+
+
+         
+
+    }
+
     // general message adding and rendering
     fn load_html(&self) {
+
         info!("render: loading html..");
         let _wk_loaded = false;
         let _ready = false;
@@ -60,6 +77,8 @@ impl ThreadView{
     }
 
     fn show_thread(&mut self, thread: Rc<Thread>){
+
+
         debug!("Showing thread {:?}", thread);
         let messages = thread.messages();
 
@@ -168,7 +187,7 @@ impl Update for ThreadView {
 
     fn update(&mut self, msg: Msg) {
         match msg {
-            Msg::LoadChanged(_event) => (), 
+            Msg::LoadChanged(event) => self.load_changed(event), 
             Msg::DecidePolicy(decision, decision_type) => self.decide_policy(&decision, decision_type),
             Msg::ShowThread(thread) => self.show_thread(thread)
         }
@@ -190,19 +209,26 @@ impl Widget for ThreadView {
 
 
         let ctx = webkit2gtk::WebContext::get_default().unwrap();
-        // TODO: deduce this
-        ctx.set_web_extensions_initialization_user_data(&"webkit".to_variant());
-        ctx.set_web_extensions_directory("/home/dvhaeren/projects/enamel/target/debug");
+
+        let (sender, receiver) = channel();
+        let sender_ser = bincode::serialize(&sender).unwrap();
+
+        ctx.set_web_extensions_initialization_user_data(&sender_ser.to_variant());
+
+        let cur_exe = std::env::current_exe().unwrap();
+        let exe_dir = cur_exe.parent().unwrap();
+        let extdir = exe_dir.to_string_lossy();
+        ctx.set_web_extensions_directory(&extdir);
 
         let webview = webkit2gtk::WebView::new_with_context_and_user_content_manager(&ctx, &webkit2gtk::UserContentManager::new());
 
         container.pack_start(&webview, true, true, 0);
 
-
         ThreadView {
             model,
             container,
-            webview
+            webview,
+            rx: Some(receiver)
         }
     }
 

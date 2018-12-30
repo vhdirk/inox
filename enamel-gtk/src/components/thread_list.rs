@@ -3,7 +3,6 @@ use std::sync::{Arc};
 
 use log::*;
 use glib;
-use glib::value::AnyValue;
 use glib::prelude::*;
 use gtk;
 use gtk::prelude::*;
@@ -13,6 +12,7 @@ use relm_derive::Msg;
 
 use notmuch;
 
+use enamel_core::Thread;
 use crate::app::EnamelApp;
 
 type Threads = notmuch::Threads<'static, 'static>;
@@ -52,7 +52,7 @@ pub fn gtk_idle_add<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream
 #[derive(Msg, Debug)]
 pub enum Msg {
     // outbound
-    ThreadSelect(Option<Rc<Thread>>),
+    ThreadSelect(Option<Thread>),
 
     // inbound
     /// signals a request to update the event list. String is a notmuch query string
@@ -95,7 +95,7 @@ pub struct ThreadListModel {
 
 
 fn create_liststore() -> gtk::ListStore{
-    gtk::ListStore::new(&[String::static_type(), AnyValue::static_type()])
+    gtk::ListStore::new(&[String::static_type(), Thread::static_type()])
 }
 
 impl ThreadList{
@@ -123,17 +123,16 @@ impl ThreadList{
     }
 
 
-    fn add_thread(&mut self, thread: Rc<notmuch::Thread<'static, 'static>>){
+    fn add_thread(&mut self, thread: Thread){
 
         let thread_id = thread.id().clone();
-        let val = AnyValue::new(thread).to_value();
 
         self.tree_model.insert_with_values(None,
             &[COLUMN_ID as u32,
               COLUMN_THREAD as u32
             ],
             &[&thread_id.to_value(),
-              &val
+              &thread
             ]);
     }
 
@@ -178,8 +177,7 @@ impl Update for ThreadList {
                 let selection = self.tree_view.get_selection();
                 if let Some((list_model, iter)) = selection.get_selected() {
                     let lval = list_model.get_value(&iter, COLUMN_THREAD as i32);
-                    let val = lval.get::<&AnyValue>().unwrap();
-                    let thread = Some(val.downcast_ref::<Rc<Thread>>().unwrap().clone());
+                    let thread = lval.get::<&Thread>().unwrap();
 
                     debug!("select thread: {:?}", thread);
                     self.model.relm.stream().clone().emit(Msg::ThreadSelect(thread));

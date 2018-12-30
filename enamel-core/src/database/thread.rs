@@ -1,7 +1,63 @@
+use std::ops::{Deref, DerefMut};
+use std::sync::Arc;
 use std::rc::Rc;
 use std::iter::Iterator;
 
+use glib::{glib_boxed_type, glib_boxed_derive_traits};
+use glib::subclass::boxed::BoxedType;
+
 use notmuch;
+
+#[derive(Clone, Debug)]
+pub struct RcThread(Rc<notmuch::Thread<'static, 'static>>);
+
+impl BoxedType for RcThread {
+    const NAME: &'static str = "enamel::RcThread";
+    glib_boxed_type!();
+}
+glib_boxed_derive_traits!(RcThread);
+
+impl Deref for RcThread{
+    type Target = Rc<notmuch::Thread<'static, 'static>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for RcThread{
+    fn deref_mut(&mut self) -> &mut Rc<notmuch::Thread<'static, 'static>> {
+        &mut self.0
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ArcThread(Arc<notmuch::Thread<'static, 'static>>);
+
+impl BoxedType for ArcThread {
+    const NAME: &'static str = "enamel::ArcThread";
+    glib_boxed_type!();
+}
+glib_boxed_derive_traits!(ArcThread);
+
+impl Deref for ArcThread{
+    type Target = Arc<notmuch::Thread<'static, 'static>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ArcThread{
+    fn deref_mut(&mut self) -> &mut Arc<notmuch::Thread<'static, 'static>> {
+        &mut self.0
+    }
+}
+
+// easy shorthand
+pub type Thread = RcThread;
+
+
 
 // TODO: get from settings
 const TAG_UNREAD: &str = "unread";
