@@ -12,11 +12,10 @@ use relm_derive::Msg;
 
 use notmuch;
 
-use enamel_core::Thread;
+use enamel_core::database::Thread;
 use crate::app::EnamelApp;
 
 type Threads = notmuch::Threads<'static, 'static>;
-type Thread = notmuch::Thread<'static, 'static>;
 
 use crate::widgets::thread_list_cell_renderer::CellRendererThread;
 
