@@ -18,7 +18,7 @@ use relm_derive::Msg;
 
 use notmuch;
 
-use enamel_core::Thread;
+use enamel_core::database::Thread;
 use crate::app::EnamelApp;
 
 

@@ -55,7 +55,7 @@ impl DerefMut for ArcThread{
 }
 
 // easy shorthand
-pub type Thread = RcThread;
+pub type Thread = ArcThread;
 
 
 
