@@ -6,6 +6,8 @@ use glib;
 use glib::prelude::*;
 use gtk;
 use gtk::prelude::*;
+use glib::object::Object;
+use glib::subclass::types::ObjectSubclass;
 use relm::{Relm, EventStream, Widget, Update};
 use relm_state::connect;
 use relm_derive::Msg;
@@ -137,13 +139,12 @@ impl ThreadList{
 
     fn next_thread(&mut self){
         if self.model.thread_list.is_none(){
-
             return ();
         }
 
         if let Some(thread) = Arc::get_mut(self.model.thread_list.as_mut().unwrap()).unwrap().next(){
             gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init), Some(true));
-            self.add_thread(Rc::new(thread));
+            self.add_thread(Thread::new(thread));
         }
 
     }
@@ -179,7 +180,7 @@ impl Update for ThreadList {
                     let thread = lval.get::<&Thread>().unwrap();
 
                     debug!("select thread: {:?}", thread);
-                    self.model.relm.stream().clone().emit(Msg::ThreadSelect(thread));
+                    self.model.relm.stream().clone().emit(Msg::ThreadSelect(Some(thread.clone())));
                 }
             },
             Msg::ThreadSelect(ref _thread_id) => (),

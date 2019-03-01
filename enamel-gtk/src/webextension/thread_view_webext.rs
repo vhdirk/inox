@@ -39,6 +39,9 @@ impl ThreadViewWebExt{
 
 
 pub fn web_extension_initialize(extension: &WebExtension, user_data: &Variant) {
+
+
+    
     let server_name = user_data.get_str().unwrap().to_string();
 
     println!("Webextension: {:?}", user_data);
@@ -60,9 +63,9 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: &Variant) {
 
             let handler = Closure::new(|values| {
                 if let Some(event) = values[1].get::<Object>() {
-                    if let Ok(mouse_event) = event.downcast::<DOMMouseEvent>() {
-                        println!("Click at ({}, {})", mouse_event.get_x(), mouse_event.get_y());
-                    }
+                    // if let Ok(mouse_event) = event.downcast::<DOMMouseEvent>() {
+                    //     println!("Click at ({}, {})", mouse_event.get_x(), mouse_event.get_y());
+                    // }
                 }
                 None
             });
