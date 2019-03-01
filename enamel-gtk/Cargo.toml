@@ -1,4 +1,4 @@
-cargo-features = ["default-run"]
+#cargo-features = ["default-run"]
 
 [package]
 name = "enamel-gtk"
@@ -6,7 +6,7 @@ version = "0.0.1"
 authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
 build = "build.rs"
 workspace = "../"
-default-run = "enamel-gtk"
+#default-run = "enamel-gtk"
 edition = "2018"
 
 [[bin]]
@@ -45,7 +45,7 @@ pango = { git = "https://github.com/gtk-rs/pango" }
 gdk = { git = "https://github.com/gtk-rs/gdk" }
 gdk-pixbuf = { git = "https://github.com/gtk-rs/gdk-pixbuf" }
 gio = { git = "https://github.com/vhdirk/gio-rs", branch="subclassing", features=["futures", "subclassing"]}
-glib = { git = "https://github.com/gtk-rs/glib" }
+glib = { git = "https://github.com/gtk-rs/glib", features=["subclassing"] }
 pangocairo = { git = "https://github.com/gtk-rs/pangocairo" }
 glib-sys = { git = "https://github.com/gtk-rs/sys" }
 gio-sys = { git = "https://github.com/gtk-rs/sys" }
@@ -54,9 +54,7 @@ gtk-sys = { git = "https://github.com/gtk-rs/sys" }
 gdk-sys = { git = "https://github.com/gtk-rs/sys" }
 gdk-pixbuf-sys = { git = "https://github.com/gtk-rs/sys" }
 cairo-sys-rs = { git = "https://github.com/gtk-rs/cairo" }
-#webkit2gtk    = { git = "https://github.com/gtk-rs/webkit2gtk-rs" }
-webkit2gtk    = { path = "../../webkit2gtk-rs" }
-
+webkit2gtk    = { git = "https://github.com/gtk-rs/webkit2gtk-rs" }
 webkit2gtk-webextension = { git = "https://github.com/gtk-rs/webkit2gtk-webextension-rs" }
 
 crossbeam-channel = "0.2.1"

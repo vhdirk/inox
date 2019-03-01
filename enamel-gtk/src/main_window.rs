@@ -12,6 +12,7 @@ use relm::init as relm_init;
 use relm_derive::Msg;
 
 use notmuch::DatabaseMode;
+use enamel_core::database::Thread;
 
 use crate::app::EnamelApp;
 use crate::headerbar::HeaderBar;
@@ -20,13 +21,11 @@ use crate::components::tag_list::{TagList, Msg as TagListMsg};
 use crate::components::thread_list::{ThreadList, Msg as ThreadListMsg};
 use crate::components::thread_view::{ThreadView, Msg as ThreadViewMsg};
 
-type Thread = notmuch::Thread<'static, 'static>;
-
 
 #[derive(Msg)]
 pub enum Msg {
     TagSelect(Option<String>),
-    ThreadSelect(Option<Rc<Thread>>),
+    ThreadSelect(Thread),
     Change,
     Quit,
 }
@@ -76,8 +75,8 @@ impl MainWindow {
         self.widgets.threadlist.emit(ThreadListMsg::Update(Some(threads)));
     }
 
-    fn on_thread_selected(self: &mut Self, thread: Option<Rc<Thread>>){
-        self.widgets.threadview.emit(ThreadViewMsg::ShowThread(thread.unwrap()))
+    fn on_thread_selected(self: &mut Self, thread: Thread){
+        self.widgets.threadview.emit(ThreadViewMsg::ShowThread(thread))
     }
 
 
@@ -137,7 +136,7 @@ impl Widget for MainWindow {
         connect!(taglist@TagList_ItemSelect(ref tag), relm, Msg::TagSelect(tag.clone()));
 
         use self::ThreadListMsg::ThreadSelect as ThreadList_ThreadSelect;
-        connect!(threadlist@ThreadList_ThreadSelect(ref thread), relm, Msg::ThreadSelect(thread.clone()));
+        connect!(threadlist@ThreadList_ThreadSelect(ref thread), relm, Msg::ThreadSelect(thread.as_ref().unwrap().clone()));
 
 
 

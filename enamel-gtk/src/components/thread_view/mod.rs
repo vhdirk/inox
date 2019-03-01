@@ -43,7 +43,7 @@ pub enum Msg {
     LoadChanged(webkit2gtk::LoadEvent),
     DecidePolicy(webkit2gtk::PolicyDecision, webkit2gtk::PolicyDecisionType),
     
-    ShowThread(Rc<Thread>)
+    ShowThread(Thread)
 }
 
 #[derive(Serialize, Deserialize)]
@@ -76,7 +76,7 @@ impl ThreadView{
 
     }
 
-    fn show_thread(&mut self, thread: Rc<Thread>){
+    fn show_thread(&mut self, thread: Thread){
 
 
         debug!("Showing thread {:?}", thread);
@@ -135,7 +135,7 @@ impl ThreadView{
                     decision.ignore();
 
                     // TODO: don't unwrap unconditionally
-                    let uri: String = navigation_decision.get_request().unwrap().get_uri().unwrap();
+                    let uri = navigation_decision.get_request().unwrap().get_uri().unwrap();
                     info!("tv: navigating to: {}", uri);
 
                     let scheme = glib::uri_parse_scheme(&uri).unwrap();
@@ -211,18 +211,18 @@ impl Widget for ThreadView {
         let ctx = webkit2gtk::WebContext::get_default().unwrap();
 
         let (sender, receiver) = channel();
-        let sender_ser = bincode::serialize(&sender).unwrap();
+        // let sender_ser = bincode::serialize(&sender).unwrap();
 
-        ctx.set_web_extensions_initialization_user_data(&sender_ser.to_variant());
+        ctx.set_web_extensions_initialization_user_data(&"".to_variant());
 
         let cur_exe = std::env::current_exe().unwrap();
         let exe_dir = cur_exe.parent().unwrap();
-        let extdir = exe_dir.to_string_lossy();
+        let extdir = exe_dir.to_string_lossy(); 
         ctx.set_web_extensions_directory(&extdir);
 
         let webview = webkit2gtk::WebView::new_with_context_and_user_content_manager(&ctx, &webkit2gtk::UserContentManager::new());
 
-        container.pack_start(&webview, true, true, 0);
+        container.pack_start(&webview.into(), true, true, 0);
 
         ThreadView {
             model,

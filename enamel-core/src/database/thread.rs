@@ -12,7 +12,7 @@ use notmuch;
 pub struct RcThread(Rc<notmuch::Thread<'static, 'static>>);
 
 impl BoxedType for RcThread {
-    const NAME: &'static str = "enamel::RcThread";
+    const NAME: &'static str = "enamel_RcThread";
     glib_boxed_type!();
 }
 glib_boxed_derive_traits!(RcThread);
@@ -30,15 +30,23 @@ impl DerefMut for RcThread{
         &mut self.0
     }
 }
+unsafe impl Send for RcThread{}
+
 
 #[derive(Clone, Debug)]
 pub struct ArcThread(Arc<notmuch::Thread<'static, 'static>>);
 
 impl BoxedType for ArcThread {
-    const NAME: &'static str = "enamel::ArcThread";
+    const NAME: &'static str = "enamel_ArcThread";
     glib_boxed_type!();
 }
 glib_boxed_derive_traits!(ArcThread);
+
+impl ArcThread{
+    pub fn new(thread: notmuch::Thread<'static, 'static>) -> Self{
+        Self(Arc::new(thread))
+    }
+}
 
 impl Deref for ArcThread{
     type Target = Arc<notmuch::Thread<'static, 'static>>;
@@ -53,6 +61,8 @@ impl DerefMut for ArcThread{
         &mut self.0
     }
 }
+unsafe impl Send for ArcThread{}
+unsafe impl Sync for ArcThread{}
 
 // easy shorthand
 pub type Thread = ArcThread;
