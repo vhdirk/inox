@@ -8,6 +8,9 @@ members = [
 [profile.release]
 debug = false
 
+[patch."https://github.com/gtk-rs/glib"]
+glib = { git = "https://github.com/vhdirk/glib-rs", features=["futures", "subclassing"]}
+
 [patch."https://github.com/gtk-rs/gio"]
 gio = { git = "https://github.com/vhdirk/gio-rs", branch="subclassing", features=["futures", "subclassing"]}
 

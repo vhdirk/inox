@@ -222,7 +222,7 @@ impl Widget for ThreadView {
 
         let webview = webkit2gtk::WebView::new_with_context_and_user_content_manager(&ctx, &webkit2gtk::UserContentManager::new());
 
-        container.pack_start(&webview.into(), true, true, 0);
+        container.pack_start(&webview, true, true, 0);
 
         ThreadView {
             model,

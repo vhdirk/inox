@@ -321,7 +321,7 @@ impl EnamelApp {
         let application = gtk::Application::new(constants::APPLICATION_ID, ApplicationFlags::empty())
             .expect("Application Initialization failed...");
 
-        application.set_resource_base_path("/com/github/vhdirk/Enamel");
+        application.set_resource_base_path(Some("/com/github/vhdirk/Enamel"));
 
         let weak_app = application.downgrade();
         application.connect_startup(move |_| {

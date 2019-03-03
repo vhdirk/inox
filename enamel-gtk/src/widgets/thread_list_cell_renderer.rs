@@ -18,6 +18,15 @@ use gobject_sys as gobject_ffi;
 use glib::translate::*;
 use glib::prelude::*;
 use gtk::prelude::*;
+use glib::{glib_wrapper, glib_object_wrapper};
+
+use glib::subclass;
+use glib::subclass::prelude::*;
+use gtk::subclass::cell_renderer::CellRendererImpl;
+use glib::subclass::Property;
+use glib::{glib_object_subclass, glib_object_impl};
+
+
 
 use pango;
 use pango::ContextExt as PangoContextExt;
@@ -25,17 +34,6 @@ use pango::LayoutExt;
 use notmuch;
 
 use enamel_core::database::ThreadExtra;
-
-use glib;
-use glib::subclass;
-use glib::{glib_wrapper, glib_object_wrapper};
-use gtk::CellRenderer;
-use glib::subclass::Property;
-use glib::subclass::simple::{InstanceStruct, ClassStruct};
-use glib::subclass::object::{ObjectImpl, ObjectClassSubclassExt};
-use glib::subclass::types::ObjectSubclass;
-use glib::{glib_object_subclass, glib_object_impl};
-use gtk::subclass::cell_renderer::CellRendererImpl;
 
 use super::util::*;
 
@@ -174,65 +172,69 @@ impl Default for CellRendererThreadSettings{
 }
 
 
-
-pub mod imp {
+mod imp {
     use super::*;
-    use glib::subclass;
-    use glib::translate::*;
 
+    // The actual data structure that stores our values. This is not accessible
+    // directly from the outside.
     pub struct CellRendererThread {
         thread: RefCell<Option<Thread>>,
         settings: RefCell<CellRendererThreadSettings>,
         cache: RefCell<CellRendererThreadCache>,
     }
 
-
-    static PROPERTIES: [Property<'_>; 1] = [
-        Property("thread", |name| {
-        glib::ParamSpec::boxed(
-            name,
-            "Thread to display",
-            "Handle of notmuch::Thread to display",
-            Thread::static_type(),
-            glib::ParamFlags::READWRITE,
-        )}),
-
-
+    // GObject property definitions for our two values
+    static PROPERTIES: [subclass::Property; 1] = [
+        subclass::Property(
+            "thread",
+            |thread| {
+            glib::ParamSpec::boxed(
+                    thread,
+                    "Thread to display",
+                    "Handle of notmuch::Thread to display",
+                    Thread::static_type(),
+                    glib::ParamFlags::READWRITE,
+                )
+            }
+        ),
     ];
 
-
-    impl ObjectSubclass for CellRendererThread{
-
+    // Basic declaration of our type for the GObject type system
+    impl ObjectSubclass for CellRendererThread {
         const NAME: &'static str = "enamel_CellRendererThread";
         type ParentType = gtk::CellRenderer;
-        type Instance = InstanceStruct<Self>;
-        type Class = ClassStruct<Self>;
+        type Instance = subclass::simple::InstanceStruct<Self>;
+        type Class = subclass::simple::ClassStruct<Self>;
 
         glib_object_subclass!();
 
+        fn class_init(klass: &mut Self::Class) {
+            klass.install_properties(&PROPERTIES);
+        }
+
         fn new() -> Self {
-            CellRendererThread{
+            Self {
                 thread: RefCell::new(None),
                 settings: RefCell::new(CellRendererThreadSettings::default()),
                 cache: RefCell::new(CellRendererThreadCache::default()),
             }
         }
-
-        fn class_init(klass: &mut ClassStruct<Self>) {
-            klass.install_properties(&PROPERTIES);
-        }
     }
 
-
-
+    // The ObjectImpl trait provides the setters/getters for GObject properties.
+    // Here we need to provide the values that are internally stored back to the
+    // caller, or store whatever new value the caller is providing.
+    //
+    // This maps between the GObject properties and our internal storage of the
+    // corresponding values of the properties.
     impl ObjectImpl for CellRendererThread {
         glib_object_impl!();
 
         fn set_property(&self, _obj: &glib::Object, id: usize, value: &glib::Value) {
-            let prop = &PROPERTIES[id as usize];
+            let prop = &PROPERTIES[id];
 
             match *prop {
-                Property("thread", ..) => {
+                subclass::Property("thread", ..) => {
                     let thread = value.get::<&Thread>().expect("Value did not actually contain an AnyValue");
                     *(self.thread.borrow_mut()) = Some(thread.clone());
                 },
@@ -241,10 +243,10 @@ pub mod imp {
         }
 
         fn get_property(&self, _obj: &glib::Object, id: usize) -> Result<glib::Value, ()> {
-            let prop = &PROPERTIES[id as usize];
+            let prop = &PROPERTIES[id];
 
             match *prop {
-                Property("thread", ..) => {
+                subclass::Property("thread", ..) => {
                     Ok("1".to_value())
                 },
                 _ => unimplemented!(),
@@ -252,11 +254,10 @@ pub mod imp {
         }
     }
 
-
     impl CellRendererImpl for CellRendererThread {
 
         fn render(&self,
-            renderer: &CellRenderer,
+            renderer: &gtk::CellRenderer,
             cr: &cairo::Context,
             widget: &gtk::Widget,
             background_area: &gtk::Rectangle,
@@ -368,7 +369,7 @@ pub mod imp {
             cache.height              = cache.content_height + settings.line_spacing;
         }
 
-        fn render_background(&self, _renderer: &CellRenderer,
+        fn render_background(&self, _renderer: &gtk::CellRenderer,
                                     cr: &cairo::Context,
                                     _widget: &gtk::Widget,
                                     background_area: &gtk::Rectangle,
@@ -408,7 +409,7 @@ pub mod imp {
             }
     }
 
-    fn render_subject(&self, _renderer: &CellRenderer,
+    fn render_subject(&self, _renderer: &gtk::CellRenderer,
                                 cr: &cairo::Context,
                                 widget: &gtk::Widget,
                                 _background_area: &gtk::Rectangle,
@@ -446,7 +447,7 @@ pub mod imp {
             pangocairo::functions::show_layout(&cr, &pango_layout);
         }
 
-        fn render_icon(&self, _renderer: &CellRenderer,
+        fn render_icon(&self, _renderer: &gtk::CellRenderer,
                             _settings: &CellRendererThreadSettings,
                             _cache:  &CellRendererThreadCache,
                             _cr: &cairo::Context,
@@ -483,7 +484,7 @@ pub mod imp {
         }
 
 
-        fn render_flagged(&self, _renderer: &CellRenderer,
+        fn render_flagged(&self, _renderer: &gtk::CellRenderer,
                                 cr: &cairo::Context,
                                 _widget: &gtk::Widget,
                                 _background_area: &gtk::Rectangle,
@@ -519,7 +520,7 @@ pub mod imp {
         }
 
 
-        fn render_attachment(&self, _renderer: &CellRenderer,
+        fn render_attachment(&self, _renderer: &gtk::CellRenderer,
                                     cr: &cairo::Context,
                                     _widget: &gtk::Widget,
                                     _background_area: &gtk::Rectangle,
@@ -555,7 +556,7 @@ pub mod imp {
 
         }
 
-        fn render_delimiter(&self, _renderer: &CellRenderer,
+        fn render_delimiter(&self, _renderer: &gtk::CellRenderer,
                                     cr: &cairo::Context,
                                     _widget: &gtk::Widget,
                                     _background_area: &gtk::Rectangle,
@@ -572,7 +573,7 @@ pub mod imp {
             cr.stroke();
         }
 
-        fn render_date(&self, _renderer: &CellRenderer,
+        fn render_date(&self, _renderer: &gtk::CellRenderer,
                             cr: &cairo::Context,
                             widget: &gtk::Widget,
                             _background_area: &gtk::Rectangle,
@@ -613,7 +614,7 @@ pub mod imp {
         }
 
 
-        fn render_authors(&self, _renderer: &CellRenderer,
+        fn render_authors(&self, _renderer: &gtk::CellRenderer,
                                 cr: &cairo::Context,
                                 widget: &gtk::Widget,
                                 _background_area: &gtk::Rectangle,
@@ -728,7 +729,7 @@ pub mod imp {
         h
         }
 
-        fn render_tags(&self, _renderer: &CellRenderer,
+        fn render_tags(&self, _renderer: &gtk::CellRenderer,
                             cr: &cairo::Context,
                             widget: &gtk::Widget,
                             _background_area: &gtk::Rectangle,
@@ -794,24 +795,24 @@ pub mod imp {
 
     }
 
+
+
 }
 
-
+// Public part of the CellRendererThread type. This behaves like a normal gtk-rs-style GObject
+// binding
 glib_wrapper! {
-    pub struct CellRendererThead(Object<InstanceStruct<imp::CellRendererThead>, 
-                                        ClassStruct<imp::CellRendererThead>,
-                                        CellRendererTheadClass>);
+    pub struct CellRendererThread(Object<subclass::simple::InstanceStruct<imp::CellRendererThread>,
+                                    subclass::simple::ClassStruct<imp::CellRendererThread>,
+                                    CellRendererThreadClass>);
 
     match fn {
         get_type => || imp::CellRendererThread::get_type().to_glib(),
     }
 }
 
-
-// Constructor for new instances. This simply calls glib::Object::new() with
-// initial values for our two properties and then returns the new instance
-impl CellRendererThead {
-    pub fn new() -> CellRendererThead {
+impl CellRendererThread {
+    pub fn new() -> CellRendererThread {
         glib::Object::new(
             Self::static_type(),
             &[])
@@ -820,3 +821,4 @@ impl CellRendererThead {
             .expect("Created renderer is of wrong type")
     }
 }
+
