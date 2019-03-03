@@ -272,6 +272,7 @@ mod imp {
             }
 
             if self.thread.borrow().is_none(){
+                info!("No thread");
                 return;
             }
 
@@ -799,12 +800,10 @@ mod imp {
 
 }
 
-// Public part of the CellRendererThread type. This behaves like a normal gtk-rs-style GObject
-// binding
 glib_wrapper! {
     pub struct CellRendererThread(Object<subclass::simple::InstanceStruct<imp::CellRendererThread>,
-                                    subclass::simple::ClassStruct<imp::CellRendererThread>,
-                                    CellRendererThreadClass>);
+                                  subclass::simple::ClassStruct<imp::CellRendererThread>,
+                                  CellRendererThreadClass>) @extends gtk::CellRenderer;
 
     match fn {
         get_type => || imp::CellRendererThread::get_type().to_glib(),

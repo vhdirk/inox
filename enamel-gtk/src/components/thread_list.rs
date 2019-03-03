@@ -28,8 +28,7 @@ const COLUMN_AUTHORS:u8 = 2;
 
 fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
     let column = gtk::TreeViewColumn::new();
-    //let cell = CellRendererThread::new();
-    let cell = gtk::CellRendererText::new();
+    let cell = CellRendererThread::new();
     column.pack_start(&cell, false);
     // Association of the view's column with the model's `id` column.
     column.add_attribute(&cell, "thread", id);
