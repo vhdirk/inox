@@ -32,7 +32,7 @@ fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
     let cell = gtk::CellRendererText::new();
     column.pack_start(&cell, false);
     // Association of the view's column with the model's `id` column.
-    //column.add_attribute(&cell, "thread", id);
+    column.add_attribute(&cell, "thread", id);
     column.set_title(&title);
     tree.append_column(&column);
 }
