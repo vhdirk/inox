@@ -1,5 +1,7 @@
 use std::rc::Rc;
+use std::thread;
 use std::cell::Cell;
+use std::process;
 use serde_derive::{Serialize, Deserialize};
 use log::*;
 use gio;
@@ -15,6 +17,9 @@ use bincode;
 use relm::{Relm, Widget, Update};
 use relm_state::{connect, connect_stream};
 use relm_derive::Msg;
+use ipc_channel::ipc;
+use uuid::Uuid;
+use toml;
 
 use notmuch;
 
@@ -22,12 +27,10 @@ use enamel_core::database::Thread;
 use crate::app::EnamelApp;
 
 
-
 pub struct ThreadView{
     model: ThreadViewModel,
     container: gtk::Box,
-    webview: webkit2gtk::WebView,
-    rx: Option<Receiver<IpcMsg>>
+    webview: webkit2gtk::WebView
 }
 
 pub struct ThreadViewModel {
@@ -40,6 +43,7 @@ pub struct ThreadViewModel {
 
 #[derive(Msg, Debug)]
 pub enum Msg {
+    InitializeWebExtensions,
     LoadChanged(webkit2gtk::LoadEvent),
     DecidePolicy(webkit2gtk::PolicyDecision, webkit2gtk::PolicyDecisionType),
     
@@ -51,8 +55,45 @@ pub enum IpcMsg{
 
 }
 
+#[derive(Serialize, Deserialize)]
+struct IpcChannels{
+    tx: ipc::IpcSender<IpcMsg>,
+    rx: ipc::IpcReceiver<IpcMsg>
+}
 
 impl ThreadView{
+
+
+    fn initialize_web_extensions(&mut self)
+    {
+        info!("initialize_web_extensions");
+        let ctx = self.webview.get_context().unwrap();
+        // let socket_addr = format!("/tmp/enamel.{}.{}",
+        //     process::id(),
+        //     Uuid::new_v4()
+        // );
+        let (ipc_tx, ipc_rx_remote): (ipc::IpcSender<IpcMsg>, ipc::IpcReceiver<IpcMsg>) = ipc::channel().unwrap();
+        let (ipc_tx_remote, ipc_rx): (ipc::IpcSender<IpcMsg>, ipc::IpcReceiver<IpcMsg>) = ipc::channel().unwrap();
+
+        let chans = IpcChannels{
+            tx: ipc_tx_remote,
+            rx: ipc_rx_remote
+        };
+
+        let chans_str = toml::to_string(&chans).unwrap();
+        // let (ipc_srv, ipc_srv_name) = ipc::IpcOneShotServer::new().unwrap();
+
+        ctx.set_web_extensions_initialization_user_data(&chans_str.to_variant());
+
+        let cur_exe = std::env::current_exe().unwrap();
+        let exe_dir = cur_exe.parent().unwrap();
+        let extdir = exe_dir.to_string_lossy(); 
+        ctx.set_web_extensions_directory(&extdir);
+
+        // let (_, ipc_tx): (_, ipc::IpcSender<IpcMsg>) = ipc_srv.accept().unwrap();
+
+        // ipc_srv.
+    }
 
     fn load_changed(&mut self, event: webkit2gtk::LoadEvent){
         info!("ThreadView: load changed: {:?}", event);
@@ -187,6 +228,7 @@ impl Update for ThreadView {
 
     fn update(&mut self, msg: Msg) {
         match msg {
+            Msg::InitializeWebExtensions => self.initialize_web_extensions(),
             Msg::LoadChanged(event) => self.load_changed(event), 
             Msg::DecidePolicy(decision, decision_type) => self.decide_policy(&decision, decision_type),
             Msg::ShowThread(thread) => self.show_thread(thread)
@@ -209,26 +251,18 @@ impl Widget for ThreadView {
 
 
         let ctx = webkit2gtk::WebContext::get_default().unwrap();
+        ctx.set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
 
-        let (sender, receiver) = channel();
-        // let sender_ser = bincode::serialize(&sender).unwrap();
-
-        ctx.set_web_extensions_initialization_user_data(&"".to_variant());
-
-        let cur_exe = std::env::current_exe().unwrap();
-        let exe_dir = cur_exe.parent().unwrap();
-        let extdir = exe_dir.to_string_lossy(); 
-        ctx.set_web_extensions_directory(&extdir);
 
         let webview = webkit2gtk::WebView::new_with_context_and_user_content_manager(&ctx, &webkit2gtk::UserContentManager::new());
 
         container.pack_start(&webview, true, true, 0);
+        
 
         ThreadView {
             model,
             container,
-            webview,
-            rx: Some(receiver)
+            webview
         }
     }
 
@@ -248,7 +282,6 @@ impl Widget for ThreadView {
         //settings.set_enable_mediastream(false);
         // settings.set_enable_mediasource(false);
         settings.set_enable_offline_web_application_cache(false);
-        settings.set_enable_page_cache(false);
         // settings.set_enable_private_browsing(true);
         // settings.set_enable_running_of_insecure_content(false);
         // settings.set_enable_display_of_insecure_content(false);
@@ -256,18 +289,21 @@ impl Widget for ThreadView {
         settings.set_media_playback_requires_user_gesture(true);
         settings.set_enable_developer_extras(true   ); // TODO: should only enabled conditionally
  
+
         connect!(self.model.relm, self.webview, connect_load_changed(_,event), Msg::LoadChanged(event));
 
     // add_events (Gdk::KEY_PRESS_MASK);
 
-        connect!(self.model.relm, self.webview, connect_decide_policy(_,decision, decision_type),
+        connect!(self.model.relm, self.webview, connect_decide_policy(_, decision, decision_type),
                  return (Msg::DecidePolicy(decision.clone(), decision_type), false));
 
+
+        connect!(self.model.relm, self.webview.get_context().unwrap(), connect_initialize_web_extensions(_), Msg::InitializeWebExtensions);
 
         // let ctx = self.webview.get_context().unwrap();
 
 
-        self.load_html();
+        //self.load_html();
 
     // register_keys ();
 
