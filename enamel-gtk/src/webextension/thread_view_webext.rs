@@ -1,5 +1,6 @@
 use log::*;
 use ipc_channel::ipc;
+use bincode;
 use serde_derive::{Serialize, Deserialize};
 use glib::Cast;
 use glib::Object;
@@ -17,15 +18,20 @@ use webkit2gtk_webextension::{
     WebPageExt,
     web_extension_init_with_data
 };
+use toml;
 
 #[derive(Serialize, Deserialize)]
 pub enum IpcMsg{
 
 }
 
-web_extension_init_with_data!();
+#[derive(Serialize, Deserialize)]
+struct IpcChannels{
+    tx: ipc::IpcSender<IpcMsg>,
+    rx: ipc::IpcReceiver<IpcMsg>
+}
 
-static mut ipc_tx: Option<ipc::IpcSender<IpcMsg>> = None;
+web_extension_init_with_data!();
 
 
 pub struct ThreadViewWebExt{
@@ -40,15 +46,15 @@ impl ThreadViewWebExt{
 
 pub fn web_extension_initialize(extension: &WebExtension, user_data: &Variant) {
 
+    // get the socket name
+    let chans_str = user_data.get_str().unwrap();
 
-    
-    let server_name = user_data.get_str().unwrap().to_string();
+    let chans: IpcChannels = toml::from_str(chans_str).unwrap();
+    assert!(false);
+
 
     println!("Webextension: {:?}", user_data);
 
-    unsafe {
-        ipc_tx = ipc::IpcSender::connect(server_name).ok()
-    };
 
     extension.connect_page_created(|_, page| {
 

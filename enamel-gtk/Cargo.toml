@@ -1,4 +1,4 @@
-#cargo-features = ["default-run"]
+cargo-features = ["default-run"]
 
 [package]
 name = "enamel-gtk"
@@ -6,7 +6,7 @@ version = "0.0.1"
 authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
 build = "build.rs"
 workspace = "../"
-#default-run = "enamel-gtk"
+default-run = "enamel-gtk"
 edition = "2018"
 
 [[bin]]
@@ -36,6 +36,7 @@ supercow = "0.1.0"
 dirs = "1.0.4"
 ipc-channel = "0.11.2"
 bincode = "1.0.1"
+uuid = { version = "0.7", features = ["v4"] }
 
 chrono = { version = "0.4", features = ["serde"] }
 
