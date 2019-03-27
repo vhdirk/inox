@@ -40,7 +40,7 @@ uuid = { version = "0.7", features = ["v4"] }
 
 chrono = { version = "0.4", features = ["serde"] }
 
-gtk = { git = "https://github.com/vhdirk/gtk-rs", branch="subclassing", features=["futures", "subclassing"]}
+gtk = { git = "https://github.com/vhdirk/gtk-rs", branch="subclassing", features=["v3_16", "futures", "subclassing"]}
 cairo-rs = { git = "https://github.com/gtk-rs/cairo" }
 pango = { git = "https://github.com/gtk-rs/pango" }
 gdk = { git = "https://github.com/gtk-rs/gdk" }
@@ -55,8 +55,8 @@ gtk-sys = { git = "https://github.com/gtk-rs/sys" }
 gdk-sys = { git = "https://github.com/gtk-rs/sys" }
 gdk-pixbuf-sys = { git = "https://github.com/gtk-rs/sys" }
 cairo-sys-rs = { git = "https://github.com/gtk-rs/cairo" }
-webkit2gtk    = { git = "https://github.com/gtk-rs/webkit2gtk-rs" }
-webkit2gtk-webextension = { git = "https://github.com/gtk-rs/webkit2gtk-webextension-rs" }
+webkit2gtk    = { git = "https://github.com/vhdirk/webkit2gtk-rs", features=["v2_18"] }
+webkit2gtk-webextension = { git = "https://github.com/vhdirk/webkit2gtk-webextension-rs", features=["v2_18"] }
 
 crossbeam-channel = "0.2.1"
 rayon = "1.0.1"
@@ -80,11 +80,7 @@ gmime = { path = "../../gmime-rs" }
 
 
 [features]
-default = ["gtk/v3_16",
-           "webkit2gtk/v2_16",
-           "glib/subclassing",
-           "glib/futures",
-           "gio/futures"]
+default = ["gtk/v3_16"]
 
 [dev-dependencies]
 cargo-expand = "*"
