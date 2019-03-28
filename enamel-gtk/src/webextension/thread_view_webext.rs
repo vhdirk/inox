@@ -44,10 +44,11 @@ impl ThreadViewWebExt{
 }
 
 
-pub fn web_extension_initialize(extension: &WebExtension, user_data: &Variant) {
-
+pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Variant>) {
+    let user_string: Option<String> = user_data.and_then(Variant::get_str).map(ToOwned::to_owned);
     // get the socket name
-    let chans_str = user_data.get_str().unwrap();
+    let chans_s = user_string.unwrap();
+    let chans_str = chans_s.as_str();
 
     let chans: IpcChannels = toml::from_str(chans_str).unwrap();
     assert!(false);
