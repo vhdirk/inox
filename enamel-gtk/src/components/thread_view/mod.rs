@@ -287,7 +287,7 @@ impl Widget for ThreadView {
         // settings.set_enable_display_of_insecure_content(false);
         settings.set_enable_xss_auditor(true);
         settings.set_media_playback_requires_user_gesture(true);
-        settings.set_enable_developer_extras(true   ); // TODO: should only enabled conditionally
+        settings.set_enable_developer_extras(true); // TODO: should only enabled conditionally
  
 
         connect!(self.model.relm, self.webview, connect_load_changed(_,event), Msg::LoadChanged(event));
