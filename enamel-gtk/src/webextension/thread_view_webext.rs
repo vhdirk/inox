@@ -26,7 +26,7 @@ pub enum IpcMsg{
 }
 
 #[derive(Serialize, Deserialize)]
-struct IpcChannels{
+struct IpcChannel{
     tx: ipc::IpcSender<IpcMsg>,
     rx: ipc::IpcReceiver<IpcMsg>
 }
@@ -35,26 +35,36 @@ web_extension_init_with_data!();
 
 
 pub struct ThreadViewWebExt{
-
+    extension: WebExtension,
+    channel: IpcChannel
 }
 
 
 impl ThreadViewWebExt{
 
+    fn new(extension: WebExtension, channel: IpcChannel) -> Self{
+        let webext = ThreadViewWebExt{
+            extension,
+            channel
+        };
+
+        webext
+    }
 }
 
 
 pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Variant>) {
     let user_string: Option<String> = user_data.and_then(Variant::get_str).map(ToOwned::to_owned);
+    dbg!(user_string);
     // get the socket name
-    let chans_s = user_string.unwrap();
-    let chans_str = chans_s.as_str();
+    // let chans_str = user_data.get_str().unwrap();
 
-    let chans: IpcChannels = toml::from_str(chans_str).unwrap();
-    assert!(false);
+    // let webext = ThreadViewWebExt::new(
+    //     extension.clone(),
+    //     toml::from_str(chans_str).unwrap()
+    // );
 
-
-    println!("Webextension: {:?}", user_data);
+    panic!("we got here");
 
 
     extension.connect_page_created(|_, page| {

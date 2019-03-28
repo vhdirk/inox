@@ -35,7 +35,8 @@ pub struct ThreadView{
 
 pub struct ThreadViewModel {
     relm: Relm<ThreadView>,
-    app: Rc<EnamelApp>
+    app: Rc<EnamelApp>,
+    webcontext: webkit2gtk::WebContext
 }
 
 
@@ -50,7 +51,7 @@ pub enum Msg {
     ShowThread(Thread)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum IpcMsg{
 
 }
@@ -67,11 +68,18 @@ impl ThreadView{
     fn initialize_web_extensions(&mut self)
     {
         info!("initialize_web_extensions");
-        let ctx = self.webview.get_context().unwrap();
-        // let socket_addr = format!("/tmp/enamel.{}.{}",
-        //     process::id(),
-        //     Uuid::new_v4()
-        // );
+        let ctx = self.model.webcontext.clone();
+
+        let cur_exe = std::env::current_exe().unwrap();
+        let exe_dir = cur_exe.parent().unwrap();
+        //let extdir = exe_dir.to_string_lossy(); 
+
+        let extdir = "/home/dvhaeren/projects/webkit2gtk-webextension-rs/example/target/debug/";
+
+        info!("setting web extensions directory: {:?}", extdir);
+        ctx.set_web_extensions_directory(&extdir);
+
+
         let (ipc_tx, ipc_rx_remote): (ipc::IpcSender<IpcMsg>, ipc::IpcReceiver<IpcMsg>) = ipc::channel().unwrap();
         let (ipc_tx_remote, ipc_rx): (ipc::IpcSender<IpcMsg>, ipc::IpcReceiver<IpcMsg>) = ipc::channel().unwrap();
 
@@ -81,14 +89,11 @@ impl ThreadView{
         };
 
         let chans_str = toml::to_string(&chans).unwrap();
-        // let (ipc_srv, ipc_srv_name) = ipc::IpcOneShotServer::new().unwrap();
-
         ctx.set_web_extensions_initialization_user_data(&chans_str.to_variant());
 
-        let cur_exe = std::env::current_exe().unwrap();
-        let exe_dir = cur_exe.parent().unwrap();
-        let extdir = exe_dir.to_string_lossy(); 
-        ctx.set_web_extensions_directory(&extdir);
+        // let data = ipc_rx.recv();
+
+        // info!("received from wext: {:?}", data);
 
         // let (_, ipc_tx): (_, ipc::IpcSender<IpcMsg>) = ipc_srv.accept().unwrap();
 
@@ -219,9 +224,18 @@ impl Update for ThreadView {
 
 
     fn model(relm: &Relm<Self>, app: Self::ModelParam) -> Self::Model {
+        let ctx = webkit2gtk::WebContext::get_default().unwrap();
+        ctx.set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
+
+        connect!(relm,
+                 ctx,
+                 connect_initialize_web_extensions(_),
+                 Msg::InitializeWebExtensions);
+
         ThreadViewModel {
             relm: relm.clone(),
-            app
+            app,
+            webcontext: ctx    
         }
     }
 
@@ -249,11 +263,7 @@ impl Widget for ThreadView {
         let container = model.app.builder.get_object::<gtk::Box>("thread_view_box")
                                                .expect("Couldn't find thread_list_scrolled in ui file.");
 
-
-        let ctx = webkit2gtk::WebContext::get_default().unwrap();
-        ctx.set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
-
-
+        let ctx = model.webcontext.clone();
         let webview = webkit2gtk::WebView::new_with_context_and_user_content_manager(&ctx, &webkit2gtk::UserContentManager::new());
 
         container.pack_start(&webview, true, true, 0);
@@ -268,6 +278,8 @@ impl Widget for ThreadView {
 
 
     fn init_view(&mut self) {
+        
+        info!("init view");
 
         let settings = webkit2gtk::WebViewExt::get_settings(&self.webview).unwrap();
 
@@ -294,13 +306,10 @@ impl Widget for ThreadView {
 
     // add_events (Gdk::KEY_PRESS_MASK);
 
-        connect!(self.model.relm, self.webview, connect_decide_policy(_, decision, decision_type),
+        connect!(self.model.relm,
+                 self.webview,
+                 connect_decide_policy(_, decision, decision_type),
                  return (Msg::DecidePolicy(decision.clone(), decision_type), false));
-
-
-        connect!(self.model.relm, self.webview.get_context().unwrap(), connect_initialize_web_extensions(_), Msg::InitializeWebExtensions);
-
-        // let ctx = self.webview.get_context().unwrap();
 
 
         //self.load_html();
