@@ -97,6 +97,10 @@ fn default_version() -> i16 {
 }
 
 fn default_notmuch_config_path() -> String {
+    let env_var = std::env::var("NOTMUCH_CONFIG");
+    if env_var.is_ok(){
+        return env_var.unwrap();
+    };
     "~/.notmuch-config".to_string()
 }
 
