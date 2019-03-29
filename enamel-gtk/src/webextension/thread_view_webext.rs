@@ -55,16 +55,13 @@ impl ThreadViewWebExt{
 
 pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Variant>) {
     let user_string: Option<String> = user_data.and_then(Variant::get_str).map(ToOwned::to_owned);
-    dbg!(user_string);
     // get the socket name
-    // let chans_str = user_data.get_str().unwrap();
+    let chans_str = user_string.unwrap();
 
-    // let webext = ThreadViewWebExt::new(
-    //     extension.clone(),
-    //     toml::from_str(chans_str).unwrap()
-    // );
-
-    panic!("we got here");
+    let webext = ThreadViewWebExt::new(
+        extension.clone(),
+        toml::from_str(&chans_str).unwrap()
+    );
 
 
     extension.connect_page_created(|_, page| {

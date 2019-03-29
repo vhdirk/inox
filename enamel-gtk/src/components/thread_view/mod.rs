@@ -27,6 +27,19 @@ use enamel_core::database::Thread;
 use crate::app::EnamelApp;
 
 
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum IpcMsg{
+
+}
+
+#[derive(Serialize, Deserialize)]
+struct IpcChannels{
+    tx: ipc::IpcSender<IpcMsg>,
+    rx: ipc::IpcReceiver<IpcMsg>
+}
+
+
 pub struct ThreadView{
     model: ThreadViewModel,
     container: gtk::Box,
@@ -36,7 +49,8 @@ pub struct ThreadView{
 pub struct ThreadViewModel {
     relm: Relm<ThreadView>,
     app: Rc<EnamelApp>,
-    webcontext: webkit2gtk::WebContext
+    webcontext: webkit2gtk::WebContext,
+    channels: IpcChannels
 }
 
 
@@ -51,30 +65,16 @@ pub enum Msg {
     ShowThread(Thread)
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub enum IpcMsg{
 
-}
+impl ThreadViewModel{
 
-#[derive(Serialize, Deserialize)]
-struct IpcChannels{
-    tx: ipc::IpcSender<IpcMsg>,
-    rx: ipc::IpcReceiver<IpcMsg>
-}
-
-impl ThreadView{
-
-
-    fn initialize_web_extensions(&mut self)
+    fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> IpcChannels
     {
         info!("initialize_web_extensions");
-        let ctx = self.model.webcontext.clone();
 
         let cur_exe = std::env::current_exe().unwrap();
         let exe_dir = cur_exe.parent().unwrap();
-        //let extdir = exe_dir.to_string_lossy(); 
-
-        let extdir = "/home/dvhaeren/projects/webkit2gtk-webextension-rs/example/target/debug/";
+        let extdir = exe_dir.to_string_lossy(); 
 
         info!("setting web extensions directory: {:?}", extdir);
         ctx.set_web_extensions_directory(&extdir);
@@ -97,8 +97,15 @@ impl ThreadView{
 
         // let (_, ipc_tx): (_, ipc::IpcSender<IpcMsg>) = ipc_srv.accept().unwrap();
 
-        // ipc_srv.
+        chans
     }
+
+}
+
+
+impl ThreadView{
+
+
 
     fn load_changed(&mut self, event: webkit2gtk::LoadEvent){
         info!("ThreadView: load changed: {:?}", event);
@@ -227,22 +234,25 @@ impl Update for ThreadView {
         let ctx = webkit2gtk::WebContext::get_default().unwrap();
         ctx.set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
 
-        connect!(relm,
-                 ctx,
-                 connect_initialize_web_extensions(_),
-                 Msg::InitializeWebExtensions);
+        // can't use relm for this since it would get called too late
+        let chans = ThreadViewModel::initialize_web_extensions(&ctx);
+        // connect!(relm,
+        //          ctx,
+        //          connect_initialize_web_extensions(_),
+        //          Msg::InitializeWebExtensions);
 
         ThreadViewModel {
             relm: relm.clone(),
             app,
-            webcontext: ctx    
+            webcontext: ctx,
+            channels: chans    
         }
     }
 
 
     fn update(&mut self, msg: Msg) {
         match msg {
-            Msg::InitializeWebExtensions => self.initialize_web_extensions(),
+            Msg::InitializeWebExtensions => (), //self.initialize_web_extensions(),
             Msg::LoadChanged(event) => self.load_changed(event), 
             Msg::DecidePolicy(decision, decision_type) => self.decide_policy(&decision, decision_type),
             Msg::ShowThread(thread) => self.show_thread(thread)
@@ -264,11 +274,11 @@ impl Widget for ThreadView {
                                                .expect("Couldn't find thread_list_scrolled in ui file.");
 
         let ctx = model.webcontext.clone();
+
         let webview = webkit2gtk::WebView::new_with_context_and_user_content_manager(&ctx, &webkit2gtk::UserContentManager::new());
 
         container.pack_start(&webview, true, true, 0);
         
-
         ThreadView {
             model,
             container,
@@ -312,7 +322,7 @@ impl Widget for ThreadView {
                  return (Msg::DecidePolicy(decision.clone(), decision_type), false));
 
 
-        //self.load_html();
+        self.load_html();
 
     // register_keys ();
 
