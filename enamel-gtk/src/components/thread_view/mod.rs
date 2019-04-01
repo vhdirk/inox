@@ -1,10 +1,13 @@
 use std::rc::Rc;
 use std::thread;
-use std::cell::Cell;
 use std::process;
+use std::cell::Cell;
+use std::path::Path;
 use serde_derive::{Serialize, Deserialize};
 use log::*;
 use gio;
+use gio::SocketListenerExt;
+
 use glib;
 use gtk;
 use gtk::prelude::*;
@@ -15,7 +18,7 @@ use gmime;
 use gmime::{ParserExt, PartExt};
 use bincode;
 use relm::{Relm, Widget, Update};
-use relm_state::{connect, connect_stream};
+use relm_state::{connect, connect_stream, connect_async, connect_async_full};
 use relm_derive::Msg;
 use ipc_channel::ipc;
 use uuid::Uuid;
@@ -33,13 +36,6 @@ pub enum IpcMsg{
 
 }
 
-#[derive(Serialize, Deserialize)]
-struct IpcChannels{
-    tx: ipc::IpcSender<IpcMsg>,
-    rx: ipc::IpcReceiver<IpcMsg>
-}
-
-
 pub struct ThreadView{
     model: ThreadViewModel,
     container: gtk::Box,
@@ -50,7 +46,7 @@ pub struct ThreadViewModel {
     relm: Relm<ThreadView>,
     app: Rc<EnamelApp>,
     webcontext: webkit2gtk::WebContext,
-    channels: IpcChannels
+    srv: gio::SocketListener
 }
 
 
@@ -59,6 +55,8 @@ pub struct ThreadViewModel {
 #[derive(Msg, Debug)]
 pub enum Msg {
     InitializeWebExtensions,
+    ExtensionConnect((gio::SocketConnection, glib::Object)),
+
     LoadChanged(webkit2gtk::LoadEvent),
     DecidePolicy(webkit2gtk::PolicyDecision, webkit2gtk::PolicyDecisionType),
     
@@ -68,7 +66,7 @@ pub enum Msg {
 
 impl ThreadViewModel{
 
-    fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> IpcChannels
+    fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> gio::SocketListener
     {
         info!("initialize_web_extensions");
 
@@ -79,25 +77,23 @@ impl ThreadViewModel{
         info!("setting web extensions directory: {:?}", extdir);
         ctx.set_web_extensions_directory(&extdir);
 
+        let socket_addr = format!("/tmp/enamel/tv.{}.{}.sock", 
+                                  process::id(),
+                                  Uuid::new_v4());
 
-        let (ipc_tx, ipc_rx_remote): (ipc::IpcSender<IpcMsg>, ipc::IpcReceiver<IpcMsg>) = ipc::channel().unwrap();
-        let (ipc_tx_remote, ipc_rx): (ipc::IpcSender<IpcMsg>, ipc::IpcReceiver<IpcMsg>) = ipc::channel().unwrap();
+        let gsock_addr = gio::UnixSocketAddress::new_with_type(
+            gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
 
-        let chans = IpcChannels{
-            tx: ipc_tx_remote,
-            rx: ipc_rx_remote
-        };
+        let srv = gio::SocketListener::new();
+        let res = srv.add_address(&gsock_addr,
+                                  gio::SocketType::Stream,
+                                  gio::SocketProtocol::Default,
+                                  Some(&gsock_addr)).unwrap();
+        info!("sock addr: {:?}", res);
 
-        let chans_str = toml::to_string(&chans).unwrap();
-        ctx.set_web_extensions_initialization_user_data(&chans_str.to_variant());
+        ctx.set_web_extensions_initialization_user_data(&socket_addr.to_variant());
 
-        // let data = ipc_rx.recv();
-
-        // info!("received from wext: {:?}", data);
-
-        // let (_, ipc_tx): (_, ipc::IpcSender<IpcMsg>) = ipc_srv.accept().unwrap();
-
-        chans
+        srv
     }
 
 }
@@ -105,7 +101,10 @@ impl ThreadViewModel{
 
 impl ThreadView{
 
+    fn extension_connected(&mut self, conn: gio::SocketConnection, obj: glib::Object){
+        debug!("ThreadView: extension_connected: {:?} {:?}", conn, obj);
 
+    }
 
     fn load_changed(&mut self, event: webkit2gtk::LoadEvent){
         info!("ThreadView: load changed: {:?}", event);
@@ -235,17 +234,18 @@ impl Update for ThreadView {
         ctx.set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
 
         // can't use relm for this since it would get called too late
-        let chans = ThreadViewModel::initialize_web_extensions(&ctx);
-        // connect!(relm,
-        //          ctx,
-        //          connect_initialize_web_extensions(_),
-        //          Msg::InitializeWebExtensions);
+        let srv = ThreadViewModel::initialize_web_extensions(&ctx);
 
+        // accept connection from extension
+        connect_async_full!(srv,
+                            accept_async,
+                            relm,
+                            Msg::ExtensionConnect);
         ThreadViewModel {
             relm: relm.clone(),
             app,
             webcontext: ctx,
-            channels: chans    
+            srv    
         }
     }
 
@@ -253,6 +253,7 @@ impl Update for ThreadView {
     fn update(&mut self, msg: Msg) {
         match msg {
             Msg::InitializeWebExtensions => (), //self.initialize_web_extensions(),
+            Msg::ExtensionConnect(result) => self.extension_connected(result.0, result.1),
             Msg::LoadChanged(event) => self.load_changed(event), 
             Msg::DecidePolicy(decision, decision_type) => self.decide_policy(&decision, decision_type),
             Msg::ShowThread(thread) => self.show_thread(thread)
@@ -311,6 +312,8 @@ impl Widget for ThreadView {
         settings.set_media_playback_requires_user_gesture(true);
         settings.set_enable_developer_extras(true); // TODO: should only enabled conditionally
  
+
+
 
         connect!(self.model.relm, self.webview, connect_load_changed(_,event), Msg::LoadChanged(event));
 
