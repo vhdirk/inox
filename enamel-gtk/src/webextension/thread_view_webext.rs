@@ -1,4 +1,6 @@
+use std::thread;
 use log::*;
+use env_logger;
 use ipc_channel::ipc;
 use bincode;
 use serde_derive::{Serialize, Deserialize};
@@ -6,6 +8,8 @@ use glib::Cast;
 use glib::Object;
 use glib::closure::Closure;
 use glib::variant::Variant;
+use gio;
+use gio::{SocketClientExt, IOStreamExt};
 use webkit2gtk_webextension::{
     DOMDocumentExt,
     DOMElementExt,
@@ -43,25 +47,56 @@ pub struct ThreadViewWebExt{
 impl ThreadViewWebExt{
 
     fn new(extension: WebExtension, channel: IpcChannel) -> Self{
-        let webext = ThreadViewWebExt{
+        ThreadViewWebExt{
             extension,
             channel
-        };
+        }
+    }
 
-        webext
+
+    fn reader(&self){
+
+
+
     }
 }
 
 
-pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Variant>) {
-    let user_string: Option<String> = user_data.and_then(Variant::get_str).map(ToOwned::to_owned);
-    // get the socket name
-    let chans_str = user_string.unwrap();
+/// Init Gtk and logger.
+fn init() {
+    use std::sync::{Once, ONCE_INIT};
 
-    let webext = ThreadViewWebExt::new(
-        extension.clone(),
-        toml::from_str(&chans_str).unwrap()
-    );
+    static START: Once = ONCE_INIT;
+
+    START.call_once(|| {
+        env_logger::init();
+    });
+}
+
+
+pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Variant>) {
+    init();
+
+    let user_string: Option<String> = user_data.and_then(Variant::get_str).map(ToOwned::to_owned);
+    debug!("user string: {:?}", user_string);
+
+    let socket_addr = user_string.unwrap();
+
+    let gsock_addr = gio::UnixSocketAddress::new_with_type(
+        gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
+
+    // connect to socket
+    let cli = gio::SocketClient::new();
+    let sock = cli.connect(&gsock_addr, None::<&gio::Cancellable>).unwrap();
+
+    let istream = sock.get_input_stream();
+    let ostream = sock.get_output_stream();
+
+    info!("stream:{:?}", istream);
+    // thread::spawn(move || {
+
+    //     webext.channel.rx.recv();
+    // });
 
 
     extension.connect_page_created(|_, page| {
