@@ -22,43 +22,20 @@ use webkit2gtk_webextension::{
     WebPageExt,
     web_extension_init_with_data
 };
-use toml;
+use relm::init as relm_init;
+use relm::Component;
+use crate::protocol::MessageInputStream;
 
 #[derive(Serialize, Deserialize)]
 pub enum IpcMsg{
 
 }
 
-#[derive(Serialize, Deserialize)]
-struct IpcChannel{
-    tx: ipc::IpcSender<IpcMsg>,
-    rx: ipc::IpcReceiver<IpcMsg>
-}
-
 web_extension_init_with_data!();
 
 
 pub struct ThreadViewWebExt{
-    extension: WebExtension,
-    channel: IpcChannel
-}
-
-
-impl ThreadViewWebExt{
-
-    fn new(extension: WebExtension, channel: IpcChannel) -> Self{
-        ThreadViewWebExt{
-            extension,
-            channel
-        }
-    }
-
-
-    fn reader(&self){
-
-
-
-    }
+    extension: WebExtension
 }
 
 
@@ -89,14 +66,15 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
     let cli = gio::SocketClient::new();
     let sock = cli.connect(&gsock_addr, None::<&gio::Cancellable>).unwrap();
 
-    let istream = sock.get_input_stream();
-    let ostream = sock.get_output_stream();
+    let istream = sock.get_input_stream().unwrap();
+    let ostream = sock.get_output_stream().unwrap();
 
     info!("stream:{:?}", istream);
-    // thread::spawn(move || {
 
-    //     webext.channel.rx.recv();
-    // });
+    let distream = gio::DataInputStream::new(&istream);
+
+    distream.read_message(None::<&gio::Cancellable>);
+
 
 
     extension.connect_page_created(|_, page| {
