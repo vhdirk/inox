@@ -30,12 +30,6 @@ use enamel_core::database::Thread;
 use crate::app::EnamelApp;
 
 
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum IpcMsg{
-
-}
-
 pub struct ThreadView{
     model: ThreadViewModel,
     container: gtk::Box,
