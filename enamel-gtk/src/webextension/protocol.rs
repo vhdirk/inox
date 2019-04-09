@@ -2,31 +2,32 @@ use std::cmp;
 use glib;
 use gio;
 use gio::{InputStreamExt,
-          DataInputStreamExt,
-          OutputStreamExt,
-          DataOutputStreamExt};
+          OutputStreamExt};
 use serde_derive::{Serialize, Deserialize};
 use bincode::{serialize, deserialize};
-// use futures_core::Future;
-use std::boxed::Box as Box_;
+use bytes::{ByteOrder, LittleEndian};
+use fragile::Fragile;
+use futures_core::Future;
+use futures_core::future;
+use futures_util::future::FutureExt;
 
 const MAX_MESSAGE_SZ: u64 = 200 * 1024 * 1024; // 200 MB
 
 
 pub enum Error{
-    ioError(gio::Error),
-    serdeError(bincode::Error),
+    IoError(gio::Error),
+    SerdeError(bincode::Error),
 }
 
 impl From<gio::Error> for Error {
     fn from(err: gio::Error) -> Error {
-        Error::ioError(err)
+        Error::IoError(err)
     }
 }
 
 impl From<bincode::Error> for Error {
     fn from(err: bincode::Error) -> Error {
-        Error::serdeError(err)
+        Error::SerdeError(err)
     }
 }
 
@@ -82,41 +83,180 @@ pub enum Message{
 
 
 pub trait MessageInputStream{
-    fn read_message<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>>(self, cancellable: Q) -> Result<Message, Error>;
+    fn read_message<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>>(&self, cancellable: Q) -> Result<Message, Error>;
 
-}
+    fn read_message_async<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>, R: FnOnce(Result<Message, Error>) + Send + 'static>(
+        &self, 
+        io_priority: glib::Priority, 
+        cancellable: Q, 
+        callback: R);
 
-impl MessageInputStream for gio::DataInputStream{
-    fn read_message<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>>(self, cancellable: Q) -> Result<Message, Error>
-    {
-        let cancl = cancellable.into();
-        let msg_len = self.read_uint64(cancl)?;
-        let msg_size = cmp::min(msg_len, MAX_MESSAGE_SZ);
-        let msg_b = self.read_bytes(msg_size as usize, cancl)?;
-
-        match deserialize::<Message>(&msg_b){
-            Ok(msg) => Ok(msg),
-            Err(err) => Err(Error::serdeError(err))
-        }
-    }
+    fn read_message_async_future(&self, io_priority: glib::Priority) -> Box<Future<Item = (Self, Message), Error = (Self, Error)>>
+        where Self: Sized + Clone;
 }
 
 pub trait MessageOutputStream{
     fn write_message<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>>(self, msg: Message, cancellable: Q) -> Result<(), Error>;
 
+    fn write_message_async<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>, R: FnOnce(Result<(), Error>) + Send + 'static>(&self, 
+        msg: &Message, 
+        io_priority: glib::Priority, 
+        cancellable: Q, 
+        callback: R);
+
+    fn write_message_async_future(
+        &self, 
+        msg: &Message, 
+        io_priority: glib::Priority
+    ) -> Box<Future<Item = (Self, ()), Error = (Self, Error)>>
+    where
+        Self: Sized + Clone;
 }
 
-impl MessageOutputStream for gio::DataOutputStream{
+
+impl MessageInputStream for gio::InputStream{
+    fn read_message<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>>(&self, cancellable: Q) -> Result<Message, Error>
+    {
+        let cancl = cancellable.into();
+        let msg_len_b = self.read_bytes(8, cancl.clone())?;
+        let msg_len = LittleEndian::read_u64(&msg_len_b);
+        let msg_size = cmp::min(msg_len, MAX_MESSAGE_SZ);
+        let msg_b = self.read_bytes(msg_size as usize, cancl)?;
+
+        match deserialize::<Message>(&msg_b){
+            Ok(msg) => Ok(msg),
+            Err(err) => Err(Error::from(err))
+        }
+    }
+
+    fn read_message_async<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>, R: FnOnce(Result<Message, Error>) + Send + 'static>(
+        &self, 
+        io_priority: glib::Priority, 
+        cancellable: Q, 
+        callback: R)
+    {
+        let cancl = cancellable.into();
+        let this = Fragile::new(self.clone());
+        self.read_bytes_async(8, io_priority, cancl.clone(), move |sret| {
+            match sret{
+                Ok(buf) => {
+                    let msg_len = LittleEndian::read_u64(&buf);
+                    let msg_size = cmp::min(msg_len, MAX_MESSAGE_SZ);
+                    this.get().read_bytes_async(msg_size as usize, io_priority, gio::Cancellable::get_current().as_ref(), move |mret| {
+                        match mret{
+                            Ok(msg_b) => {
+                                match deserialize::<Message>(&msg_b){
+                                    Ok(msg) => callback(Ok(msg)),
+                                    Err(err) => callback(Err(Error::from(err)))
+                                }
+                            },
+                            Err(err) => callback(Err(Error::from(err)))
+                        }
+                    });
+                },
+                Err(err) => callback(Err(Error::from(err)))
+            }
+        });
+    }
+
+    fn read_message_async_future(&self, io_priority: glib::Priority) -> Box<Future<Item = (Self, Message), Error = (Self, Error)>>
+        where Self: Sized + Clone
+    {
+        let f = self.read_bytes_async_future(8, io_priority)
+        .and_then(move |(is, buf)| {
+            let msg_len = LittleEndian::read_u64(&buf);
+            let msg_size = cmp::min(msg_len, MAX_MESSAGE_SZ);
+            is.read_bytes_async_future(msg_size as usize, io_priority)
+        }).map_err(|(is, err)| {
+            (is, Error::from(err))
+        }).and_then(move |(is, buf)| {
+            match deserialize::<Message>(&buf){
+                Ok(msg) => future::ok((is, msg)),
+                Err(err) => future::err((is, Error::from(err)))
+            }
+        });
+
+        Box::new(f)
+    }
+
+}
+
+impl MessageOutputStream for gio::OutputStream{
     fn write_message<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>>(self, msg: Message, cancellable: Q) -> Result<(), Error>
     {
         let cancl = cancellable.into();
         let msg_ser = serialize(&msg)?;
-        let msg_len = msg_ser.len();
-        self.put_uint64(msg_len as u64, cancl)?;
-        let msg_b = glib::Bytes::from(&msg_ser);
-        self.write_bytes(&msg_b, cancl)?;
+        let mut msg_len = [0; 8];
+        LittleEndian::write_u64(&mut msg_len, msg_ser.len() as u64);
+        
+        let tmsg = [&msg_len, msg_ser.as_slice()].concat();
+        let ttmsg = glib::Bytes::from(tmsg.as_slice()); 
+        self.write_bytes(&ttmsg, cancl)?;
 
         Ok(())
+    }
+
+    fn write_message_async<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>, R: FnOnce(Result<(), Error>) + Send + 'static>(&self, 
+        msg: &Message, 
+        io_priority: glib::Priority, 
+        cancellable: Q, 
+        callback: R)
+    {
+        let cancl = cancellable.into();
+
+        let msg_ser = match serialize(&msg){
+            Ok(ser) => ser,
+            Err(err) => {
+                callback(Err(Error::from(err)));
+                return;
+            }
+        };
+        
+        let mut msg_len = [0; 8];
+        LittleEndian::write_u64(&mut msg_len, msg_ser.len() as u64);
+        
+        let tmsg = [&msg_len, msg_ser.as_slice()].concat();
+        let ttmsg = glib::Bytes::from(tmsg.as_slice()); 
+
+        self.write_bytes_async(&ttmsg, io_priority, cancl, move |ret|{
+            match ret{
+                Ok(_sz) => callback(Ok(())),
+                Err(err) => callback(Err(Error::from(err)))
+            }
+        });
+    }
+
+
+    fn write_message_async_future(
+        &self, 
+        msg: &Message, 
+        io_priority: glib::Priority
+    ) -> Box<Future<Item = (Self, ()), Error = (Self, Error)>>
+    where
+        Self: Sized + Clone
+    {
+        let msg_ser = match serialize(&msg){
+            Ok(ser) => ser,
+            Err(err) => {
+                return Box::new(future::err((self.clone(), Error::from(err))));
+            }
+        };
+        
+        let mut msg_len = [0; 8];
+        LittleEndian::write_u64(&mut msg_len, msg_ser.len() as u64);
+        
+        let tmsg = [&msg_len, msg_ser.as_slice()].concat();
+        let ttmsg = glib::Bytes::from(tmsg.as_slice()); 
+
+
+        let f = self.write_bytes_async_future(&ttmsg, io_priority)
+        .map_err(|(is, err)| {
+            (is, Error::from(err))
+        }).map(|(is, _sz)| {
+            (is, ())
+        });
+
+        Box::new(f)
     }
 }
 

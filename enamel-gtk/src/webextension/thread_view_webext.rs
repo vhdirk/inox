@@ -71,9 +71,7 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
 
     info!("stream:{:?}", istream);
 
-    let distream = gio::DataInputStream::new(&istream);
-
-    distream.read_message(None::<&gio::Cancellable>);
+    istream.read_message(None::<&gio::Cancellable>);
 
 
 
