@@ -36,7 +36,13 @@ supercow = "0.1.0"
 dirs = "1.0.4"
 ipc-channel = "0.11.2"
 bincode = "1.0.1"
+bytes = { version = "0.4.12", features = ["serde"] }
 uuid = { version = "0.7", features = ["v4"] }
+fragile = "0.3.0"
+futures-core-preview = "0.2"
+futures-channel-preview = "0.2"
+futures-util-preview = "0.2"
+
 
 chrono = { version = "0.4", features = ["serde"] }
 
