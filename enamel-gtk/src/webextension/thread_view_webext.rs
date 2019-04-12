@@ -26,7 +26,7 @@ use webkit2gtk_webextension::{
 use relm::init as relm_init;
 use relm::Component;
 use toml;
-use crate::protocol::{Message, MessageInputStream, IpcChannels};
+use crate::protocol::{PageMessage, PageChannel};
 
 
 web_extension_init_with_data!();
@@ -75,8 +75,8 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
 
     // get the socket name
     let srv_name = user_string.unwrap();
-    let (remote_tx, ipc_rx) = ipc::channel::<Message>().unwrap();
-    let (ipc_tx, remote_rx) = ipc::channel::<Message>().unwrap();
+    let (remote_tx, ipc_rx) = ipc::channel::<PageMessage>().unwrap();
+    let (ipc_tx, remote_rx) = ipc::channel::<PageMessage>().unwrap();
 
     let srv_tx = IpcSender::connect(srv_name).unwrap();
     srv_tx.send((remote_tx, remote_rx));

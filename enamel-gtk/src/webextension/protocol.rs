@@ -61,15 +61,15 @@ pub enum NavigateType {
 
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct IpcChannels{
-    pub tx: ipc::IpcSender<Message>,
-    pub rx: ipc::IpcReceiver<Message>
+pub struct PageChannel{
+    pub tx: ipc::IpcSender<PageMessage>,
+    pub rx: ipc::IpcReceiver<PageMessage>
 }
 
 
 
 #[derive(Deserialize, Serialize, Debug)]
-pub enum Message{
+pub enum PageMessage{
     Ack(/*id:*/i32, /*success:*/bool, /*focus:*/Focus),
     Indent(bool),
     AllowRemoteImages(bool),
@@ -91,7 +91,7 @@ pub enum Message{
 
 
 
-pub trait MessageInputStream{
+pub trait MessageInputStream<Message>{
     fn read_message<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>>(&self, cancellable: Q) -> Result<Message, Error>;
 
     fn read_message_async<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>, R: FnOnce(Result<Message, Error>) + Send + 'static>(
@@ -100,11 +100,11 @@ pub trait MessageInputStream{
         cancellable: Q, 
         callback: R);
 
-    fn read_message_async_future(&self, io_priority: glib::Priority) -> Box<Future<Item = (Self, Message), Error = (Self, Error)>>
-        where Self: Sized + Clone;
+    // fn read_message_async_future(&self, io_priority: glib::Priority) -> Box<Future<Item = (Self, Message), Error = (Self, Error)>>
+    //     where Self: Sized + Clone;
 }
 
-pub trait MessageOutputStream{
+pub trait MessageOutputStream<Message>{
     fn write_message<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>>(self, msg: Message, cancellable: Q) -> Result<(), Error>;
 
     fn write_message_async<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>, R: FnOnce(Result<(), Error>) + Send + 'static>(&self, 
@@ -123,7 +123,10 @@ pub trait MessageOutputStream{
 }
 
 
-impl MessageInputStream for gio::InputStream{
+impl<Message> MessageInputStream<Message> for gio::InputStream
+where
+    Message: serde::de::DeserializeOwned
+{
     fn read_message<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>>(&self, cancellable: Q) -> Result<Message, Error>
     {
         let cancl = cancellable.into();
@@ -168,29 +171,32 @@ impl MessageInputStream for gio::InputStream{
         });
     }
 
-    fn read_message_async_future(&self, io_priority: glib::Priority) -> Box<Future<Item = (Self, Message), Error = (Self, Error)>>
-        where Self: Sized + Clone
-    {
-        let f = self.read_bytes_async_future(8, io_priority)
-        .and_then(move |(is, buf)| {
-            let msg_len = LittleEndian::read_u64(&buf);
-            let msg_size = cmp::min(msg_len, MAX_MESSAGE_SZ);
-            is.read_bytes_async_future(msg_size as usize, io_priority)
-        }).map_err(|(is, err)| {
-            (is, Error::from(err))
-        }).and_then(move |(is, buf)| {
-            match deserialize::<Message>(&buf){
-                Ok(msg) => future::ok((is, msg)),
-                Err(err) => future::err((is, Error::from(err)))
-            }
-        });
+    // TODO: not sure how to fixe the lifetime constraints here
+    // fn read_message_async_future(&self, io_priority: glib::Priority) -> Box<Future<Item = (Self, Message), Error = (Self, Error)>>
+    //     where Self: Sized + Clone
+    // {
+    //     let f = self.read_bytes_async_future(8, io_priority)
+    //     .and_then(move |(is, buf)| {
+    //         let msg_len = LittleEndian::read_u64(&buf);
+    //         let msg_size = cmp::min(msg_len, MAX_MESSAGE_SZ);
+    //         is.read_bytes_async_future(msg_size as usize, io_priority)
+    //     }).map_err(|(is, err)| {
+    //         (is, Error::from(err))
+    //     }).and_then(move |(is, buf)| {
+    //         match deserialize::<Message>(&buf){
+    //             Ok(msg) => future::ok((is, msg)),
+    //             Err(err) => future::err((is, Error::from(err)))
+    //         }
+    //     });
 
-        Box::new(f)
-    }
-
+    //     Box::new(f)
+    // }
 }
 
-impl MessageOutputStream for gio::OutputStream{
+impl<Message> MessageOutputStream<Message> for gio::OutputStream
+where
+    Message: serde::Serialize
+{
     fn write_message<'a, P: glib::IsA<gio::Cancellable> + 'a, Q: Into<Option<&'a P>>>(self, msg: Message, cancellable: Q) -> Result<(), Error>
     {
         let cancl = cancellable.into();

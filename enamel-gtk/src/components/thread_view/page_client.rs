@@ -1,11 +1,87 @@
+use std::thread;
+use std::rc::Rc;
+use std::cell::RefCell;
+use ipc_channel::ipc::{IpcOneShotServer, IpcSender, IpcReceiver};
 
+use crate::webextension::protocol::{PageMessage, PageChannel};
 
-struct PageClient{
-
+#[derive(Debug)]
+pub struct PageClient{
+    channel: RefCell<Option<PageChannel>>
 }
 
 
+impl PageClient{
 
+    pub fn new(srv: IpcOneShotServer<(IpcSender<PageMessage>, IpcReceiver<PageMessage>)>) -> Rc<Self>
+    {
+        let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+        thread::spawn(move || {
+            let (_, txrx) : (_, (IpcSender<PageMessage>, IpcReceiver<PageMessage>)) = srv.accept().unwrap();
+            let _ = sender.send(txrx);
+        });
+
+        let pc = Rc::new(Self{
+            channel: RefCell::new(None),
+        });
+
+        let cpc = pc.clone();
+
+        receiver.attach(None, move |(tx, rx)| {
+            *cpc.channel.borrow_mut() = Some(PageChannel{
+                tx,
+                rx
+            });
+
+            glib::Continue(false)
+        });
+        
+        pc
+    }
+
+    pub fn is_ready(&self) -> bool{
+        self.channel.borrow().is_some()
+    }
+
+    pub fn clear_messages(&mut self){
+
+    }
+
+    pub fn load(&mut self){
+        /* load style sheet */
+        dbg!("pc: sending page..");
+//     AstroidMessages::Page s;
+//     s.set_css  (thread_view->theme.thread_view_css.c_str ());
+//     s.set_part_css (thread_view->theme.part_css.c_str ());
+//     s.set_html (thread_view->theme.thread_view_html.c_str ());
+
+//     s.set_use_stdout (astroid->log_stdout);
+//     s.set_use_syslog (astroid->log_syslog);
+//     s.set_disable_log (astroid->disable_log);
+//     s.set_log_level (astroid->log_level);
+
+//     /* send allowed URIs */
+//     s.add_allowed_uris (thread_view->home_uri);
+
+//     if (enable_gravatar) {
+//       s.add_allowed_uris ("https://www.gravatar.com/avatar/");
+//     }
+
+// # ifndef DISABLE_PLUGINS
+//     /* get plugin allowed uris */
+//     std::vector<ustring> puris = thread_view->plugins->get_allowed_uris ();
+//     if (puris.size() > 0) {
+//       LOG (debug) << "pc: plugin allowed uris: " << VectorUtils::concat_tags (puris);
+//       for (auto &p : puris) {
+//         s.add_allowed_uris (p);
+//       }
+//     }
+// # endif
+
+//     AeProtocol::send_message_sync (AeProtocol::MessageTypes::Page, s, ostream, m_ostream, istream, m_istream);
+    }
+
+}
 
 // using namespace boost::filesystem;
 
@@ -223,7 +299,7 @@ struct PageClient{
 
 //     state.set_edit_mode (thread_view->edit_mode);
 
-//     for (refptr<Message> &ms : thread_view->mthread->messages) {
+//     for (refptr<PageMessage> &ms : thread_view->mthread->messages) {
 //       AstroidMessages::State::MessageState * m = state.add_messages ();
 
 //       m->set_mid (ms->safe_mid ());
@@ -255,7 +331,7 @@ struct PageClient{
 //     );
 //   }
 
-//   void PageClient::set_marked_state (refptr<Message> m, bool marked) {
+//   void PageClient::set_marked_state (refptr<PageMessage> m, bool marked) {
 //     AstroidMessages::Mark msg;
 //     msg.set_mid (m->safe_mid ());
 //     msg.set_marked (marked);
@@ -265,7 +341,7 @@ struct PageClient{
 //       );
 //   }
 
-//   void PageClient::set_hidden_state (refptr<Message> m, bool hidden) {
+//   void PageClient::set_hidden_state (refptr<PageMessage> m, bool hidden) {
 //     LOG (debug) << "pc: set hidden state";
 //     AstroidMessages::Hidden msg;
 //     msg.set_mid (m->safe_mid ());
@@ -276,7 +352,7 @@ struct PageClient{
 //         );
 //   }
 
-//   void PageClient::set_focus (refptr<Message> m, unsigned int e) {
+//   void PageClient::set_focus (refptr<PageMessage> m, unsigned int e) {
 //     if (m) {
 //       LOG (debug) << "pc: focusing: " << m->safe_mid () << ": " << e;
 //       AstroidMessages::Focus msg;
@@ -292,7 +368,7 @@ struct PageClient{
 //     }
 //   }
 
-//   void PageClient::toggle_part (refptr<Message> m, refptr<Chunk> c, ThreadView::MessageState::Element el) {
+//   void PageClient::toggle_part (refptr<PageMessage> m, refptr<Chunk> c, ThreadView::MessageState::Element el) {
 //     /* hides current sibling part and shows the focused one */
 //     LOG (debug) << "pc: toggling part: " << m->safe_mid () << ", " << c->id;
 
@@ -318,7 +394,7 @@ struct PageClient{
 //     update_message (m, AstroidMessages::UpdateMessage_Type_VisibleParts);
 //   }
 
-//   void PageClient::remove_message (refptr<Message> m) {
+//   void PageClient::remove_message (refptr<PageMessage> m) {
 //     AstroidMessages::Message msg;
 //     msg.set_mid (m->safe_mid()); // just mid.
 //     handle_ack (
@@ -326,13 +402,13 @@ struct PageClient{
 //         );
 //   }
 
-//   void PageClient::add_message (refptr<Message> m) {
+//   void PageClient::add_message (refptr<PageMessage> m) {
 //     handle_ack (
 //         AeProtocol::send_message_sync (AeProtocol::MessageTypes::AddMessage, make_message (m), ostream, m_ostream, istream, m_istream)
 //         );
 //   }
 
-//   void PageClient::update_message (refptr<Message> m, AstroidMessages::UpdateMessage_Type t) {
+//   void PageClient::update_message (refptr<PageMessage> m, AstroidMessages::UpdateMessage_Type t) {
 
 //     AstroidMessages::UpdateMessage msg;
 //     *msg.mutable_m() = make_message (m, true);
@@ -343,7 +419,7 @@ struct PageClient{
 //         );
 //   }
 
-//   AstroidMessages::Message PageClient::make_message (refptr<Message> m, bool keep_state) {
+//   AstroidMessages::Message PageClient::make_message (refptr<PageMessage> m, bool keep_state) {
 //     typedef ThreadView::MessageState MessageState;
 //     AstroidMessages::Message msg;
 
@@ -510,7 +586,7 @@ struct PageClient{
 //     return msg;
 //   }
 
-//   AstroidMessages::Message::Chunk * PageClient::build_mime_tree (refptr<Message> m, refptr<Chunk> c, bool root, bool shallow, bool keep_state)
+//   AstroidMessages::Message::Chunk * PageClient::build_mime_tree (refptr<PageMessage> m, refptr<Chunk> c, bool root, bool shallow, bool keep_state)
 //   {
 //     typedef ThreadView::MessageState MessageState;
 
@@ -788,7 +864,7 @@ struct PageClient{
 //     return part;
 //   }
 
-//   void PageClient::set_warning (refptr<Message> m, ustring txt) {
+//   void PageClient::set_warning (refptr<PageMessage> m, ustring txt) {
 //     AstroidMessages::Info i;
 //     i.set_mid (m->safe_mid ());
 //     i.set_warning (true);
@@ -800,7 +876,7 @@ struct PageClient{
 //         );
 //   }
 
-//   void PageClient::hide_warning (refptr<Message> m) {
+//   void PageClient::hide_warning (refptr<PageMessage> m) {
 //     AstroidMessages::Info i;
 //     i.set_mid (m->safe_mid ());
 //     i.set_warning (true);
@@ -812,7 +888,7 @@ struct PageClient{
 //         );
 //   }
 
-//   void PageClient::set_info (refptr<Message> m, ustring txt) {
+//   void PageClient::set_info (refptr<PageMessage> m, ustring txt) {
 //     AstroidMessages::Info i;
 //     i.set_mid (m->safe_mid ());
 //     i.set_warning (false);
@@ -824,7 +900,7 @@ struct PageClient{
 //         );
 //   }
 
-//   void PageClient::hide_info (refptr<Message> m) {
+//   void PageClient::hide_info (refptr<PageMessage> m) {
 //     AstroidMessages::Info i;
 //     i.set_mid (m->safe_mid ());
 //     i.set_warning (false);
@@ -1013,7 +1089,7 @@ struct PageClient{
 //         );
 //   }
 
-//   void PageClient::focus_element (refptr<Message> m, unsigned int e) {
+//   void PageClient::focus_element (refptr<PageMessage> m, unsigned int e) {
 //     AstroidMessages::Navigate n;
 
 //     n.set_direction (AstroidMessages::Navigate_Direction_Specific);
