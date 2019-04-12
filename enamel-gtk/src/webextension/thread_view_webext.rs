@@ -1,7 +1,7 @@
 use std::thread;
 use log::*;
 use env_logger;
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSender};
 use bincode;
 use serde_derive::{Serialize, Deserialize};
 use glib::Cast;
@@ -10,6 +10,7 @@ use glib::closure::Closure;
 use glib::variant::Variant;
 use gio;
 use gio::{SocketClientExt, IOStreamExt};
+use gtk::IconThemeExt;
 use webkit2gtk_webextension::{
     DOMDocumentExt,
     DOMElementExt,
@@ -24,12 +25,9 @@ use webkit2gtk_webextension::{
 };
 use relm::init as relm_init;
 use relm::Component;
-use crate::protocol::MessageInputStream;
+use toml;
+use crate::protocol::{Message, MessageInputStream, IpcChannels};
 
-#[derive(Serialize, Deserialize)]
-pub enum IpcMsg{
-
-}
 
 web_extension_init_with_data!();
 
@@ -47,31 +45,68 @@ fn init() {
 
     START.call_once(|| {
         env_logger::init();
+        // gtk::init().expect("Error initializing gtk.");
     });
 }
+
+const ATTACHMENT_ICON_WIDTH: i32 = 35;
 
 
 pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Variant>) {
     init();
 
+
+    // /* load attachment icon */
+    // let theme = gtk::IconTheme::get_default().unwrap();
+    // let attachment_icon = theme.load_icon(
+    //     "mail-attachment-symbolic",
+    //     ATTACHMENT_ICON_WIDTH,
+    //     gtk::IconLookupFlags::USE_BUILTIN);
+
+    // /* load marked icon */
+    // let marked_icon = theme.load_icon (
+    //     "object-select-symbolic",
+    //     ATTACHMENT_ICON_WIDTH,
+    //     gtk::IconLookupFlags::USE_BUILTIN);
+
+
     let user_string: Option<String> = user_data.and_then(Variant::get_str).map(ToOwned::to_owned);
     debug!("user string: {:?}", user_string);
 
-    let socket_addr = user_string.unwrap();
+    // get the socket name
+    let srv_name = user_string.unwrap();
+    let (remote_tx, ipc_rx) = ipc::channel::<Message>().unwrap();
+    let (ipc_tx, remote_rx) = ipc::channel::<Message>().unwrap();
 
-    let gsock_addr = gio::UnixSocketAddress::new_with_type(
-        gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
+    let srv_tx = IpcSender::connect(srv_name).unwrap();
+    srv_tx.send((remote_tx, remote_rx));
+    
 
-    // connect to socket
-    let cli = gio::SocketClient::new();
-    let sock = cli.connect(&gsock_addr, None::<&gio::Cancellable>).unwrap();
 
-    let istream = sock.get_input_stream().unwrap();
-    let ostream = sock.get_output_stream().unwrap();
+    // let socket_addr = user_string.unwrap();
 
-    info!("stream:{:?}", istream);
+    // let gsock_addr = gio::UnixSocketAddress::new_with_type(
+    //     gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
 
-    istream.read_message(None::<&gio::Cancellable>);
+    // // connect to socket
+    // let cli = gio::SocketClient::new();
+    // let sock = cli.connect(&gsock_addr, None::<&gio::Cancellable>).unwrap();
+
+    // let istream = sock.get_input_stream().unwrap();
+    // let ostream = sock.get_output_stream().unwrap();
+
+    // info!("stream:{:?}", istream);
+
+    // let mut do_run = true;
+
+    // thread::spawn(move || {
+    //     let res = istream.read_message(None::<&gio::Cancellable>);
+    //     match res{
+    //         Ok(msg) => (),
+    //         Err(err) => ()
+    //     };
+    // });
+
 
 
 

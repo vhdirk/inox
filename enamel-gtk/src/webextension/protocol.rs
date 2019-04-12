@@ -6,6 +6,7 @@ use gio::{InputStreamExt,
 use serde_derive::{Serialize, Deserialize};
 use bincode::{serialize, deserialize};
 use bytes::{ByteOrder, LittleEndian};
+use ipc_channel::ipc;
 use fragile::Fragile;
 use futures_core::Future;
 use futures_core::future;
@@ -31,14 +32,14 @@ impl From<bincode::Error> for Error {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Focus {
     message_id: String,
     focus: bool,
     element: i32,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub enum NavigateDirection {
     Undefined,
     Specific,
@@ -46,7 +47,7 @@ pub enum NavigateDirection {
     Down,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub enum NavigateType {
     VisualElement, // Move one element, scrolling if necessary (default movement)
     Visual, // Move one visual step regardless of element, update focus if necessary
@@ -59,7 +60,15 @@ pub enum NavigateType {
 }
 
 
-#[derive(Deserialize, Serialize)]
+#[derive(Serialize, Deserialize, Debug)]
+pub struct IpcChannels{
+    pub tx: ipc::IpcSender<Message>,
+    pub rx: ipc::IpcReceiver<Message>
+}
+
+
+
+#[derive(Deserialize, Serialize, Debug)]
 pub enum Message{
     Ack(/*id:*/i32, /*success:*/bool, /*focus:*/Focus),
     Indent(bool),
