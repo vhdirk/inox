@@ -20,7 +20,8 @@ use bincode;
 use relm::{Relm, Widget, Update};
 use relm_state::{connect, connect_stream, connect_async, connect_async_full};
 use relm_derive::Msg;
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcOneShotServer, IpcSender, IpcReceiver};
+
 use uuid::Uuid;
 use toml;
 
@@ -28,6 +29,8 @@ use notmuch;
 
 use enamel_core::database::Thread;
 use crate::app::EnamelApp;
+use crate::webextension::protocol::{IpcChannels, Message};
+
 
 
 pub struct ThreadView{
@@ -40,7 +43,8 @@ pub struct ThreadViewModel {
     relm: Relm<ThreadView>,
     app: Rc<EnamelApp>,
     webcontext: webkit2gtk::WebContext,
-    srv: gio::SocketListener
+    //srv: gio::SocketListener,
+    //channels: IpcChannels
 }
 
 
@@ -49,7 +53,7 @@ pub struct ThreadViewModel {
 #[derive(Msg, Debug)]
 pub enum Msg {
     InitializeWebExtensions,
-    ExtensionConnect((gio::SocketConnection, glib::Object)),
+    ExtensionConnect((IpcSender<Message>, IpcReceiver<Message>)),
 
     LoadChanged(webkit2gtk::LoadEvent),
     DecidePolicy(webkit2gtk::PolicyDecision, webkit2gtk::PolicyDecisionType),
@@ -60,7 +64,9 @@ pub enum Msg {
 
 impl ThreadViewModel{
 
-    fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> gio::SocketListener
+    //fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> gio::SocketListener
+    fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) ->
+        glib::Receiver<(IpcSender<Message>, IpcReceiver<Message>)>
     {
         info!("initialize_web_extensions");
 
@@ -71,23 +77,27 @@ impl ThreadViewModel{
         info!("setting web extensions directory: {:?}", extdir);
         ctx.set_web_extensions_directory(&extdir);
 
-        let socket_addr = format!("/tmp/enamel/tv.{}.{}.sock", 
-                                  process::id(),
-                                  Uuid::new_v4());
 
-        let gsock_addr = gio::UnixSocketAddress::new_with_type(
-            gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
+        let (srv, srv_name) = IpcOneShotServer::new().unwrap();
+        let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+        thread::spawn(move || {
+            let (_, txrx) : (_, (IpcSender<Message>, IpcReceiver<Message>)) = srv.accept().unwrap();
 
-        let srv = gio::SocketListener::new();
-        let res = srv.add_address(&gsock_addr,
-                                  gio::SocketType::Stream,
-                                  gio::SocketProtocol::Default,
-                                  Some(&gsock_addr)).unwrap();
-        info!("sock addr: {:?}", res);
+            // Sending fails if the receiver is closed
+            let _ = sender.send(txrx);
+        });
 
-        ctx.set_web_extensions_initialization_user_data(&socket_addr.to_variant());
+        // let (ipc_tx, ipc_rx_remote): (ipc::IpcSender<Message>, ipc::IpcReceiver<Message>) = ipc::channel().unwrap();
+        // let (ipc_tx_remote, ipc_rx): (ipc::IpcSender<Message>, ipc::IpcReceiver<Message>) = ipc::channel().unwrap();
 
-        srv
+        // let chans = IpcChannels{
+        //     tx: ipc_tx_remote,
+        //     rx: ipc_rx_remote
+        // };
+        
+        ctx.set_web_extensions_initialization_user_data(&srv_name.to_variant());
+
+        receiver
     }
 
 }
@@ -95,8 +105,8 @@ impl ThreadViewModel{
 
 impl ThreadView{
 
-    fn extension_connected(&mut self, conn: gio::SocketConnection, obj: glib::Object){
-        debug!("ThreadView: extension_connected: {:?} {:?}", conn, obj);
+    fn extension_connected(&mut self, tx: IpcSender<Message>, rx: IpcReceiver<Message>){
+        debug!("ThreadView: extension_connected: {:?} {:?}", tx, rx);
 
     }
 
@@ -228,18 +238,27 @@ impl Update for ThreadView {
         ctx.set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
 
         // can't use relm for this since it would get called too late
-        let srv = ThreadViewModel::initialize_web_extensions(&ctx);
+        //let srv = ThreadViewModel::initialize_web_extensions(&ctx);
+        let receiver = ThreadViewModel::initialize_web_extensions(&ctx);
+        
+        let rclone = relm.clone();
+        receiver.attach(None, move |msg| {
+            rclone.stream().emit(Msg::ExtensionConnect(msg));
 
+            glib::Continue(false)
+        });
+        
         // accept connection from extension
-        connect_async_full!(srv,
-                            accept_async,
-                            relm,
-                            Msg::ExtensionConnect);
+        //connect_async_full!(srv,
+        //                    accept_async,
+        //                    relm,
+        //                    Msg::ExtensionConnect);
         ThreadViewModel {
             relm: relm.clone(),
             app,
             webcontext: ctx,
-            srv    
+            //srv  
+            //channels  
         }
     }
 

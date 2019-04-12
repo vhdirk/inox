@@ -23,6 +23,7 @@ mod headerbar;
 mod widgets;
 mod components;
 mod main_window;
+mod webextension;
 
 use enamel_core::settings::Settings;
 
