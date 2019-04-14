@@ -85,7 +85,17 @@ pub enum PageMessage{
     Hidden(/*message_id:*/String,
            /*hidden:*/bool),
 
-    Debug(/*msg:*/String)
+    Debug(/*msg:*/String),
+
+
+    Page(/*html:*/String,
+         /*css:*/String,
+         /*part_css:*/String,
+         /*allowed_uris:*/Vec<String>,
+         /*use_stdout:*/bool,
+         /*use_syslog:*/bool,
+         /*disable_log:*/bool,
+         /*log_level:*/String)
 }
 
 
