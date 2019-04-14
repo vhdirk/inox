@@ -50,6 +50,17 @@ impl PageClient{
     pub fn load(&mut self){
         /* load style sheet */
         dbg!("pc: sending page..");
+
+        let p = PageMessage::Page(
+            "".to_string(),
+            "".to_string(),
+            "".to_string(),
+            vec!["https://www.gravatar.com/avatar/".to_string()],
+            false,
+            false,
+            false,
+            "".to_string()
+        );
 //     AstroidMessages::Page s;
 //     s.set_css  (thread_view->theme.thread_view_css.c_str ());
 //     s.set_part_css (thread_view->theme.part_css.c_str ());
@@ -77,7 +88,7 @@ impl PageClient{
 //       }
 //     }
 // # endif
-
+        self.channel.borrow().as_ref().unwrap().tx.send(p).unwrap();
 //     AeProtocol::send_message_sync (AeProtocol::MessageTypes::Page, s, ostream, m_ostream, istream, m_istream);
     }
 

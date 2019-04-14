@@ -1,7 +1,9 @@
-use std::thread;
+use std::{mem, thread};
+use std::rc::Rc;
+use std::sync::{Arc, Mutex, Once, ONCE_INIT};
 use log::*;
 use env_logger;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use bincode;
 use serde_derive::{Serialize, Deserialize};
 use glib::Cast;
@@ -23,18 +25,10 @@ use webkit2gtk_webextension::{
     WebPageExt,
     web_extension_init_with_data
 };
-use relm::init as relm_init;
-use relm::Component;
-use toml;
 use crate::protocol::{PageMessage, PageChannel};
 
 
 web_extension_init_with_data!();
-
-
-pub struct ThreadViewWebExt{
-    extension: WebExtension
-}
 
 
 /// Init Gtk and logger.
@@ -45,75 +39,151 @@ fn init() {
 
     START.call_once(|| {
         env_logger::init();
-        // gtk::init().expect("Error initializing gtk.");
+
+        // we're being called in an environment that has gtk already
+        // initialized, but gtk-rs does not know that.
+        // TODO: move this into webkit2gtk-webextension
+        unsafe {
+            gtk::set_initialized();
+        }
     });
 }
 
 const ATTACHMENT_ICON_WIDTH: i32 = 35;
 
 
-pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Variant>) {
-    init();
+#[derive(Debug, Clone)]
+pub struct ThreadViewWebExt{
+    extension: WebExtension,
+    channel: Arc<Mutex<PageChannel>>
+}
+
+impl ThreadViewWebExt{
+
+    pub fn new(extension: webkit2gtk_webextension::WebExtension,
+               tx: IpcSender<PageMessage>,
+               rx: IpcReceiver<PageMessage>) -> Self{
+        ThreadViewWebExt{
+            extension,
+            channel: Arc::new(Mutex::new(PageChannel{
+                tx,
+                rx
+            }))
+        }
+    }
+
+    pub fn spawn_reader(&self){
+        let chan = self.channel.clone();
+        let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+        thread::spawn(move || {
+            loop{
+                sender.send(chan.lock().unwrap().rx.recv().unwrap()).unwrap();
+            }
+        });
+
+        let me = self.clone();
+        receiver.attach(None, move |msg| {
+            let cont = me.on_message(msg);
+            glib::Continue(cont)
+        });
+    }
+
+    pub fn on_message(&self, msg: PageMessage) -> bool{
+
+        match msg{
+            PageMessage::Page(html,
+                              css,
+                              part_css,
+                              allowed_uris,
+                              use_stdout,
+                              use_syslog,
+                              disable_log,
+                              log_level) => self.handle_page_msg(html,
+                                                                 css,
+                                                                 part_css,
+                                                                 allowed_uris,
+                                                                 use_stdout,
+                                                                 use_syslog,
+                                                                 disable_log,
+                                                                 log_level),
+            _ => ()
+        }
+
+        true
+    }
 
 
-    // /* load attachment icon */
-    // let theme = gtk::IconTheme::get_default().unwrap();
-    // let attachment_icon = theme.load_icon(
-    //     "mail-attachment-symbolic",
-    //     ATTACHMENT_ICON_WIDTH,
-    //     gtk::IconLookupFlags::USE_BUILTIN);
+    pub fn handle_page_msg(&self, 
+                           html:String,
+                           css:String,
+                           part_css:String,
+                           allowed_uris:Vec<String>,
+                           use_stdout:bool,
+                           use_syslog:bool,
+                           disable_log:bool,
+                           log_level:String){
+//           /* set up logging */
+//   if (s.use_stdout ()) {
+//     init_console_log ();
+//   }
 
-    // /* load marked icon */
-    // let marked_icon = theme.load_icon (
-    //     "object-select-symbolic",
-    //     ATTACHMENT_ICON_WIDTH,
-    //     gtk::IconLookupFlags::USE_BUILTIN);
+//   if (s.use_syslog ()) {
+//     init_sys_log ();
+//   }
+
+//   if (s.disable_log ()) {
+//     logging::core::get()->set_logging_enabled (false);
+//   }
+
+//   logging::core::get()->set_filter (logging::trivial::severity >= sevmap[s.log_level ()]);
+
+//   GError *err = NULL;
+//   WebKitDOMDocument *d = webkit_web_page_get_dom_document (page);
+
+//   /* load html */
+//   LOG (debug) << "loading html..";
+
+//   WebKitDOMElement * he = webkit_dom_document_create_element (d, "HTML", (err = NULL, &err));
+//   webkit_dom_element_set_outer_html (he, s.html ().c_str (), (err = NULL, &err));
+
+//   webkit_dom_document_set_body (d, WEBKIT_DOM_HTML_ELEMENT(he), (err = NULL, &err));
+
+//   /* load css style */
+//   LOG (debug) << "loading stylesheet..";
+//   WebKitDOMElement  *e = webkit_dom_document_create_element (d, "STYLE", (err = NULL, &err));
+
+//   WebKitDOMText *t = webkit_dom_document_create_text_node
+//     (d, s.css().c_str());
+
+//   webkit_dom_node_append_child (WEBKIT_DOM_NODE(e), WEBKIT_DOM_NODE(t), (err = NULL, &err));
+
+//   WebKitDOMHTMLHeadElement * head = webkit_dom_document_get_head (d);
+//   webkit_dom_node_append_child (WEBKIT_DOM_NODE(head), WEBKIT_DOM_NODE(e), (err = NULL, &err));
+//   LOG (debug) << "done";
+
+//   /* store part / iframe css for later */
+//   part_css = s.part_css ();
+
+//   /* store allowed uris */
+//   for (auto &s : s.allowed_uris ()) {
+//     allowed_uris.push_back (s);
+//   }
+
+//   page_ready = true;
+
+//   g_object_unref (he);
+//   g_object_unref (head);
+//   g_object_unref (t);
+//   g_object_unref (e);
+//   g_object_unref (d);
+
+//   ack (true);
+
+    }
 
 
-    let user_string: Option<String> = user_data.and_then(Variant::get_str).map(ToOwned::to_owned);
-    debug!("user string: {:?}", user_string);
+    pub fn on_page_created(&self, page: &webkit2gtk_webextension::WebPage){
 
-    // get the socket name
-    let srv_name = user_string.unwrap();
-    let (remote_tx, ipc_rx) = ipc::channel::<PageMessage>().unwrap();
-    let (ipc_tx, remote_rx) = ipc::channel::<PageMessage>().unwrap();
-
-    let srv_tx = IpcSender::connect(srv_name).unwrap();
-    srv_tx.send((remote_tx, remote_rx));
-    
-
-
-    // let socket_addr = user_string.unwrap();
-
-    // let gsock_addr = gio::UnixSocketAddress::new_with_type(
-    //     gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
-
-    // // connect to socket
-    // let cli = gio::SocketClient::new();
-    // let sock = cli.connect(&gsock_addr, None::<&gio::Cancellable>).unwrap();
-
-    // let istream = sock.get_input_stream().unwrap();
-    // let ostream = sock.get_output_stream().unwrap();
-
-    // info!("stream:{:?}", istream);
-
-    // let mut do_run = true;
-
-    // thread::spawn(move || {
-    //     let res = istream.read_message(None::<&gio::Cancellable>);
-    //     match res{
-    //         Ok(msg) => (),
-    //         Err(err) => ()
-    //     };
-    // });
-
-
-
-
-    extension.connect_page_created(|_, page| {
-
-
-        
         page.connect_document_loaded(|page| {
             println!("Page {} created for {:?}", page.get_id(), page.get_uri());
             let document = page.get_dom_document().unwrap();
@@ -142,6 +212,70 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
 
             println!("{}%", scroll_percentage(page));
         });
+    }
+}
+
+
+pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Variant>) {
+    init();
+
+
+    /* load attachment icon */
+    let theme = gtk::IconTheme::get_default().unwrap();
+    let attachment_icon = theme.load_icon(
+        "mail-attachment-symbolic",
+        ATTACHMENT_ICON_WIDTH,
+        gtk::IconLookupFlags::USE_BUILTIN);
+
+    /* load marked icon */
+    let marked_icon = theme.load_icon (
+        "object-select-symbolic",
+        ATTACHMENT_ICON_WIDTH,
+        gtk::IconLookupFlags::USE_BUILTIN);
+
+
+    let user_string: Option<String> = user_data.and_then(Variant::get_str).map(ToOwned::to_owned);
+    debug!("user string: {:?}", user_string);
+
+    // get the socket name
+    let srv_name = user_string.unwrap();
+    let (remote_tx, ipc_rx) = ipc::channel::<PageMessage>().unwrap();
+    let (ipc_tx, remote_rx) = ipc::channel::<PageMessage>().unwrap();
+
+    let srv_tx = IpcSender::connect(srv_name).unwrap();
+    srv_tx.send((remote_tx, remote_rx)).unwrap();
+
+    let webext = ThreadViewWebExt::new(extension.clone(), ipc_tx, ipc_rx);
+    webext.spawn_reader();
+
+
+    // let socket_addr = user_string.unwrap();
+
+    // let gsock_addr = gio::UnixSocketAddress::new_with_type(
+    //     gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
+
+    // // connect to socket
+    // let cli = gio::SocketClient::new();
+    // let sock = cli.connect(&gsock_addr, None::<&gio::Cancellable>).unwrap();
+
+    // let istream = sock.get_input_stream().unwrap();
+    // let ostream = sock.get_output_stream().unwrap();
+
+    // info!("stream:{:?}", istream);
+
+    // let mut do_run = true;
+
+    // thread::spawn(move || {
+    //     let res = istream.read_message(None::<&gio::Cancellable>);
+    //     match res{
+    //         Ok(msg) => (),
+    //         Err(err) => ()
+    //     };
+    // });
+
+    let cwebext = webext.clone();
+    extension.connect_page_created(move |_, page| {
+        cwebext.on_page_created(page);
     });
 }
 
