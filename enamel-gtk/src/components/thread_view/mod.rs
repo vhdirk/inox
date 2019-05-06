@@ -29,10 +29,9 @@ use notmuch;
 
 use enamel_core::database::Thread;
 use crate::app::EnamelApp;
-use crate::webextension::protocol::PageMessage;
 
-mod page_client;
-use page_client::PageClient;
+// mod page_client;
+// use page_client::PageClient;
 
 
 pub struct ThreadView{
@@ -45,8 +44,7 @@ pub struct ThreadViewModel {
     relm: Relm<ThreadView>,
     app: Rc<EnamelApp>,
     webcontext: webkit2gtk::WebContext,
-    page_client: Rc<PageClient>
-    //srv: gio::SocketListener,
+    srv: gio::SocketListener
     //channels: IpcChannels
 }
 
@@ -56,7 +54,7 @@ pub struct ThreadViewModel {
 #[derive(Msg, Debug)]
 pub enum Msg {
     InitializeWebExtensions,
-    ExtensionConnect((IpcSender<PageMessage>, IpcReceiver<PageMessage>)),
+    ExtensionConnect((gio::SocketConnection, glib::Object)),
 
     LoadChanged(webkit2gtk::LoadEvent),
     ReadyToRender,
@@ -68,7 +66,7 @@ pub enum Msg {
 
 impl ThreadViewModel{
 
-    fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> Rc<PageClient>
+    fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> gio::SocketListener
     {
         info!("initialize_web_extensions");
 
@@ -79,12 +77,23 @@ impl ThreadViewModel{
         info!("setting web extensions directory: {:?}", extdir);
         ctx.set_web_extensions_directory(&extdir);
 
+        let socket_addr = format!("/tmp/enamel/tv.{}.{}.sock", 
+                                  process::id(),
+                                  Uuid::new_v4());
 
-        let (srv, srv_name) = IpcOneShotServer::new().unwrap();
+        let gsock_addr = gio::UnixSocketAddress::new_with_type(
+            gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
 
-        ctx.set_web_extensions_initialization_user_data(&srv_name.to_variant());
+        let srv = gio::SocketListener::new();
+        let res = srv.add_address(&gsock_addr,
+                                  gio::SocketType::Stream,
+                                  gio::SocketProtocol::Default,
+                                  Some(&gsock_addr)).unwrap();
+        info!("sock addr: {:?}", res);
 
-        PageClient::new(srv)
+        ctx.set_web_extensions_initialization_user_data(&socket_addr.to_variant());
+
+        srv
     }
 
 }
@@ -92,8 +101,8 @@ impl ThreadViewModel{
 
 impl ThreadView{
 
-    fn extension_connected(&mut self, tx: IpcSender<PageMessage>, rx: IpcReceiver<PageMessage>){
-        debug!("ThreadView: extension_connected: {:?} {:?}", tx, rx);
+    fn extension_connected(&mut self, conn: gio::SocketConnection, obj: glib::Object){
+        debug!("ThreadView: extension_connected");
 
     }
 
@@ -102,9 +111,9 @@ impl ThreadView{
 
         match event{
             webkit2gtk::LoadEvent::Finished => {
-                if self.model.page_client.is_ready(){
-                    self.model.relm.stream().emit(Msg::ReadyToRender);
-                }
+                // if self.model.page_client.is_ready(){
+                //     self.model.relm.stream().emit(Msg::ReadyToRender);
+                // }
             },
             _ => ()
         }
@@ -115,11 +124,11 @@ impl ThreadView{
 
         // will only work if the thing was ready (at which point it will have
         // released its own ref)
-        let pc = Rc::get_mut(&mut self.model.page_client).unwrap();
-        pc. load();
+        // let pc = Rc::get_mut(&mut self.model.page_client).unwrap();
+        // pc. load();
         
         /* render messages in case we were not ready when first requested */
-        pc.clear_messages();
+        // pc.clear_messages();
         self.render_messages();
     }
 
@@ -243,19 +252,18 @@ impl Update for ThreadView {
         ctx.set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
 
         // can't use relm for this since it would get called too late
-        //let srv = ThreadViewModel::initialize_web_extensions(&ctx);
-        let page_client = ThreadViewModel::initialize_web_extensions(&ctx);
+        let srv = ThreadViewModel::initialize_web_extensions(&ctx);
         
         // accept connection from extension
-        //connect_async_full!(srv,
-        //                    accept_async,
-        //                    relm,
-        //                    Msg::ExtensionConnect);
+        connect_async_full!(srv,
+                            accept_async,
+                            relm,
+                            Msg::ExtensionConnect);
         ThreadViewModel {
             relm: relm.clone(),
             app,
             webcontext: ctx,
-            page_client
+            srv    
         }
     }
 

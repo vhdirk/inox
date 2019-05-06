@@ -29,6 +29,11 @@ use enamel_core::settings::Settings;
 
 use crate::app::EnamelApp;
 
+
+pub mod webext_capnp {
+  include!(concat!(env!("OUT_DIR"), "/resources/webext_capnp.rs"));
+}
+
 /// Init Gtk and logger.
 fn init() {
     use std::sync::{Once, ONCE_INIT};

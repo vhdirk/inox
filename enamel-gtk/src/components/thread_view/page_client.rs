@@ -3,96 +3,101 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use ipc_channel::ipc::{IpcOneShotServer, IpcSender, IpcReceiver};
 
-use crate::webextension::protocol::{PageMessage, PageChannel};
+// use crate::webextension::protocol::{PageMessage, PageChannel};
+// use crate::webext_capnp::page_client;
+
 
 #[derive(Debug)]
 pub struct PageClient{
-    channel: RefCell<Option<PageChannel>>
+    //channel: RefCell<Option<PageChannel>>
 }
 
 
 impl PageClient{
 
-    pub fn new(srv: IpcOneShotServer<(IpcSender<PageMessage>, IpcReceiver<PageMessage>)>) -> Rc<Self>
+    pub fn new(conn: gio::SocketConnection) -> Rc<Self>
     {
-        let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-        thread::spawn(move || {
-            let (_, txrx) : (_, (IpcSender<PageMessage>, IpcReceiver<PageMessage>)) = srv.accept().unwrap();
-            let _ = sender.send(txrx);
-        });
-
-        let pc = Rc::new(Self{
-            channel: RefCell::new(None),
-        });
-
-        let cpc = pc.clone();
-
-        receiver.attach(None, move |(tx, rx)| {
-            *cpc.channel.borrow_mut() = Some(PageChannel{
-                tx,
-                rx
-            });
-
-            glib::Continue(false)
-        });
         
-        pc
+//         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+//         thread::spawn(move || {
+//             let (_, txrx) : (_, (IpcSender<PageMessage>, IpcReceiver<PageMessage>)) = srv.accept().unwrap();
+//             let _ = sender.send(txrx);
+//         });
+
+//         let pc = Rc::new(Self{
+//             channel: RefCell::new(None),
+//         });
+
+//         let cpc = pc.clone();
+
+//         receiver.attach(None, move |(tx, rx)| {
+//             *cpc.channel.borrow_mut() = Some(PageChannel{
+//                 tx,
+//                 rx
+//             });
+
+//             glib::Continue(false)
+//         });
+        
+//         pc
     }
 
-    pub fn is_ready(&self) -> bool{
-        self.channel.borrow().is_some()
-    }
-
-    pub fn clear_messages(&mut self){
-
-    }
-
-    pub fn load(&mut self){
-        /* load style sheet */
-        dbg!("pc: sending page..");
-
-        let p = PageMessage::Page(
-            "".to_string(),
-            "".to_string(),
-            "".to_string(),
-            vec!["https://www.gravatar.com/avatar/".to_string()],
-            false,
-            false,
-            false,
-            "".to_string()
-        );
-//     AstroidMessages::Page s;
-//     s.set_css  (thread_view->theme.thread_view_css.c_str ());
-//     s.set_part_css (thread_view->theme.part_css.c_str ());
-//     s.set_html (thread_view->theme.thread_view_html.c_str ());
-
-//     s.set_use_stdout (astroid->log_stdout);
-//     s.set_use_syslog (astroid->log_syslog);
-//     s.set_disable_log (astroid->disable_log);
-//     s.set_log_level (astroid->log_level);
-
-//     /* send allowed URIs */
-//     s.add_allowed_uris (thread_view->home_uri);
-
-//     if (enable_gravatar) {
-//       s.add_allowed_uris ("https://www.gravatar.com/avatar/");
-//     }
-
-// # ifndef DISABLE_PLUGINS
-//     /* get plugin allowed uris */
-//     std::vector<ustring> puris = thread_view->plugins->get_allowed_uris ();
-//     if (puris.size() > 0) {
-//       LOG (debug) << "pc: plugin allowed uris: " << VectorUtils::concat_tags (puris);
-//       for (auto &p : puris) {
-//         s.add_allowed_uris (p);
-//       }
-//     }
-// # endif
-        self.channel.borrow().as_ref().unwrap().tx.send(p).unwrap();
-//     AeProtocol::send_message_sync (AeProtocol::MessageTypes::Page, s, ostream, m_ostream, istream, m_istream);
-    }
 
 }
+//     pub fn is_ready(&self) -> bool{
+//         self.channel.borrow().is_some()
+//     }
+
+//     pub fn clear_messages(&mut self){
+
+//     }
+
+//     pub fn load(&mut self){
+//         /* load style sheet */
+//         dbg!("pc: sending page..");
+
+//         let p = PageMessage::Page(
+//             "".to_string(),
+//             "".to_string(),
+//             "".to_string(),
+//             vec!["https://www.gravatar.com/avatar/".to_string()],
+//             false,
+//             false,
+//             false,
+//             "".to_string()
+//         );
+// //     AstroidMessages::Page s;
+// //     s.set_css  (thread_view->theme.thread_view_css.c_str ());
+// //     s.set_part_css (thread_view->theme.part_css.c_str ());
+// //     s.set_html (thread_view->theme.thread_view_html.c_str ());
+
+// //     s.set_use_stdout (astroid->log_stdout);
+// //     s.set_use_syslog (astroid->log_syslog);
+// //     s.set_disable_log (astroid->disable_log);
+// //     s.set_log_level (astroid->log_level);
+
+// //     /* send allowed URIs */
+// //     s.add_allowed_uris (thread_view->home_uri);
+
+// //     if (enable_gravatar) {
+// //       s.add_allowed_uris ("https://www.gravatar.com/avatar/");
+// //     }
+
+// // # ifndef DISABLE_PLUGINS
+// //     /* get plugin allowed uris */
+// //     std::vector<ustring> puris = thread_view->plugins->get_allowed_uris ();
+// //     if (puris.size() > 0) {
+// //       LOG (debug) << "pc: plugin allowed uris: " << VectorUtils::concat_tags (puris);
+// //       for (auto &p : puris) {
+// //         s.add_allowed_uris (p);
+// //       }
+// //     }
+// // # endif
+//         self.channel.borrow().as_ref().unwrap().tx.send(p).unwrap();
+// //     AeProtocol::send_message_sync (AeProtocol::MessageTypes::Page, s, ostream, m_ostream, istream, m_istream);
+//     }
+
+// }
 
 // using namespace boost::filesystem;
 

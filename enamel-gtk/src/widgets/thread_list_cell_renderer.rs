@@ -341,7 +341,7 @@ mod imp {
             cache.padding = char_width;
 
             /* figure out font height */
-            let pango_layout = widget.create_pango_layout("TEST HEIGHT STRING").unwrap();
+            let pango_layout = widget.create_pango_layout(Some("TEST HEIGHT STRING")).unwrap();
 
             pango_layout.set_font_description(Some(&settings.font_description));
 
@@ -420,7 +420,7 @@ mod imp {
             let settings = &self.settings.borrow();
             let cache = &self.cache.borrow();
 
-            let pango_layout = widget.create_pango_layout("").unwrap();
+            let pango_layout = widget.create_pango_layout(None).unwrap();
 
             pango_layout.set_font_description(Some(&settings.font_description));
 
@@ -592,7 +592,7 @@ mod imp {
 
             let datestr = format!("{}", datetime.format("%Y-%m-%d %H:%M:%S"));
 
-            let pango_layout = widget.create_pango_layout(datestr.as_str()).unwrap();
+            let pango_layout = widget.create_pango_layout(Some(datestr.as_str())).unwrap();
 
             pango_layout.set_font_description(Some(&settings.font_description));
 
@@ -699,7 +699,7 @@ mod imp {
                 }
             }
 
-            let pango_layout = widget.create_pango_layout("").unwrap();
+            let pango_layout = widget.create_pango_layout(None).unwrap();
 
             pango_layout.set_markup(&authors);
 
@@ -744,7 +744,7 @@ mod imp {
             let cache = self.cache.borrow_mut();
 
 
-            let pango_layout = widget.create_pango_layout("").unwrap();
+            let pango_layout = widget.create_pango_layout(None).unwrap();
             pango_layout.set_font_description(Some(&settings.font_description));
 
 

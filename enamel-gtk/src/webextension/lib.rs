@@ -1,3 +1,5 @@
+pub mod webext_capnp {
+  include!(concat!(env!("OUT_DIR"), "/resources/webext_capnp.rs"));
+}
 
-mod protocol;
 pub mod thread_view_webext;

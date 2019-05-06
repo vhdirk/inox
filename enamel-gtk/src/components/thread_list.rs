@@ -106,7 +106,7 @@ impl ThreadList{
             glib::source::source_remove(self.model.idle_handle.take().unwrap());
         }
         self.tree_model = create_liststore();
-        self.tree_view.set_model(&self.tree_model);
+        self.tree_view.set_model(Some(&self.tree_model));
 
         self.model.thread_list = threads.map(Arc::new);
 

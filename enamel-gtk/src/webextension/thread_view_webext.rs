@@ -11,7 +11,7 @@ use glib::Object;
 use glib::closure::Closure;
 use glib::variant::Variant;
 use gio;
-use gio::{SocketClientExt, IOStreamExt};
+use gio::{SocketClientExt, IOStreamExt, InputStreamExtManual, OutputStreamExtManual};
 use gtk::IconThemeExt;
 use webkit2gtk_webextension::{
     DOMDocumentExt,
@@ -25,8 +25,15 @@ use webkit2gtk_webextension::{
     WebPageExt,
     web_extension_init_with_data
 };
-use crate::protocol::{PageMessage, PageChannel};
 
+use capnp::Error;
+use capnp::primitive_list;
+use capnp::capability::Promise;
+
+use capnp_rpc::{RpcSystem, rpc_twoparty_capnp};
+use capnp_rpc::twoparty::VatNetwork;
+
+use crate::webext_capnp::page_client;
 
 web_extension_init_with_data!();
 
@@ -54,74 +61,67 @@ const ATTACHMENT_ICON_WIDTH: i32 = 35;
 
 #[derive(Debug, Clone)]
 pub struct ThreadViewWebExt{
-    extension: WebExtension,
-    channel: Arc<Mutex<PageChannel>>
+    extension: WebExtension
 }
 
 impl ThreadViewWebExt{
 
-    pub fn new(extension: webkit2gtk_webextension::WebExtension,
-               tx: IpcSender<PageMessage>,
-               rx: IpcReceiver<PageMessage>) -> Self{
+    pub fn new(extension: webkit2gtk_webextension::WebExtension) -> Self{
         ThreadViewWebExt{
-            extension,
-            channel: Arc::new(Mutex::new(PageChannel{
-                tx,
-                rx
-            }))
+            extension
         }
     }
 
     pub fn spawn_reader(&self){
-        let chan = self.channel.clone();
-        let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-        thread::spawn(move || {
-            loop{
-                sender.send(chan.lock().unwrap().rx.recv().unwrap()).unwrap();
-            }
-        });
+        // let chan = self.channel.clone();
+        // let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+        // thread::spawn(move || {
+        //     loop{
+        //         sender.send(chan.lock().unwrap().rx.recv().unwrap()).unwrap();
+        //     }
+        // });
 
-        let me = self.clone();
-        receiver.attach(None, move |msg| {
-            let cont = me.on_message(msg);
-            glib::Continue(cont)
-        });
+        // let me = self.clone();
+        // receiver.attach(None, move |msg| {
+        //     let cont = me.on_message(msg);
+        //     glib::Continue(cont)
+        // });
     }
 
-    pub fn on_message(&self, msg: PageMessage) -> bool{
+    // pub fn on_message(&self, msg: PageMessage) -> bool{
 
-        match msg{
-            PageMessage::Page(html,
-                              css,
-                              part_css,
-                              allowed_uris,
-                              use_stdout,
-                              use_syslog,
-                              disable_log,
-                              log_level) => self.handle_page_msg(html,
-                                                                 css,
-                                                                 part_css,
-                                                                 allowed_uris,
-                                                                 use_stdout,
-                                                                 use_syslog,
-                                                                 disable_log,
-                                                                 log_level),
-            _ => ()
-        }
+    //     match msg{
+    //         PageMessage::Page(html,
+    //                           css,
+    //                           part_css,
+    //                           allowed_uris,
+    //                           use_stdout,
+    //                           use_syslog,
+    //                           disable_log,
+    //                           log_level) => self.handle_page_msg(html,
+    //                                                              css,
+    //                                                              part_css,
+    //                                                              allowed_uris,
+    //                                                              use_stdout,
+    //                                                              use_syslog,
+    //                                                              disable_log,
+    //                                                              log_level),
+    //         _ => ()
+    //     }
 
-        true
-    }
+    //     true
+    // }
 
 
-    pub fn handle_page_msg(&self, 
-                           html:String,
-                           css:String,
-                           part_css:String,
-                           allowed_uris:Vec<String>,
-                           use_stdout:bool,
-                           use_syslog:bool,
-                           disable_log:bool,
-                           log_level:String){
+    // pub fn handle_page_msg(&self, 
+    //                        html:String,
+    //                        css:String,
+    //                        part_css:String,
+    //                        allowed_uris:Vec<String>,
+    //                        use_stdout:bool,
+    //                        use_syslog:bool,
+    //                        disable_log:bool,
+    //                        log_level:String){
 //           /* set up logging */
 //   if (s.use_stdout ()) {
 //     init_console_log ();
@@ -179,7 +179,7 @@ impl ThreadViewWebExt{
 
 //   ack (true);
 
-    }
+//    }
 
 
     pub fn on_page_created(&self, page: &webkit2gtk_webextension::WebPage){
@@ -237,16 +237,31 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
     let user_string: Option<String> = user_data.and_then(Variant::get_str).map(ToOwned::to_owned);
     debug!("user string: {:?}", user_string);
 
-    // get the socket name
-    let srv_name = user_string.unwrap();
-    let (remote_tx, ipc_rx) = ipc::channel::<PageMessage>().unwrap();
-    let (ipc_tx, remote_rx) = ipc::channel::<PageMessage>().unwrap();
+    let socket_addr = user_string.unwrap();
 
-    let srv_tx = IpcSender::connect(srv_name).unwrap();
-    srv_tx.send((remote_tx, remote_rx)).unwrap();
+    let gsock_addr = gio::UnixSocketAddress::new_with_type(
+        gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
 
-    let webext = ThreadViewWebExt::new(extension.clone(), ipc_tx, ipc_rx);
-    webext.spawn_reader();
+    // connect to socket
+    let cli = gio::SocketClient::new();
+    let sock = cli.connect(&gsock_addr, None::<&gio::Cancellable>).unwrap();
+
+    let istream = sock.get_input_stream().unwrap();
+    let ostream = sock.get_output_stream().unwrap();
+
+    let receiver = istream.into_read();
+    let sender = ostream.into_write();
+
+    //let webext = ThreadViewWebExt::new(extension.clone(), ipc_tx, ipc_rx);
+    //webext.spawn_reader();
+
+
+    let network =
+        Box::new(VatNetwork::new(receiver, sender,
+                                 rpc_twoparty_capnp::Side::Client,
+                                 Default::default()));
+    let mut rpc_system = RpcSystem::new(network, None);
+    let enamel_core: page_client::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
 
     // let socket_addr = user_string.unwrap();
@@ -273,11 +288,44 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
     //     };
     // });
 
-    let cwebext = webext.clone();
-    extension.connect_page_created(move |_, page| {
-        cwebext.on_page_created(page);
-    });
+    // let cwebext = webext.clone();
+    // extension.connect_page_created(move |_, page| {
+    //     cwebext.on_page_created(page);
+    // });
 }
+
+impl page_client::Server for ThreadViewWebExt
+{
+
+    fn allow_remote_images(&mut self,
+            params: page_client::AllowRemoteImagesParams,
+            mut results: page_client::AllowRemoteImagesResults)
+            -> Promise<(), Error>
+    {
+        Promise::ok(())
+    }
+
+    fn load(&mut self,
+            params: page_client::LoadParams,
+            mut results: page_client::LoadResults)
+            -> Promise<(), Error>
+    {
+        Promise::ok(())
+    }
+
+    
+    // load @1(html: Text,
+    //         css: Text,
+    //         partCss: Text,
+    //         allowedUris: List(Text),
+    //         useStdout: Bool,
+    //         useSyslog: Bool,
+    //         disableLog: Bool,
+    //         logLevel: Text) -> ();
+
+
+}
+
 
 
 fn scroll_by(page: &WebPage, pixels: i64) {
