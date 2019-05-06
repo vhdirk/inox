@@ -8,9 +8,7 @@ use bincode::{serialize, deserialize};
 use bytes::{ByteOrder, LittleEndian};
 use ipc_channel::ipc;
 use fragile::Fragile;
-use futures_core::Future;
-use futures_core::future;
-use futures_util::future::FutureExt;
+use futures::future::{self, Future, FutureExt};
 
 const MAX_MESSAGE_SZ: u64 = 200 * 1024 * 1024; // 200 MB
 
@@ -110,7 +108,7 @@ pub trait MessageInputStream<Message>{
         cancellable: Q, 
         callback: R);
 
-    // fn read_message_async_future(&self, io_priority: glib::Priority) -> Box<Future<Item = (Self, Message), Error = (Self, Error)>>
+    // fn read_message_async_future(&self, io_priority: glib::Priority) -> Box<Future<Output = Result<(Self, Message), (Self, Error)>>>
     //     where Self: Sized + Clone;
 }
 
@@ -127,7 +125,7 @@ pub trait MessageOutputStream<Message>{
         &self, 
         msg: &Message, 
         io_priority: glib::Priority
-    ) -> Box<Future<Item = (Self, ()), Error = (Self, Error)>>
+    ) -> Box<Future<Output = Result<(Self, ()), (Self, Error)>>>
     where
         Self: Sized + Clone;
 }
@@ -182,7 +180,7 @@ where
     }
 
     // TODO: not sure how to fixe the lifetime constraints here
-    // fn read_message_async_future(&self, io_priority: glib::Priority) -> Box<Future<Item = (Self, Message), Error = (Self, Error)>>
+    // fn read_message_async_future(&self, io_priority: glib::Priority) -> Box<Future<Output = Result<(Self, Message), (Self, Error)>>>
     //     where Self: Sized + Clone
     // {
     //     let f = self.read_bytes_async_future(8, io_priority)
@@ -256,7 +254,7 @@ where
         &self, 
         msg: &Message, 
         io_priority: glib::Priority
-    ) -> Box<Future<Item = (Self, ()), Error = (Self, Error)>>
+    ) -> Box<Future<Output = Result<(Self, ()), (Self, Error)>>>
     where
         Self: Sized + Clone
     {
@@ -287,7 +285,7 @@ where
 
 
 
-// fn send_message_future(os: gio::OutputStream, msg:Message) -> Box_<Future<Item = (gio::OutputStream, isize), Error = (gio::OutputStream, Error)>> where Self: Sized + Clone;
+// fn send_message_future(os: gio::OutputStream, msg:Message) -> Box_<Future<Output = Result<(gio::OutputStream, isize), (gio::>OutputStream, Error)>> where Self: Sized + Clone;
 //  {
 //     let encoded = serialize(&msg).unwrap();
 //     let sz = encoded.len();

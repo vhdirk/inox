@@ -122,7 +122,7 @@ impl Widget for MainWindow {
         
         let window = model.app.builder.get_object::<gtk::ApplicationWindow>("main_window")
                                   .expect("Couldn't find main_window in ui file.");
-        window.set_application(&model.app.instance);
+        window.set_application(Some(&model.app.instance));
 
 
         let headerbar = relm_init::<HeaderBar>(model.app.clone()).unwrap(); 

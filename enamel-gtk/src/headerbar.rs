@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use gtk;
+use gtk::{self, BuilderExtManual};
 
 use relm::{Relm, Update, Widget};
 use relm_derive::Msg;

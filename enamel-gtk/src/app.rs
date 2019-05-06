@@ -318,7 +318,7 @@ impl EnamelApp {
     }
 
     pub fn run(settings: Rc<Settings>) {
-        let application = gtk::Application::new(constants::APPLICATION_ID, ApplicationFlags::empty())
+        let application = gtk::Application::new(Some(constants::APPLICATION_ID), ApplicationFlags::empty())
             .expect("Application Initialization failed...");
 
         application.set_resource_base_path(Some("/com/github/vhdirk/Enamel"));

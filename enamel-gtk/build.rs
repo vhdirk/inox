@@ -1,3 +1,4 @@
+extern crate capnpc;
 use std::process::Command;
 
 fn main() {
@@ -16,4 +17,11 @@ fn main() {
         .current_dir("resources")
         .status()
         .unwrap();
+
+    ::capnpc::CompilerCommand::new()
+        .file("resources/webext.capnp")
+        .edition(::capnpc::RustEdition::Rust2018)
+        .run()
+        .expect("compiling schema");
+
 }
