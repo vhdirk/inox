@@ -30,8 +30,8 @@ use notmuch;
 use enamel_core::database::Thread;
 use crate::app::EnamelApp;
 
-// mod page_client;
-// use page_client::PageClient;
+mod page_client;
+use page_client::PageClient;
 
 
 pub struct ThreadView{
@@ -44,8 +44,7 @@ pub struct ThreadViewModel {
     relm: Relm<ThreadView>,
     app: Rc<EnamelApp>,
     webcontext: webkit2gtk::WebContext,
-    srv: gio::SocketListener
-    //channels: IpcChannels
+    page_client: Option<PageClient>
 }
 
 
@@ -103,6 +102,7 @@ impl ThreadView{
 
     fn extension_connected(&mut self, conn: gio::SocketConnection, obj: glib::Object){
         debug!("ThreadView: extension_connected");
+        self.model.page_client = Some(PageClient::new(conn));
 
     }
 
@@ -111,9 +111,9 @@ impl ThreadView{
 
         match event{
             webkit2gtk::LoadEvent::Finished => {
-                // if self.model.page_client.is_ready(){
-                //     self.model.relm.stream().emit(Msg::ReadyToRender);
-                // }
+                if self.model.page_client.is_some(){
+                    self.model.relm.stream().emit(Msg::ReadyToRender);
+                }
             },
             _ => ()
         }
@@ -122,13 +122,16 @@ impl ThreadView{
 
     fn ready_to_render(&mut self){
 
-        // will only work if the thing was ready (at which point it will have
-        // released its own ref)
-        // let pc = Rc::get_mut(&mut self.model.page_client).unwrap();
-        // pc. load();
+        match self.model.page_client.as_mut(){
+            Some(pc) => {
+                pc.load();
+
+                /* render messages in case we were not ready when first requested */
+                pc.clear_messages();
+            },
+            None => ()
+        }
         
-        /* render messages in case we were not ready when first requested */
-        // pc.clear_messages();
         self.render_messages();
     }
 
@@ -263,7 +266,7 @@ impl Update for ThreadView {
             relm: relm.clone(),
             app,
             webcontext: ctx,
-            srv    
+            page_client: None
         }
     }
 
