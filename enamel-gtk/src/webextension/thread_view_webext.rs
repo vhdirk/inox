@@ -33,7 +33,7 @@ use capnp::capability::Promise;
 use capnp_rpc::{RpcSystem, rpc_twoparty_capnp};
 use capnp_rpc::twoparty::VatNetwork;
 
-use crate::webext_capnp::page_client;
+use crate::webext_capnp::page;
 
 web_extension_init_with_data!();
 
@@ -261,7 +261,7 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
                                  rpc_twoparty_capnp::Side::Client,
                                  Default::default()));
     let mut rpc_system = RpcSystem::new(network, None);
-    let enamel_core: page_client::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+    let enamel_core: page::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
 
     // let socket_addr = user_string.unwrap();
@@ -294,20 +294,20 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
     // });
 }
 
-impl page_client::Server for ThreadViewWebExt
+impl page::Server for ThreadViewWebExt
 {
 
     fn allow_remote_images(&mut self,
-            params: page_client::AllowRemoteImagesParams,
-            mut results: page_client::AllowRemoteImagesResults)
+            params: page::AllowRemoteImagesParams,
+            mut results: page::AllowRemoteImagesResults)
             -> Promise<(), Error>
     {
         Promise::ok(())
     }
 
     fn load(&mut self,
-            params: page_client::LoadParams,
-            mut results: page_client::LoadResults)
+            params: page::LoadParams,
+            mut results: page::LoadResults)
             -> Promise<(), Error>
     {
         Promise::ok(())

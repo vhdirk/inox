@@ -1,23 +1,45 @@
 use std::thread;
 use std::rc::Rc;
 use std::cell::RefCell;
-use ipc_channel::ipc::{IpcOneShotServer, IpcSender, IpcReceiver};
+use gio::{SocketClientExt, IOStreamExt, InputStreamExtManual, OutputStreamExtManual};
 
-// use crate::webextension::protocol::{PageMessage, PageChannel};
-// use crate::webext_capnp::page_client;
+use capnp::Error;
+use capnp::primitive_list;
+use capnp::capability::Promise;
 
+use capnp_rpc::{RpcSystem, rpc_twoparty_capnp};
+use capnp_rpc::twoparty::VatNetwork;
 
-#[derive(Debug)]
+use crate::webext_capnp::page;
+
+#[derive(Clone)]
 pub struct PageClient{
-    //channel: RefCell<Option<PageChannel>>
+    conn: gio::SocketConnection,
+    client: page::Client
 }
 
 
 impl PageClient{
 
-    pub fn new(conn: gio::SocketConnection) -> Rc<Self>
+    pub fn new(conn: gio::SocketConnection) -> Self
     {
-        
+        let istream = conn.get_input_stream().unwrap();
+        let ostream = conn.get_output_stream().unwrap();
+
+        let receiver = istream.into_read();
+        let sender = ostream.into_write();
+
+        let network =
+            Box::new(VatNetwork::new(receiver, sender,
+                                    rpc_twoparty_capnp::Side::Client,
+                                    Default::default()));
+        let mut rpc_system = RpcSystem::new(network, None);
+        let client: page::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+
+        Self{
+            conn,
+            client
+        }
 //         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 //         thread::spawn(move || {
 //             let (_, txrx) : (_, (IpcSender<PageMessage>, IpcReceiver<PageMessage>)) = srv.accept().unwrap();
@@ -42,15 +64,17 @@ impl PageClient{
 //         pc
     }
 
+    pub fn clear_messages(&mut self){
 
+    }
+
+    pub fn load(&mut self){
+        /* load style sheet */
+        dbg!("pc: sending page..");
+
+
+    }
 }
-//     pub fn is_ready(&self) -> bool{
-//         self.channel.borrow().is_some()
-//     }
-
-//     pub fn clear_messages(&mut self){
-
-//     }
 
 //     pub fn load(&mut self){
 //         /* load style sheet */
