@@ -62,8 +62,8 @@ cairo-sys-rs = { git = "https://github.com/gtk-rs/cairo" }
 webkit2gtk    = { git = "https://github.com/vhdirk/webkit2gtk-rs", features=["v2_18"] }
 webkit2gtk-webextension = { git = "https://github.com/vhdirk/webkit2gtk-webextension-rs", features=["v2_18"] }
 
-capnp = "*"
-capnp-rpc = "*"
+capnp = { git="https://github.com/capnproto/capnproto-rust.git", branch="std-future"}
+capnp-rpc = { git="https://github.com/capnproto/capnproto-rust.git", branch="std-future"}
 
 crossbeam-channel = "0.2.1"
 rayon = "1.0.1"
@@ -94,5 +94,4 @@ cargo-expand = "*"
 pretty_assertions = "0.5.1"
 
 [build-dependencies]
-capnpc = "0.9.0"
-
+capnpc = { git="https://github.com/capnproto/capnproto-rust.git", branch="std-future"}

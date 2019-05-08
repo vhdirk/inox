@@ -26,6 +26,8 @@ use webkit2gtk_webextension::{
     web_extension_init_with_data
 };
 
+use futures::future::Future;
+
 use capnp::Error;
 use capnp::primitive_list;
 use capnp::capability::Promise;
@@ -249,19 +251,31 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
     let istream = sock.get_input_stream().unwrap();
     let ostream = sock.get_output_stream().unwrap();
 
-    let receiver = istream.into_read();
-    let sender = ostream.into_write();
+    let reader = istream.into_read();
+    let writer = ostream.into_write();
 
-    //let webext = ThreadViewWebExt::new(extension.clone(), ipc_tx, ipc_rx);
-    //webext.spawn_reader();
+    let webext = ThreadViewWebExt{
+        extension: extension.clone()
+    };
+    let page_srv = page::ToClient::new(webext).from_server::<::capnp_rpc::Server>();
+
+    let network = VatNetwork::new(reader,
+                                  writer,
+                                  rpc_twoparty_capnp::Side::Server,
+                                  Default::default());
+
+    let rpc_system = RpcSystem::new(Box::new(network), Some(page_srv.clone().client));
+    //current_thread::spawn(rpc_system.map_err(|e| println!("error: {:?}", e)));
 
 
-    let network =
-        Box::new(VatNetwork::new(receiver, sender,
-                                 rpc_twoparty_capnp::Side::Client,
-                                 Default::default()));
-    let mut rpc_system = RpcSystem::new(network, None);
-    let enamel_core: page::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+    let c = glib::MainContext::default();
+    // let l = glib::MainLoop::new(Some(&c), false);
+    
+    // c.push_thread_default();
+    c.block_on(rpc_system);
+    // l.run();
+    // c.pop_thread_default();
+        
 
 
     // let socket_addr = user_string.unwrap();
@@ -310,10 +324,7 @@ impl page::Server for ThreadViewWebExt
             mut results: page::LoadResults)
             -> Promise<(), Error>
     {
-        Promise::ok(())
-    }
 
-    
     // load @1(html: Text,
     //         css: Text,
     //         partCss: Text,
@@ -323,6 +334,9 @@ impl page::Server for ThreadViewWebExt
     //         disableLog: Bool,
     //         logLevel: Text) -> ();
 
+
+        Promise::ok(())
+    }
 
 }
 
