@@ -49,7 +49,7 @@ cairo-rs = { git = "https://github.com/gtk-rs/cairo" }
 pango = { git = "https://github.com/gtk-rs/pango" }
 gdk = { git = "https://github.com/gtk-rs/gdk" }
 gdk-pixbuf = { git = "https://github.com/gtk-rs/gdk-pixbuf" }
-gio = { git = "https://github.com/vhdirk/gio-rs", branch="subclassing", features=["futures", "subclassing"]}
+gio = { git = "https://github.com/gtk-rs/gio", features=["futures", "subclassing"]}
 glib = { git = "https://github.com/gtk-rs/glib", features=["futures", "subclassing"] }
 pangocairo = { git = "https://github.com/gtk-rs/pangocairo" }
 glib-sys = { git = "https://github.com/gtk-rs/sys" }
