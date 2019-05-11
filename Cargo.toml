@@ -8,14 +8,21 @@ members = [
 [profile.release]
 debug = false
 
-[patch."https://github.com/gtk-rs/glib"]
-glib = { git = "https://github.com/vhdirk/glib-rs", features=["futures", "subclassing"]}
-
-[patch."https://github.com/gtk-rs/gio"]
-gio = { git = "https://github.com/vhdirk/gio-rs", branch="subclassing", features=["futures", "subclassing"]}
-
 [patch."https://github.com/gtk-rs/gtk"]
 gtk = { git = "https://github.com/vhdirk/gtk-rs", branch="subclassing", features=["futures", "subclassing"]}
 
 [patch."https://github.com/gtk-rs/webkit2gtk-rs"]
 webkit2gtk = { git = "https://github.com/vhdirk/webkit2gtk-rs"}
+
+# [patch."https://github.com/capnproto/capnproto-rust.git"]
+# capnp = { git = "https://github.com/vhdirk/capnproto-rust.git", branch="std-future"}
+# capnpc = { git = "https://github.com/vhdirk/capnproto-rust.git", branch="std-future"}
+# capnp-rpc = { git = "https://github.com/vhdirk/capnproto-rust.git", branch="std-future"}
+# capnp-futures = { git = "https://github.com/vhdirk/capnproto-rust.git", branch="std-future"}
+
+
+[patch."https://github.com/capnproto/capnproto-rust.git"]
+capnp = { path = "../capnproto-rust/capnp"}
+capnpc = { path = "../capnproto-rust/capnpc"}
+capnp-rpc = { path = "../capnproto-rust/capnp-rpc"}
+capnp-futures = { path = "../capnproto-rust/capnp-futures"}
