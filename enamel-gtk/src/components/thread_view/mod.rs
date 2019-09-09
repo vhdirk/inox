@@ -17,8 +17,7 @@ use std::sync::mpsc::{channel, Receiver};
 use gmime;
 use gmime::{ParserExt, PartExt};
 use bincode;
-use relm::{Relm, Widget, Update};
-use relm_state::{connect, connect_stream, connect_async, connect_async_full};
+use relm::{Relm, Widget, Update, connect, connect_stream, connect_async, connect_async_full};
 use relm_derive::Msg;
 use ipc_channel::ipc::{self, IpcOneShotServer, IpcSender, IpcReceiver};
 

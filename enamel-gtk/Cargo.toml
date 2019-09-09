@@ -44,13 +44,13 @@ futures-preview = "0.3.0-alpha"
 
 chrono = { version = "0.4", features = ["serde"] }
 
-gtk = { git = "https://github.com/vhdirk/gtk-rs", branch="subclassing", features=["v3_16", "futures", "subclassing"]}
+gtk = { git = "https://github.com/vhdirk/gtk-rs", branch="subclassing", features=["v3_16", "futures"]}
 cairo-rs = { git = "https://github.com/gtk-rs/cairo" }
 pango = { git = "https://github.com/gtk-rs/pango" }
 gdk = { git = "https://github.com/gtk-rs/gdk" }
 gdk-pixbuf = { git = "https://github.com/gtk-rs/gdk-pixbuf" }
-gio = { git = "https://github.com/gtk-rs/gio", features=["futures", "subclassing"]}
-glib = { git = "https://github.com/gtk-rs/glib", features=["futures", "subclassing"] }
+gio = { git = "https://github.com/gtk-rs/gio", features=["futures"]}
+glib = { git = "https://github.com/gtk-rs/glib", features=["futures"] }
 pangocairo = { git = "https://github.com/gtk-rs/pangocairo" }
 glib-sys = { git = "https://github.com/gtk-rs/sys" }
 gio-sys = { git = "https://github.com/gtk-rs/sys" }
@@ -76,7 +76,6 @@ enamel-core = { path = "../enamel-core" }
 
 relm = { git = "https://github.com/vhdirk/relm" }
 relm-derive = { git = "https://github.com/vhdirk/relm" }
-relm-state = { git = "https://github.com/vhdirk/relm" }
 
 notmuch = "*"
 # gmime = { git = "https://github.com/vhdirk/gmime-rs"}

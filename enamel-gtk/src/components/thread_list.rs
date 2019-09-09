@@ -8,8 +8,7 @@ use gtk;
 use gtk::prelude::*;
 use glib::object::Object;
 use glib::subclass::types::ObjectSubclass;
-use relm::{Relm, EventStream, Widget, Update};
-use relm_state::connect;
+use relm::{Relm, EventStream, Widget, Update, connect};
 use relm_derive::Msg;
 
 use notmuch;

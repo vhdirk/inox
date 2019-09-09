@@ -6,8 +6,7 @@ use gtk::prelude::*;
 
 use log::*;
 
-use relm_state::{connect, connect_stream};
-use relm::{Relm, Component, Update, Widget};
+use relm::{Relm, Component, Update, Widget, connect, connect_stream};
 use relm::init as relm_init;
 use relm_derive::Msg;
 
@@ -161,15 +160,15 @@ impl Widget for MainWindow {
         let taglist_header = self.model.app.builder.get_object::<gtk::HeaderBar>("taglist_header")
                                  .expect("Couldn't find taglist_header in ui file.");
 
-        // TODO: do I need to unbind this at some point?
-        let _width_bind = main_paned.bind_property("position", &taglist_header, "width-request")
-                                    .flags(glib::BindingFlags::SYNC_CREATE)
-                                    .transform_to(move |_binding, value| {
-                                        let offset = 6; //TODO: this offset was trial and error.
-                                                        // we should calculate it somehow.
-                                        Some((value.get::<i32>().unwrap_or(0) + offset).to_value())
-                                    })
-                                    .build();
+        // // TODO: do I need to unbind this at some point?
+        // let _width_bind = main_paned.bind_property("position", &taglist_header, "width-request")
+        //                             .flags(glib::BindingFlags::SYNC_CREATE)
+        //                             .transform_to(move |_binding, value| {
+        //                                 let offset = 6; //TODO: this offset was trial and error.
+        //                                                 // we should calculate it somehow.
+        //                                 Some((value.get::<i32>().unwrap_or(Some(0)) + offset).to_value())
+        //                             })
+        //                             .build();
 
         self.container.show_all();
 

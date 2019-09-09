@@ -9,28 +9,25 @@ use std::ops::AddAssign;
 use log::*;
 use gtk;
 use gdk;
-use gdk::ContextExt;
 use gdk_pixbuf;
-use gdk_pixbuf::prelude::*;
+use pango;
 use cairo;
 use pangocairo;
-use gobject_sys as gobject_ffi;
+
+use gobject_sys;
 use glib::translate::*;
 use glib::prelude::*;
 use gtk::prelude::*;
-use glib::{glib_wrapper, glib_object_wrapper};
+use gdk::prelude::*;
+use gdk_pixbuf::prelude::*;
+use pango::prelude::*;
 
 use glib::subclass;
 use glib::subclass::prelude::*;
 use gtk::subclass::cell_renderer::CellRendererImpl;
 use glib::subclass::Property;
-use glib::{glib_object_subclass, glib_object_impl};
+use glib::{glib_wrapper, glib_object_wrapper, glib_object_subclass, glib_object_impl};
 
-
-
-use pango;
-use pango::ContextExt as PangoContextExt;
-use pango::LayoutExt;
 use notmuch;
 
 use enamel_core::database::ThreadExtra;
