@@ -2,8 +2,7 @@ use std::rc::Rc;
 
 use gtk;
 use gtk::prelude::*;
-use relm::{Relm, Update, Widget};
-use relm_state::connect;
+use relm::{Relm, Update, Widget, connect};
 use relm_derive::Msg;
 
 use notmuch::DatabaseMode;

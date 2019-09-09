@@ -20,7 +20,6 @@ fn main() {
 
     ::capnpc::CompilerCommand::new()
         .file("resources/webext.capnp")
-        .edition(::capnpc::RustEdition::Rust2018)
         .run()
         .expect("compiling schema");
 

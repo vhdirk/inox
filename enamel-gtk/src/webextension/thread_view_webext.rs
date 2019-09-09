@@ -194,7 +194,7 @@ impl ThreadViewWebExt{
             document.set_title("My Web Page");
 
             let handler = Closure::new(|values| {
-                if let Some(event) = values[1].get::<Object>() {
+                if let Ok(Some(event)) = values[1].get::<Object>() {
                     // if let Ok(mouse_event) = event.downcast::<DOMMouseEvent>() {
                     //     println!("Click at ({}, {})", mouse_event.get_x(), mouse_event.get_y());
                     // }
@@ -316,7 +316,7 @@ impl page::Server for ThreadViewWebExt
             mut results: page::AllowRemoteImagesResults)
             -> Promise<(), Error>
     {
-        Promise::ok(())
+        Promise::result(Ok(()))
     }
 
     fn load(&mut self,
@@ -335,7 +335,7 @@ impl page::Server for ThreadViewWebExt
     //         logLevel: Text) -> ();
 
 
-        Promise::ok(())
+        Promise::result(Ok(()))
     }
 
 }
