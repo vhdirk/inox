@@ -80,30 +80,22 @@ impl ThreadViewModel{
         info!("setting web extensions directory: {:?}", extdir);
         ctx.set_web_extensions_directory(&extdir);
 
-        let socket_addr = format!("/tmp/enamel/tv.{}.{}.sock", 
+        let socket_addr = format!("/tmp/enamel-tv-{}-{}.sock", 
                                   process::id(),
                                   Uuid::new_v4());
 
         let gsock_addr = gio::UnixSocketAddress::new(Path::new(&socket_addr));
-            // gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
 
-        let srv = gio::SocketListener::new();
-        let res = srv.add_address(&gsock_addr,
-                                  gio::SocketType::Stream,
-                                  gio::SocketProtocol::Default,
-                                  Some(&gsock_addr)).unwrap();
+        let listener = gio::SocketListener::new();
+        let res = listener.add_address(&gsock_addr,
+                                       gio::SocketType::Stream,
+                                       gio::SocketProtocol::Default,
+                                       Some(&gsock_addr)).unwrap();
         info!("sock addr: {:?}", socket_addr);
 
-        // let (lstream, rstream) = UnixStream::pair().unwrap();
-
-        // debug!("lstream addr {:?}", lstream.local_addr());
-        // let rstream_fd = rstream.into_raw_fd();
-
         ctx.set_web_extensions_initialization_user_data(&socket_addr.to_variant());
-
-        srv
+        listener
     }
-
 }
 
 
@@ -264,11 +256,11 @@ impl Update for ThreadView {
         ctx.set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
 
         // can't use relm for this since it would get called too late
-        let srv = ThreadViewModel::initialize_web_extensions(&ctx);
+        let listener = ThreadViewModel::initialize_web_extensions(&ctx);
         
         debug!("Starting connect");
         // accept connection from extension
-        connect_async_full!(srv,
+        connect_async_full!(listener,
                             accept_async,
                             relm,
                             Msg::ExtensionConnect);
@@ -276,7 +268,7 @@ impl Update for ThreadView {
             relm: relm.clone(),
             app,
             webcontext: ctx,
-            socket_listener: srv,
+            socket_listener: listener,
             page_client: None
         }
     }

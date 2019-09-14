@@ -1,11 +1,10 @@
 use std::{mem, thread};
 use std::rc::Rc;
+use std::cell::RefCell;
 use std::path::Path;
 use std::sync::{Arc, Mutex, Once, ONCE_INIT};
 use log::*;
 use env_logger;
-use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
-use bincode;
 use serde_derive::{Serialize, Deserialize};
 use glib::Cast;
 use glib::Object;
@@ -31,7 +30,7 @@ use webkit2gtk_webextension::{
 use std::os::unix::net::UnixStream;
 use async_std::os::unix::net::{UnixStream as AsyncUnixStream};
 use async_std::os::unix::io::{AsRawFd, FromRawFd};
-use futures::future::Future;
+use futures::future::{self, Future, FutureExt};
 
 use capnp::Error;
 use capnp::primitive_list;
@@ -68,128 +67,24 @@ const ATTACHMENT_ICON_WIDTH: i32 = 35;
 
 #[derive(Debug, Clone)]
 pub struct ThreadViewWebExt{
-    extension: WebExtension
+    extension: WebExtension,
+    page: Option<WebPage>
 }
 
 impl ThreadViewWebExt{
 
     pub fn new(extension: webkit2gtk_webextension::WebExtension) -> Self{
         ThreadViewWebExt{
-            extension
+            extension,
+            page: None
         }
     }
 
-    pub fn spawn_reader(&self){
-        // let chan = self.channel.clone();
-        // let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-        // thread::spawn(move || {
-        //     loop{
-        //         sender.send(chan.lock().unwrap().rx.recv().unwrap()).unwrap();
-        //     }
-        // });
 
-        // let me = self.clone();
-        // receiver.attach(None, move |msg| {
-        //     let cont = me.on_message(msg);
-        //     glib::Continue(cont)
-        // });
-    }
-
-    // pub fn on_message(&self, msg: PageMessage) -> bool{
-
-    //     match msg{
-    //         PageMessage::Page(html,
-    //                           css,
-    //                           part_css,
-    //                           allowed_uris,
-    //                           use_stdout,
-    //                           use_syslog,
-    //                           disable_log,
-    //                           log_level) => self.handle_page_msg(html,
-    //                                                              css,
-    //                                                              part_css,
-    //                                                              allowed_uris,
-    //                                                              use_stdout,
-    //                                                              use_syslog,
-    //                                                              disable_log,
-    //                                                              log_level),
-    //         _ => ()
-    //     }
-
-    //     true
-    // }
-
-
-    // pub fn handle_page_msg(&self, 
-    //                        html:String,
-    //                        css:String,
-    //                        part_css:String,
-    //                        allowed_uris:Vec<String>,
-    //                        use_stdout:bool,
-    //                        use_syslog:bool,
-    //                        disable_log:bool,
-    //                        log_level:String){
-//           /* set up logging */
-//   if (s.use_stdout ()) {
-//     init_console_log ();
-//   }
-
-//   if (s.use_syslog ()) {
-//     init_sys_log ();
-//   }
-
-//   if (s.disable_log ()) {
-//     logging::core::get()->set_logging_enabled (false);
-//   }
-
-//   logging::core::get()->set_filter (logging::trivial::severity >= sevmap[s.log_level ()]);
-
-//   GError *err = NULL;
-//   WebKitDOMDocument *d = webkit_web_page_get_dom_document (page);
-
-//   /* load html */
-//   LOG (debug) << "loading html..";
-
-//   WebKitDOMElement * he = webkit_dom_document_create_element (d, "HTML", (err = NULL, &err));
-//   webkit_dom_element_set_outer_html (he, s.html ().c_str (), (err = NULL, &err));
-
-//   webkit_dom_document_set_body (d, WEBKIT_DOM_HTML_ELEMENT(he), (err = NULL, &err));
-
-//   /* load css style */
-//   LOG (debug) << "loading stylesheet..";
-//   WebKitDOMElement  *e = webkit_dom_document_create_element (d, "STYLE", (err = NULL, &err));
-
-//   WebKitDOMText *t = webkit_dom_document_create_text_node
-//     (d, s.css().c_str());
-
-//   webkit_dom_node_append_child (WEBKIT_DOM_NODE(e), WEBKIT_DOM_NODE(t), (err = NULL, &err));
-
-//   WebKitDOMHTMLHeadElement * head = webkit_dom_document_get_head (d);
-//   webkit_dom_node_append_child (WEBKIT_DOM_NODE(head), WEBKIT_DOM_NODE(e), (err = NULL, &err));
-//   LOG (debug) << "done";
-
-//   /* store part / iframe css for later */
-//   part_css = s.part_css ();
-
-//   /* store allowed uris */
-//   for (auto &s : s.allowed_uris ()) {
-//     allowed_uris.push_back (s);
-//   }
-
-//   page_ready = true;
-
-//   g_object_unref (he);
-//   g_object_unref (head);
-//   g_object_unref (t);
-//   g_object_unref (e);
-//   g_object_unref (d);
-
-//   ack (true);
-
-//    }
-
-
-    pub fn on_page_created(&self, page: &webkit2gtk_webextension::WebPage){
+    pub fn on_page_created(&mut self, page: &webkit2gtk_webextension::WebPage){
+        
+        info!("WEEEEEE");
+        self.page = Some(page.clone());
 
         page.connect_document_loaded(|page| {
             println!("Page {} created for {:?}", page.get_id(), page.get_uri());
@@ -255,9 +150,10 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
     let wstream: AsyncUnixStream = wstream_sync.into();
 
     let webext = ThreadViewWebExt{
-        extension: extension.clone()
+        extension: extension.clone(),
+        page: None
     };
-    let page_srv = page::ToClient::new(webext).into_client::<::capnp_rpc::Server>();
+    let page_srv = page::ToClient::new(webext.clone()).into_client::<::capnp_rpc::Server>();
 
     let network = VatNetwork::new(rstream,
                                   wstream,
@@ -265,15 +161,20 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
                                   Default::default());
 
     let rpc_system = RpcSystem::new(Box::new(network), Some(page_srv.clone().client));
-    // //current_thread::spawn(rpc_system.map_err(|e| println!("error: {:?}", e)));
 
+    extension.connect_page_created(move |_, page| {
+        let mut cwebext = webext.clone();
+        cwebext.on_page_created(page);
+    });
 
-    // // let l = glib::MainLoop::new(Some(&c), false);
-    
-    // // c.push_thread_default();
-    c.block_on(rpc_system);
-    // l.run();
-    // c.pop_thread_default();
+   
+    c.push_thread_default();
+    c.spawn_local(rpc_system.then(move |_result| {
+        // TODO: do something with this result...
+
+        future::ready(())
+    }));
+    c.pop_thread_default();
         
 
 
@@ -301,10 +202,7 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
     //     };
     // });
 
-    // let cwebext = webext.clone();
-    // extension.connect_page_created(move |_, page| {
-    //     cwebext.on_page_created(page);
-    // });
+
 }
 
 impl page::Server for ThreadViewWebExt
@@ -332,7 +230,51 @@ impl page::Server for ThreadViewWebExt
     //         useSyslog: Bool,
     //         disableLog: Bool,
     //         logLevel: Text) -> ();
+        // self.extension.
 
+//   GError *err = NULL;
+//   WebKitDOMDocument *d = webkit_web_page_get_dom_document (page);
+
+//   /* load html */
+//   LOG (debug) << "loading html..";
+
+//   WebKitDOMElement * he = webkit_dom_document_create_element (d, "HTML", (err = NULL, &err));
+//   webkit_dom_element_set_outer_html (he, s.html ().c_str (), (err = NULL, &err));
+
+//   webkit_dom_document_set_body (d, WEBKIT_DOM_HTML_ELEMENT(he), (err = NULL, &err));
+
+//   /* load css style */
+//   LOG (debug) << "loading stylesheet..";
+//   WebKitDOMElement  *e = webkit_dom_document_create_element (d, "STYLE", (err = NULL, &err));
+
+//   WebKitDOMText *t = webkit_dom_document_create_text_node
+//     (d, s.css().c_str());
+
+//   webkit_dom_node_append_child (WEBKIT_DOM_NODE(e), WEBKIT_DOM_NODE(t), (err = NULL, &err));
+
+//   WebKitDOMHTMLHeadElement * head = webkit_dom_document_get_head (d);
+//   webkit_dom_node_append_child (WEBKIT_DOM_NODE(head), WEBKIT_DOM_NODE(e), (err = NULL, &err));
+//   LOG (debug) << "done";
+
+//   /* store part / iframe css for later */
+//   part_css = s.part_css ();
+
+//   /* store allowed uris */
+//   for (auto &s : s.allowed_uris ()) {
+//     allowed_uris.push_back (s);
+//   }
+
+//   page_ready = true;
+
+//   g_object_unref (he);
+//   g_object_unref (head);
+//   g_object_unref (t);
+//   g_object_unref (e);
+//   g_object_unref (d);
+
+//   ack (true);
+
+//    }
 
         Promise::ok(())
     }
