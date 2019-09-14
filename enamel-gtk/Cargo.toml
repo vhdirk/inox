@@ -83,6 +83,7 @@ notmuch = "*"
 # [patch.crates-io]
 #notmuch = { path = "../../notmuch-rs" }
 gmime = { path = "../../gmime-rs" }
+async-std = "0.99.5"
 
 
 [features]
