@@ -1,5 +1,6 @@
 use std::{mem, thread};
 use std::rc::Rc;
+use std::path::Path;
 use std::sync::{Arc, Mutex, Once, ONCE_INIT};
 use log::*;
 use env_logger;
@@ -11,6 +12,7 @@ use glib::Object;
 use glib::closure::Closure;
 use glib::variant::Variant;
 use gio;
+use gio::prelude::*;
 use gio::{SocketClientExt, IOStreamExt, InputStreamExtManual, OutputStreamExtManual};
 use gtk::IconThemeExt;
 use webkit2gtk_webextension::{
@@ -26,6 +28,9 @@ use webkit2gtk_webextension::{
     web_extension_init_with_data
 };
 
+use std::os::unix::net::UnixStream;
+use async_std::os::unix::net::{UnixStream as AsyncUnixStream};
+use async_std::os::unix::io::{AsRawFd, FromRawFd};
 use futures::future::Future;
 
 use capnp::Error;
@@ -241,37 +246,31 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
 
     let socket_addr = user_string.unwrap();
 
-    let gsock_addr = gio::UnixSocketAddress::new_with_type(
-        gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
+    let c = glib::MainContext::default();
 
-    // connect to socket
-    let cli = gio::SocketClient::new();
-    let sock = cli.connect(&gsock_addr, None::<&gio::Cancellable>).unwrap();
+    let mut rstream_sync = UnixStream::connect(socket_addr).unwrap();
+    let mut wstream_sync = rstream_sync.try_clone().unwrap();
 
-    let istream = sock.get_input_stream().unwrap();
-    let ostream = sock.get_output_stream().unwrap();
-
-    let reader = istream.into_read();
-    let writer = ostream.into_write();
+    let rstream: AsyncUnixStream = rstream_sync.into();
+    let wstream: AsyncUnixStream = wstream_sync.into();
 
     let webext = ThreadViewWebExt{
         extension: extension.clone()
     };
-    let page_srv = page::ToClient::new(webext).from_server::<::capnp_rpc::Server>();
+    let page_srv = page::ToClient::new(webext).into_client::<::capnp_rpc::Server>();
 
-    let network = VatNetwork::new(reader,
-                                  writer,
+    let network = VatNetwork::new(rstream,
+                                  wstream,
                                   rpc_twoparty_capnp::Side::Server,
                                   Default::default());
 
     let rpc_system = RpcSystem::new(Box::new(network), Some(page_srv.clone().client));
-    //current_thread::spawn(rpc_system.map_err(|e| println!("error: {:?}", e)));
+    // //current_thread::spawn(rpc_system.map_err(|e| println!("error: {:?}", e)));
 
 
-    let c = glib::MainContext::default();
-    // let l = glib::MainLoop::new(Some(&c), false);
+    // // let l = glib::MainLoop::new(Some(&c), false);
     
-    // c.push_thread_default();
+    // // c.push_thread_default();
     c.block_on(rpc_system);
     // l.run();
     // c.pop_thread_default();
@@ -316,7 +315,7 @@ impl page::Server for ThreadViewWebExt
             mut results: page::AllowRemoteImagesResults)
             -> Promise<(), Error>
     {
-        Promise::result(Ok(()))
+        Promise::ok(())
     }
 
     fn load(&mut self,
@@ -335,7 +334,7 @@ impl page::Server for ThreadViewWebExt
     //         logLevel: Text) -> ();
 
 
-        Promise::result(Ok(()))
+        Promise::ok(())
     }
 
 }

@@ -7,6 +7,8 @@ use serde_derive::{Serialize, Deserialize};
 use log::*;
 use gio;
 use gio::SocketListenerExt;
+use gio::SocketListenerExtManual;
+
 
 use glib;
 use gtk;
@@ -19,7 +21,9 @@ use gmime::{ParserExt, PartExt};
 use bincode;
 use relm::{Relm, Widget, Update, connect, connect_stream, connect_async, connect_async_full};
 use relm_derive::Msg;
-use ipc_channel::ipc::{self, IpcOneShotServer, IpcSender, IpcReceiver};
+
+use async_std::os::unix::net::{UnixStream, UnixListener};
+use async_std::os::unix::io::IntoRawFd;
 
 use uuid::Uuid;
 use toml;
@@ -43,6 +47,7 @@ pub struct ThreadViewModel {
     relm: Relm<ThreadView>,
     app: Rc<EnamelApp>,
     webcontext: webkit2gtk::WebContext,
+    socket_listener: gio::SocketListener,
     page_client: Option<PageClient>
 }
 
@@ -52,7 +57,7 @@ pub struct ThreadViewModel {
 #[derive(Msg, Debug)]
 pub enum Msg {
     InitializeWebExtensions,
-    ExtensionConnect((gio::SocketConnection, glib::Object)),
+    ExtensionConnect((gio::SocketConnection, Option<glib::Object>)),
 
     LoadChanged(webkit2gtk::LoadEvent),
     ReadyToRender,
@@ -79,15 +84,20 @@ impl ThreadViewModel{
                                   process::id(),
                                   Uuid::new_v4());
 
-        let gsock_addr = gio::UnixSocketAddress::new_with_type(
-            gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
+        let gsock_addr = gio::UnixSocketAddress::new(Path::new(&socket_addr));
+            // gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
 
         let srv = gio::SocketListener::new();
         let res = srv.add_address(&gsock_addr,
                                   gio::SocketType::Stream,
                                   gio::SocketProtocol::Default,
                                   Some(&gsock_addr)).unwrap();
-        info!("sock addr: {:?}", res);
+        info!("sock addr: {:?}", socket_addr);
+
+        // let (lstream, rstream) = UnixStream::pair().unwrap();
+
+        // debug!("lstream addr {:?}", lstream.local_addr());
+        // let rstream_fd = rstream.into_raw_fd();
 
         ctx.set_web_extensions_initialization_user_data(&socket_addr.to_variant());
 
@@ -99,7 +109,7 @@ impl ThreadViewModel{
 
 impl ThreadView{
 
-    fn extension_connected(&mut self, conn: gio::SocketConnection, obj: glib::Object){
+    fn extension_connected(&mut self, conn: gio::SocketConnection, obj: Option<glib::Object>){
         debug!("ThreadView: extension_connected");
         self.model.page_client = Some(PageClient::new(conn));
 
@@ -256,6 +266,7 @@ impl Update for ThreadView {
         // can't use relm for this since it would get called too late
         let srv = ThreadViewModel::initialize_web_extensions(&ctx);
         
+        debug!("Starting connect");
         // accept connection from extension
         connect_async_full!(srv,
                             accept_async,
@@ -265,6 +276,7 @@ impl Update for ThreadView {
             relm: relm.clone(),
             app,
             webcontext: ctx,
+            socket_listener: srv,
             page_client: None
         }
     }

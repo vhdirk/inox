@@ -233,7 +233,7 @@ mod imp {
             match *prop {
                 subclass::Property("thread", ..) => {
                     let thread = value.get::<&Thread>().expect("Value did not actually contain an AnyValue");
-                    *(self.thread.borrow_mut()) = Some(thread.clone());
+                    *(self.thread.borrow_mut()) = Some(thread.unwrap().clone());
                 },
                 _ => unimplemented!(),
             }

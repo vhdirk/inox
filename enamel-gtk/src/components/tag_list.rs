@@ -75,8 +75,8 @@ impl TagList{
         let (model, iter) = self.tree_view.get_selection().get_selected().unwrap();
 
         if self.tree_model.iter_is_valid(&iter){
-            let val: String = model.get_value(&iter, 0).get().unwrap();
-            self.model.relm.stream().emit(Msg::ItemSelect(Some(val)));
+            let val = model.get_value(&iter, 0).get().unwrap();
+            self.model.relm.stream().emit(Msg::ItemSelect(val));
         }else{
             self.model.relm.stream().emit(Msg::ItemSelect(None));
         }

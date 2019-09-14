@@ -178,7 +178,7 @@ impl Update for ThreadList {
                     let thread = lval.get::<&Thread>().unwrap();
 
                     debug!("select thread: {:?}", thread);
-                    self.model.relm.stream().clone().emit(Msg::ThreadSelect(Some(thread.clone())));
+                    self.model.relm.stream().clone().emit(Msg::ThreadSelect(Some(thread.unwrap().clone())));
                 }
             },
             Msg::ThreadSelect(ref _thread_id) => (),

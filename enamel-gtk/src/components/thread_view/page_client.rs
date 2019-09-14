@@ -15,7 +15,7 @@ use crate::webext_capnp::page;
 #[derive(Clone)]
 pub struct PageClient{
     conn: gio::SocketConnection,
-    client: page::Client
+    // client: page::Client
 }
 
 
@@ -29,16 +29,16 @@ impl PageClient{
         let receiver = istream.into_read();
         let sender = ostream.into_write();
 
-        let network =
-            Box::new(VatNetwork::new(receiver, sender,
-                                    rpc_twoparty_capnp::Side::Client,
-                                    Default::default()));
-        let mut rpc_system = RpcSystem::new(network, None);
-        let client: page::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+        // let network =
+        //     Box::new(VatNetwork::new(receiver, sender,
+        //                             rpc_twoparty_capnp::Side::Client,
+        //                             Default::default()));
+        // let mut rpc_system = RpcSystem::new(network, None);
+        // let client: page::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
         Self{
             conn,
-            client
+            // client
         }
 //         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 //         thread::spawn(move || {
