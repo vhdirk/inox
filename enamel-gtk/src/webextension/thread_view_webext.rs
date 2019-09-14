@@ -15,6 +15,7 @@ use gio::prelude::*;
 use gio::{SocketClientExt, IOStreamExt, InputStreamExtManual, OutputStreamExtManual};
 use gtk::IconThemeExt;
 use webkit2gtk_webextension::{
+    DOMDocument,
     DOMDocumentExt,
     DOMElementExt,
     DOMEventTargetExt,
@@ -141,7 +142,6 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
 
     let socket_addr = user_string.unwrap();
 
-    let c = glib::MainContext::default();
 
     let mut rstream_sync = UnixStream::connect(socket_addr).unwrap();
     let mut wstream_sync = rstream_sync.try_clone().unwrap();
@@ -167,47 +167,19 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
         cwebext.on_page_created(page);
     });
 
-   
-    c.push_thread_default();
-    c.spawn_local(rpc_system.then(move |_result| {
+    let ctx = glib::MainContext::default();
+
+    ctx.push_thread_default();
+    ctx.spawn_local(rpc_system.then(move |_result| {
         // TODO: do something with this result...
 
         future::ready(())
     }));
-    c.pop_thread_default();
-        
-
-
-    // let socket_addr = user_string.unwrap();
-
-    // let gsock_addr = gio::UnixSocketAddress::new_with_type(
-    //     gio::UnixSocketAddressPath::Abstract(socket_addr.as_ref()));
-
-    // // connect to socket
-    // let cli = gio::SocketClient::new();
-    // let sock = cli.connect(&gsock_addr, None::<&gio::Cancellable>).unwrap();
-
-    // let istream = sock.get_input_stream().unwrap();
-    // let ostream = sock.get_output_stream().unwrap();
-
-    // info!("stream:{:?}", istream);
-
-    // let mut do_run = true;
-
-    // thread::spawn(move || {
-    //     let res = istream.read_message(None::<&gio::Cancellable>);
-    //     match res{
-    //         Ok(msg) => (),
-    //         Err(err) => ()
-    //     };
-    // });
-
-
+    ctx.pop_thread_default();
 }
 
 impl page::Server for ThreadViewWebExt
 {
-
     fn allow_remote_images(&mut self,
             params: page::AllowRemoteImagesParams,
             mut results: page::AllowRemoteImagesResults)
@@ -233,10 +205,14 @@ impl page::Server for ThreadViewWebExt
         // self.extension.
 
 //   GError *err = NULL;
-//   WebKitDOMDocument *d = webkit_web_page_get_dom_document (page);
+        // let page = self.page.as_ref().unwrap();
+        // let document: DOMDocument = page.get_dom_document().unwrap();
 
-//   /* load html */
-//   LOG (debug) << "loading html..";
+        // load html
+        info!("loading html..");
+
+        // let he = document.create_element("HTML");
+        // let page2 = self.page.as_ref().unwrap();
 
 //   WebKitDOMElement * he = webkit_dom_document_create_element (d, "HTML", (err = NULL, &err));
 //   webkit_dom_element_set_outer_html (he, s.html ().c_str (), (err = NULL, &err));

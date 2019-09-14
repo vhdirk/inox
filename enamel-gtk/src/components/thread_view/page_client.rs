@@ -1,7 +1,11 @@
 use std::thread;
 use std::rc::Rc;
 use std::cell::RefCell;
-use gio::{SocketClientExt, IOStreamExt, InputStreamExtManual, OutputStreamExtManual};
+use gio::{SocketClientExt, SocketConnectionExt, SocketExtManual, IOStreamExt, InputStreamExtManual, OutputStreamExtManual};
+
+use std::os::unix::net::UnixStream;
+use async_std::os::unix::net::{UnixStream as AsyncUnixStream};
+use async_std::os::unix::io::{AsRawFd, FromRawFd};
 
 use capnp::Error;
 use capnp::primitive_list;
@@ -10,12 +14,14 @@ use capnp::capability::Promise;
 use capnp_rpc::{RpcSystem, rpc_twoparty_capnp};
 use capnp_rpc::twoparty::VatNetwork;
 
+use futures::future::{self, FutureExt, TryFutureExt};
+
 use crate::webext_capnp::page;
 
 #[derive(Clone)]
 pub struct PageClient{
     conn: gio::SocketConnection,
-    // client: page::Client
+    client: page::Client
 }
 
 
@@ -23,45 +29,35 @@ impl PageClient{
 
     pub fn new(conn: gio::SocketConnection) -> Self
     {
-        let istream = conn.get_input_stream().unwrap();
-        let ostream = conn.get_output_stream().unwrap();
+        let mut rstream_sync: UnixStream = conn.get_socket().unwrap().get_fd();
+        let mut wstream_sync: UnixStream = rstream_sync.try_clone().unwrap();
 
-        let receiver = istream.into_read();
-        let sender = ostream.into_write();
+        let rstream: AsyncUnixStream = rstream_sync.into();
+        let wstream: AsyncUnixStream = wstream_sync.into();
 
-        // let network =
-        //     Box::new(VatNetwork::new(receiver, sender,
-        //                             rpc_twoparty_capnp::Side::Client,
-        //                             Default::default()));
-        // let mut rpc_system = RpcSystem::new(network, None);
-        // let client: page::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+
+        let network =
+            Box::new(VatNetwork::new(rstream, wstream,
+                                     rpc_twoparty_capnp::Side::Client,
+                                     Default::default()));
+        let mut rpc_system = RpcSystem::new(network, None);
+        let client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+
+        let ctx = glib::MainContext::default();
+
+        ctx.push_thread_default();
+        ctx.spawn_local(rpc_system.then(move |_result| {
+            // TODO: do something with this result...
+
+            future::ready(())
+        }));
+        ctx.pop_thread_default();
 
         Self{
             conn,
-            // client
+            client
         }
-//         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-//         thread::spawn(move || {
-//             let (_, txrx) : (_, (IpcSender<PageMessage>, IpcReceiver<PageMessage>)) = srv.accept().unwrap();
-//             let _ = sender.send(txrx);
-//         });
 
-//         let pc = Rc::new(Self{
-//             channel: RefCell::new(None),
-//         });
-
-//         let cpc = pc.clone();
-
-//         receiver.attach(None, move |(tx, rx)| {
-//             *cpc.channel.borrow_mut() = Some(PageChannel{
-//                 tx,
-//                 rx
-//             });
-
-//             glib::Continue(false)
-//         });
-        
-//         pc
     }
 
     pub fn clear_messages(&mut self){
@@ -71,7 +67,27 @@ impl PageClient{
     pub fn load(&mut self){
         /* load style sheet */
         dbg!("pc: sending page..");
+        
+        //self.client.
+        
+        let mut request = self.client.load_request();
+        // request.get().set_path(&mail_path.to_str().unwrap());
+        // request.get().set_mode(enamel_core::DatabaseMode::ReadOnly);
+        
+        let ctx = glib::MainContext::default();
+        ctx.push_thread_default();
 
+        ctx.spawn_local(request.send().promise.and_then(|response| {
+            Promise::ok(())
+            }).then(move |_result| {
+                // TODO: do something with this result...
+
+            future::ready(())
+        }));
+
+        ctx.pop_thread_default();
+
+        println!("PASS");
 
     }
 }
