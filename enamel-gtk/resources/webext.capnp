@@ -14,8 +14,6 @@ interface Page{
             logLevel: Text) -> ();
 
 
-
-
 }
 
 

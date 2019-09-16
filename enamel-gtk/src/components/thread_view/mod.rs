@@ -34,7 +34,7 @@ use enamel_core::database::Thread;
 use crate::app::EnamelApp;
 
 mod page_client;
-use page_client::PageClient;
+use page_client::{PageClient, Msg as PageClientMsg};
 
 
 pub struct ThreadView{
@@ -58,6 +58,7 @@ pub struct ThreadViewModel {
 pub enum Msg {
     InitializeWebExtensions,
     ExtensionConnect((gio::SocketConnection, Option<glib::Object>)),
+    PageLoaded,
 
     LoadChanged(webkit2gtk::LoadEvent),
     ReadyToRender,
@@ -103,8 +104,13 @@ impl ThreadView{
 
     fn extension_connected(&mut self, conn: gio::SocketConnection, obj: Option<glib::Object>){
         debug!("ThreadView: extension_connected");
-        self.model.page_client = Some(PageClient::new(conn));
+        let page_client = PageClient::new(conn);
+        self.model.page_client = Some(page_client.clone());
 
+        // TODO: create new macro to do this more elegantly
+        // use self::PageClientMsg::PageLoaded as PageClient_PageLoaded;
+        // let page_client_stream = page_client.stream.clone();
+        // connect_stream!(page_client_stream@PageClient_PageLoaded, self.model.relm.stream(), Msg::PageLoaded);
     }
 
     fn load_changed(&mut self, event: webkit2gtk::LoadEvent){
@@ -114,6 +120,7 @@ impl ThreadView{
             webkit2gtk::LoadEvent::Finished => {
                 if self.model.page_client.is_some(){
                     self.model.relm.stream().emit(Msg::ReadyToRender);
+                    
                 }
             },
             _ => ()
@@ -278,6 +285,7 @@ impl Update for ThreadView {
         match msg {
             Msg::InitializeWebExtensions => (), //self.initialize_web_extensions(),
             Msg::ExtensionConnect(result) => self.extension_connected(result.0, result.1),
+            Msg::PageLoaded => (),
             Msg::LoadChanged(event) => self.load_changed(event), 
             Msg::ReadyToRender => self.ready_to_render(),
             Msg::DecidePolicy(decision, decision_type) => self.decide_policy(&decision, decision_type),
