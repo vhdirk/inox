@@ -41,11 +41,10 @@ enamel-core = { path = "../enamel-core" }
 
 
 # notmuch = "*"
-# gmime = { git = "https://github.com/vhdirk/gmime-rs"}
+gmime = { git = "https://github.com/vhdirk/gmime-rs"}
 
 # [patch.crates-io]
-notmuch = { path = "../../notmuch-rs" }
-gmime = { path = "../../gmime-rs" }
+# notmuch = { path = "../../notmuch-rs" }
 
 [dev-dependencies]
 cargo-expand = "*"

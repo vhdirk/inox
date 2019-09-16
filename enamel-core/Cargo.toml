@@ -35,11 +35,11 @@ gio-sys = { git = "https://github.com/gtk-rs/sys"}
 gobject-sys = { git = "https://github.com/gtk-rs/sys"}
 
 notmuch = "*"
-# gmime = { git = "https://github.com/vhdirk/gmime-rs"}
+gmime = { git = "https://github.com/vhdirk/gmime-rs"}
 
 # [patch.crates-io]
 #notmuch = { path = "../../notmuch-rs" }
-gmime = { path = "../../gmime-rs" }
+#gmime = { path = "../../gmime-rs" }
 
 [features]
 default = ["glib/futures"]

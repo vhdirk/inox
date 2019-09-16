@@ -7,6 +7,9 @@ use std::os::unix::net::UnixStream;
 use async_std::os::unix::net::{UnixStream as AsyncUnixStream};
 use async_std::os::unix::io::{AsRawFd, FromRawFd};
 
+use relm::EventStream;
+use relm_derive::{Msg as Message};
+
 use capnp::Error;
 use capnp::primitive_list;
 use capnp::capability::Promise;
@@ -18,10 +21,17 @@ use futures::future::{self, FutureExt, TryFutureExt};
 
 use crate::webext_capnp::page;
 
+#[derive(Message, Debug)]
+pub enum Msg {
+    PageLoaded
+}
+
+
 #[derive(Clone)]
 pub struct PageClient{
-    conn: gio::SocketConnection,
-    client: page::Client
+    connection: gio::SocketConnection,
+    client: page::Client,
+    pub stream: EventStream<Msg>
 }
 
 
@@ -53,9 +63,11 @@ impl PageClient{
         }));
         ctx.pop_thread_default();
 
+        // connection should stay alive while rstream and wstream are
         Self{
-            conn,
-            client
+            connection: conn,
+            client,
+            stream: EventStream::<Msg>::new()
         }
 
     }
@@ -86,9 +98,6 @@ impl PageClient{
         }));
 
         ctx.pop_thread_default();
-
-        println!("PASS");
-
     }
 }
 
