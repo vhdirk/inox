@@ -32,7 +32,6 @@ lazy_static = "1.0"
 vte = "0.3.2"
 supercow = "0.1.0"
 dirs = "1.0.4"
-ipc-channel = "0.11.2"
 bincode = "1.0.1"
 bytes = { version = "0.4.12", features = ["serde"] }
 uuid = { version = "0.7", features = ["v4"] }
