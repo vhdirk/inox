@@ -35,7 +35,8 @@ use crate::app::EnamelApp;
 
 mod page_client;
 use page_client::{PageClient, Msg as PageClientMsg};
-
+mod theme;
+use theme::ThreadViewTheme;
 
 pub struct ThreadView{
     model: ThreadViewModel,
@@ -48,7 +49,8 @@ pub struct ThreadViewModel {
     app: Rc<EnamelApp>,
     webcontext: webkit2gtk::WebContext,
     socket_listener: gio::SocketListener,
-    page_client: Option<PageClient>
+    page_client: Option<PageClient>,
+    theme: ThreadViewTheme
 }
 
 
@@ -132,7 +134,7 @@ impl ThreadView{
 
         match self.model.page_client.as_mut(){
             Some(pc) => {
-                pc.load();
+                pc.load(&self.model.theme);
 
                 /* render messages in case we were not ready when first requested */
                 pc.clear_messages();
@@ -147,13 +149,7 @@ impl ThreadView{
     fn load_html(&self) {
 
         info!("render: loading html..");
-        let _wk_loaded = false;
-        let _ready = false;
-
-        let html = gio::resources_lookup_data(&"/com/github/vhdirk/Enamel/html/thread_view.html", gio::ResourceLookupFlags::NONE).unwrap();
-        let htmlcontent = std::str::from_utf8(&*html);
-
-        self.webview.load_html(htmlcontent.unwrap(), None);
+        self.webview.load_html(&self.model.theme.html, None);
 
     }
 
@@ -276,7 +272,8 @@ impl Update for ThreadView {
             app,
             webcontext: ctx,
             socket_listener: listener,
-            page_client: None
+            page_client: None,
+            theme: ThreadViewTheme::load()
         }
     }
 

@@ -21,6 +21,8 @@ use futures::future::{self, FutureExt, TryFutureExt};
 
 use crate::webext_capnp::page;
 
+use super::theme::ThreadViewTheme;
+
 #[derive(Message, Debug)]
 pub enum Msg {
     PageLoaded
@@ -31,7 +33,7 @@ pub enum Msg {
 pub struct PageClient{
     connection: gio::SocketConnection,
     client: page::Client,
-    pub stream: EventStream<Msg>
+    stream: EventStream<Msg>
 }
 
 
@@ -76,15 +78,15 @@ impl PageClient{
 
     }
 
-    pub fn load(&mut self){
+    pub fn load(&mut self, theme: &ThreadViewTheme){
         /* load style sheet */
         dbg!("pc: sending page..");
         
         //self.client.
         
         let mut request = self.client.load_request();
-        // request.get().set_path(&mail_path.to_str().unwrap());
-        // request.get().set_mode(enamel_core::DatabaseMode::ReadOnly);
+        request.get().set_html(&theme.html);
+        request.get().set_css(&theme.css);
         
         let ctx = glib::MainContext::default();
         ctx.push_thread_default();
