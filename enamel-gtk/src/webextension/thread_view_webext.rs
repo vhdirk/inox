@@ -25,6 +25,7 @@ use webkit2gtk_webextension::{
     WebExtensionExt,
     WebPage,
     WebPageExt,
+    DOMNodeExt,
     web_extension_init_with_data
 };
 
@@ -68,7 +69,9 @@ const ATTACHMENT_ICON_WIDTH: i32 = 35;
 #[derive(Debug, Clone)]
 pub struct ThreadViewWebExt{
     extension: WebExtension,
-    page: RefCell<Option<webkit2gtk_webextension::WebPage>>
+    page_fut: RefCell<Option<webkit2gtk_webextension::WebPage>>,
+
+    allowed_uris: Vec<String>
 }
 
 impl ThreadViewWebExt{
@@ -76,7 +79,9 @@ impl ThreadViewWebExt{
     pub fn new(extension: webkit2gtk_webextension::WebExtension) -> Self{
         let webext = ThreadViewWebExt{
             extension: extension.clone(),
-            page: RefCell::new(None)
+            page_fut: RefCell::new(None),
+
+            allowed_uris: vec![]
         };
         webext
     }
@@ -85,8 +90,8 @@ impl ThreadViewWebExt{
     pub fn on_page_created(&self, page: &webkit2gtk_webextension::WebPage){
         
         // race condition with rpc system here
-        info!("WEEEEEE {:?}{:?}{:?}", self, page, page.get_id());
-        *(self.page.borrow_mut()) = Some(page.clone());
+        // info!("WEEEEEE {:?}{:?}{:?}", self, page, page.get_id());
+        // *(self.page.borrow_mut()) = Some(page.clone());
 
         // page.connect_document_loaded(|page| {
         //     println!("Page {} created for {:?}", page.get_id(), page.get_uri());
@@ -189,17 +194,6 @@ impl page::Server for ThreadViewWebExt
             -> Promise<(), Error>
     {
 
-    // load @1(html: Text,
-    //         css: Text,
-    //         partCss: Text,
-    //         allowedUris: List(Text),
-    //         useStdout: Bool,
-    //         useSyslog: Bool,
-    //         disableLog: Bool,
-    //         logLevel: Text) -> ();
-        // self.extension.
-
-//   GError *err = NULL;
         info!("loading page");
         // let page = self.page.as_ref().unwrap();
         // TODO: 
@@ -219,35 +213,22 @@ impl page::Server for ThreadViewWebExt
         info!("loading stylesheet");
         let style_element = document.create_element("STYLE").unwrap();
         let css_content = pry!(pry!(params.get()).get_css());
-        let style_text = document.create_text_node(css_content);
+        let style_text = document.create_text_node(css_content).unwrap();
 
+        style_element.append_child(&style_text);
 
+        let header = document.get_head().unwrap();
+        header.append_child(&style_element);
 
-//   webkit_dom_node_append_child (WEBKIT_DOM_NODE(e), WEBKIT_DOM_NODE(t), (err = NULL, &err));
+        info!("loaded page");
 
-//   WebKitDOMHTMLHeadElement * head = webkit_dom_document_get_head (d);
-//   webkit_dom_node_append_child (WEBKIT_DOM_NODE(head), WEBKIT_DOM_NODE(e), (err = NULL, &err));
-//   LOG (debug) << "done";
+        //   /* store part / iframe css for later */
+        //   part_css = s.part_css ();
 
-//   /* store part / iframe css for later */
-//   part_css = s.part_css ();
-
-//   /* store allowed uris */
-//   for (auto &s : s.allowed_uris ()) {
-//     allowed_uris.push_back (s);
-//   }
-
-//   page_ready = true;
-
-//   g_object_unref (he);
-//   g_object_unref (head);
-//   g_object_unref (t);
-//   g_object_unref (e);
-//   g_object_unref (d);
-
-//   ack (true);
-
-//    }
+        // add allowed uris
+        let allowed_uris_r = pry!(pry!(params.get()).get_allowed_uris());
+        let allowed_uris = allowed_uris_r.iter().filter_map(|x| x.ok()).map(ToOwned::to_owned);
+        self.allowed_uris = self.allowed_uris.iter().cloned().chain(allowed_uris).collect();
 
         Promise::ok(())
     }
