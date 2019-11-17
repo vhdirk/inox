@@ -41,13 +41,13 @@ futures-preview = "0.3.0-alpha"
 
 chrono = { version = "0.4", features = ["serde"] }
 
-gtk = { git = "https://github.com/vhdirk/gtk-rs", branch="subclassing", features=["v3_16", "futures"]}
+gtk = { git = "https://github.com/vhdirk/gtk-rs", branch="subclassing", features=["v3_16"]}
 cairo-rs = { git = "https://github.com/gtk-rs/cairo" }
 pango = { git = "https://github.com/gtk-rs/pango" }
 gdk = { git = "https://github.com/gtk-rs/gdk" }
 gdk-pixbuf = { git = "https://github.com/gtk-rs/gdk-pixbuf" }
-gio = { git = "https://github.com/gtk-rs/gio", features=["futures"]}
-glib = { git = "https://github.com/gtk-rs/glib", features=["futures"] }
+gio = { git = "https://github.com/gtk-rs/gio"}
+glib = { git = "https://github.com/gtk-rs/glib" }
 pangocairo = { git = "https://github.com/gtk-rs/pangocairo" }
 glib-sys = { git = "https://github.com/gtk-rs/sys" }
 gio-sys = { git = "https://github.com/gtk-rs/sys" }
@@ -80,7 +80,7 @@ gmime = { git = "https://github.com/vhdirk/gmime-rs"}
 # [patch.crates-io]
 #notmuch = { path = "../../notmuch-rs" }
 #gmime = { path = "../../gmime-rs" }
-async-std = "0.99.5"
+async-std = "*"
 
 
 [features]
