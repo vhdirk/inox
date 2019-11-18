@@ -23,7 +23,12 @@ RUN set -eux; \
     cargo --version; \
     rustc --version;
 
+# Install additional dependencies
 RUN apt-get install -y libgmime-3.0-dev libgtk-3-dev libnotmuch-dev libsoup2.4-dev libwebkit2gtk-4.0-dev sassc capnproto libcapnp-dev
-RUN mkdir -p /opt/rust/src
 
+# Install tools for testing
+RUN apt-get install -y notmuch git
+
+# Create the workdir
+RUN mkdir -p /opt/rust/src
 WORKDIR /opt/rust/src

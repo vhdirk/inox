@@ -1,7 +1,8 @@
 use std::thread;
 use std::rc::Rc;
 use std::cell::RefCell;
-use gio::{SocketClientExt, SocketConnectionExt, SocketExtManual, IOStreamExt, InputStreamExtManual, OutputStreamExtManual};
+use gio::prelude::*;
+use gio::{SocketClientExt, SocketConnectionExt, SocketExt, IOStreamExt, InputStreamExt, OutputStreamExt};
 
 use std::os::unix::net::UnixStream;
 use async_std::os::unix::net::{UnixStream as AsyncUnixStream};
@@ -33,7 +34,7 @@ pub enum Msg {
 pub struct PageClient{
     connection: gio::SocketConnection,
     client: page::Client,
-    stream: EventStream<Msg>
+    pub stream: EventStream<Msg>
 }
 
 
@@ -78,7 +79,7 @@ impl PageClient{
 
     }
 
-    pub fn load(&mut self, theme: &ThreadViewTheme){
+    pub async fn load(&mut self, theme: &ThreadViewTheme){
         /* load style sheet */
         dbg!("pc: sending page..");
         

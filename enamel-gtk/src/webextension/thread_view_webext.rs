@@ -12,7 +12,7 @@ use glib::closure::Closure;
 use glib::variant::Variant;
 use gio;
 use gio::prelude::*;
-use gio::{SocketClientExt, IOStreamExt, InputStreamExtManual, OutputStreamExtManual};
+use gio::{SocketClientExt, IOStreamExt};
 use gtk::IconThemeExt;
 use webkit2gtk_webextension::{
     DOMDocument,

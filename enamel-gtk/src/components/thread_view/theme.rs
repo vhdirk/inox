@@ -1,6 +1,7 @@
 use log::*;
 
 
+#[derive(Clone)]
 pub struct ThreadViewTheme{
     pub html: String,
     pub css: String,
