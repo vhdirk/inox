@@ -1,6 +1,6 @@
 use gio;
-use gio::{Error, Resource};
-use glib::Bytes;
+use gio::Resource;
+use glib::{Bytes, Error};
 use gtk;
 use gtk::BuilderExt;
 

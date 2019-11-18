@@ -4,12 +4,11 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use log::*;
-use gio::{
-    ApplicationExt, ApplicationExtManual, ApplicationFlags,
-};
+use gio::prelude::*;
 use glib;
 use gtk;
 use gtk::prelude::*;
+use gio::{ApplicationExt, ApplicationFlags};
 
 use relm::init as relm_init;
 use relm::Component;

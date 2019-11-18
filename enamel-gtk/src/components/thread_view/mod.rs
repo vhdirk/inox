@@ -6,8 +6,8 @@ use std::path::Path;
 use serde_derive::{Serialize, Deserialize};
 use log::*;
 use gio;
+use gio::prelude::*;
 use gio::SocketListenerExt;
-use gio::SocketListenerExtManual;
 
 
 use glib;
@@ -149,6 +149,8 @@ impl ThreadView{
     fn load_html(&self) {
 
         info!("render: loading html..");
+
+        
         self.webview.load_html(&self.model.theme.html, None);
 
     }

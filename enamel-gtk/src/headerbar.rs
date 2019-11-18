@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
-use gtk::{self, BuilderExtManual};
+use gtk;
+use gtk::BuilderExt;
+use gtk::prelude::BuilderExtManual;
 
 use relm::{Relm, Update, Widget};
 use relm_derive::Msg;

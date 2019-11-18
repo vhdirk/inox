@@ -435,7 +435,7 @@ mod imp {
 
             pango_layout.set_markup(format!("<span color=\"{}\">{}</span>",
                 color_str,
-                glib::markup_escape_text(self.thread.borrow().as_ref().unwrap().subject().as_str())).as_str());
+                glib::markup_escape_text(&self.thread.borrow().as_ref().unwrap().subject().to_string())).as_str());
 
             /* align in the middle */
             let (_, h) = pango_layout.get_size();
