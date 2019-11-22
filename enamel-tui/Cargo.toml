@@ -35,8 +35,7 @@ failure = "0.1.1"
 failure_derive = "0.1.1"
 md5 = "0.3.7"
 
-termion = "*"
-tui = "0.3.0"
+cursive = "*"
 enamel-core = { path = "../enamel-core" }
 
 
