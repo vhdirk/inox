@@ -25,6 +25,7 @@ lazy_static = "1.0"
 vte = "0.3.2"
 supercow = "0.1.0"
 dirs = "1.0.4"
+unicode-width = "0.1.5"
 
 chrono = { version = "0.4", features = ["serde"] }
 
@@ -36,10 +37,10 @@ failure_derive = "0.1.1"
 md5 = "0.3.7"
 
 cursive = "*"
+
 enamel-core = { path = "../enamel-core" }
 
-
-# notmuch = "*"
+notmuch = "*"
 gmime = { git = "https://github.com/vhdirk/gmime-rs"}
 
 # [patch.crates-io]
