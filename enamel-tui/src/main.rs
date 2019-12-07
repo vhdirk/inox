@@ -1,7 +1,7 @@
 use structopt;
 
 use log;
-use env_logger;
+use log4rs;
 
 use serde;
 use serde_derive;
@@ -39,7 +39,24 @@ fn init() {
     static START: Once = ONCE_INIT;
 
     START.call_once(|| {
-        env_logger::init();
+        use log::LevelFilter;
+        use log4rs::append::file::FileAppender;
+        use log4rs::encode::pattern::PatternEncoder;
+        use log4rs::config::{Appender, Config, Root};
+
+        let logfile = FileAppender::builder()
+            .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+            .build("enamel.log").unwrap();
+
+        let config = Config::builder()
+            .appender(Appender::builder().build("logfile", Box::new(logfile)))
+            .build(Root::builder()
+                        .appender("logfile")
+                        .build(LevelFilter::Debug)).unwrap();
+
+        log4rs::init_config(config).unwrap();
+
+        // cursive::logger::init();
     });
 }
 
@@ -125,6 +142,7 @@ fn main() -> Result<(), io::Error> {
 
     // Creates the cursive root - required for every application.
     let mut siv = Cursive::default();
+    siv.add_global_callback('~', Cursive::toggle_debug_console);
 
 
     // Create the app

@@ -5,8 +5,14 @@ members = [
     "enamel-tui"
 ]
 
+[profile.dev]
+opt-level = 0
+debug = true
+
 [profile.release]
+opt-level = 3
 debug = false
+
 
 [patch."https://github.com/gtk-rs/gtk"]
 gtk = { git = "https://github.com/vhdirk/gtk-rs", branch="subclassing", features=["futures"]}

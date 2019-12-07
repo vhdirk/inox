@@ -1,10 +1,11 @@
 use std::rc::Rc;
 use std::sync::Arc;
 
+use log::*;
 use cursive;
 use cursive::direction::Orientation::Horizontal;
 use cursive::direction::Direction;
-use cursive::event::{AnyCb, Event, EventTrigger, Key, EventResult};
+use cursive::event::{AnyCb, Callback, Event, EventTrigger, Key, EventResult};
 
 use cursive::Cursive;
 use cursive::views::{ViewRef, IdView, LinearLayout, ScrollView, OnEventView};
@@ -13,11 +14,76 @@ use cursive::With;
 
 use crate::list_view::{ListView, ListChild};
 
+// type LoadCallback = Rc<Box<dyn Fn(&mut Cursive, &mut dyn LazyViewWrapper) -> Option<EventResult>>>;
+
+
+#[macro_export]
+macro_rules! wrap_lazy_impl {
+    (self.$v:ident: $t:ty) => {
+        type L = $t;
+
+        fn with_lazy_view<F, R>(&self, f: F) -> Option<R>
+            where F: FnOnce(&Self::L) -> R
+        {
+            Some(f(&self.$v))
+        }
+
+        fn with_lazy_view_mut<F, R>(&mut self, f: F) -> Option<R>
+            where F: FnOnce(&mut Self::L) -> R
+        {
+            Some(f(&mut self.$v))
+        }
+
+        // fn into_lazy_inner(self) -> Result<Self::L, Self> where Self::L: Sized {
+        //     Ok(self.$v)
+        // }
+    };
+}
+
+
+pub trait LazyView: View {
+    fn load_data(&mut self) -> EventResult;
+}
+
+pub trait LazyViewWrapper: ViewWrapper{
+    type L: LazyView + ?Sized;
+
+    /// Runs a function on the inner view, returning the result.
+    ///
+    /// Returns `None` if the inner view is unavailable.  This should only
+    /// happen with some views if they are already borrowed by another call.
+    fn with_lazy_view<F, R>(&self, f: F) -> Option<R>
+    where
+        F: FnOnce(&Self::L) -> R;
+
+    /// Runs a function on the inner view, returning the result.
+    ///
+    /// Returns `None` if the inner view is unavailable.  This should only
+    /// happen with some views if they are already borrowed by another call.
+    fn with_lazy_view_mut<F, R>(&mut self, f: F) -> Option<R>
+    where
+        F: FnOnce(&mut Self::L) -> R;
+
+
+    fn wrap_load_data(&mut self) -> EventResult {
+        debug!("LazyViewWrapper::wrap_load_data");
+        self.with_lazy_view_mut(|v| v.load_data())
+            .unwrap_or_else(|| EventResult::Ignored)
+    }
+}
+
+impl<T: LazyViewWrapper> LazyView for T {
+
+    fn load_data(&mut self) -> EventResult {
+        debug!("LazyView for T::load_data");
+        self.wrap_load_data()
+    }
+}
 
 
 pub struct LazyListView{
-    pub view: ScrollView<ListView>
-
+    pub view: ScrollView<ListView>,
+    on_load: Option<Rc<dyn Fn(&mut Cursive)>>,
 }
 
 
@@ -26,7 +92,8 @@ impl LazyListView {
     /// Creates a new, empty `LazyListView`.
     pub fn new() -> Self {
         Self {
-            view: ScrollView::new(ListView::new())
+            view: ScrollView::new(ListView::new()),
+            on_load: None
         }
     }
 
@@ -141,7 +208,90 @@ impl LazyListView {
         self.view.get_inner_mut().move_focus(n, source)
     }
 
+
+    /// Sets a callback to be used when an item is selected.
+    pub fn set_on_load<F>(&mut self, cb: F)
+    where
+        F: Fn(&mut Cursive) + 'static,
+    {
+        self.on_load = Some(Rc::new(cb));
+    }
+
+    /// Sets a callback to be used when an item is selected.
+    ///
+    /// Chainable variant.
+    pub fn on_load<F>(self, cb: F) -> Self
+    where
+        F: Fn(&mut Cursive) + 'static,
+    {
+        self.with(|s| s.set_on_load(cb))
+    }
+
 }
+
+
+
+// impl ViewWrapper for LazyListView {
+//     cursive::wrap_impl!(self.view: ScrollView<ListView>);
+
+
+//     fn wrap_on_event(&mut self, event: Event) -> EventResult{
+//         debug!("LazyListView::wrap_on_event");
+//         let ret = match event {
+//             Event::Char('k') | Event::Key(Key::Up) => {
+//                 self.move_focus(1, Direction::down())
+//             },
+//             Event::Char('j') | Event::Key(Key::Down) => {
+//                 let ret = self.move_focus(1, Direction::up());
+//                 if self.view.is_at_bottom() {
+//                     return self.load_data()
+//                 }
+
+//                 ret
+//             },
+//             Event::Key(Key::PageUp) => {
+//                 self.move_focus(10, Direction::down())
+//             },
+//             Event::Key(Key::PageDown) => {
+//                 let ret = self.move_focus(10, Direction::up());
+
+//                 return self.load_data();
+//                 ret;
+//             },
+
+
+
+//             // EventResult::with_cb(|siv| {
+
+
+//             // })
+
+//             _ => self.view.on_event(event)
+//         };
+
+//         // debug!("self.view.is_at_bottom() {:?}", self.view.is_at_bottom());
+//         // if self.view.is_at_bottom() || self.view.is_at_top() {
+//         //     return self.load_data()
+//         // }
+//         ret
+
+
+//     }
+
+// }
+
+// impl LazyViewWrapper for LazyListView {
+//     wrap_lazy_impl!(self.view: ScrollView<ListView>);
+
+// }
+
+impl LazyView for ScrollView<ListView>{
+    fn load_data(&mut self) -> EventResult {
+        debug!("LazyScrollView::load_data");
+        EventResult::Ignored
+    }
+}
+
 
 
 impl View for LazyListView {
@@ -162,21 +312,32 @@ impl View for LazyListView {
         self.view.required_size(constraint)
     }
 
-    fn on_event(&mut self, event: Event) -> EventResult {
 
-        match event {
-            Event::Char('j') | Event::Key(Key::Down) => {
-                self.move_focus(1, Direction::up())
-            },
+    fn on_event(&mut self, event: Event) -> EventResult {
+        debug!("LazyListView::on_event");
+        let ret = match event {
             Event::Char('k') | Event::Key(Key::Up) => {
                 self.move_focus(1, Direction::down())
             },
+            Event::Char('j') | Event::Key(Key::Down) => {
+                let ret = self.move_focus(1, Direction::up());
+                if self.view.is_at_bottom() {
+                    return self.load_data()
+                }
+
+                ret
+            },
             Event::Key(Key::PageUp) => {
                 self.move_focus(10, Direction::down())
-            }
+            },
             Event::Key(Key::PageDown) => {
-                self.move_focus(10, Direction::up())
-            }
+                let ret = self.move_focus(10, Direction::up());
+
+                return self.load_data();
+                ret;
+            },
+
+
 
             // EventResult::with_cb(|siv| {
 
@@ -184,7 +345,13 @@ impl View for LazyListView {
             // })
 
             _ => self.view.on_event(event)
-        }
+        };
+
+        // debug!("self.view.is_at_bottom() {:?}", self.view.is_at_bottom());
+        // if self.view.is_at_bottom() || self.view.is_at_top() {
+        //     return self.load_data()
+        // }
+        ret
 
 
     }
@@ -203,6 +370,51 @@ impl View for LazyListView {
 
     fn important_area(&self, view_size: cursive::Vec2) -> cursive::Rect {
         self.view.important_area(view_size)
+    }
+
+}
+
+// impl LazyView for LazyListView {
+//     fn load_data(&mut self) -> EventResult {
+//         debug!("LazyListView::load_data");
+//         EventResult::Consumed(self.on_load.clone().map(|cb| {
+//             Callback::from_fn(move |s| cb(s))
+//         }))
+//     }
+
+// }
+
+use std::cell::RefCell;
+impl LazyView for LazyListView {
+    fn load_data(&mut self) -> EventResult {
+        debug!("LazyListView::load_data");
+
+        EventResult::Consumed(self.on_load.clone().map(|cb| {
+            Callback::from_fn(move |s| cb(s))
+        }))
+    }
+
+}
+
+impl<T: LazyView + 'static> LazyViewWrapper for IdView<T> {
+    type L = T;
+
+    fn with_lazy_view<F, R>(&self, f: F) -> Option<R>
+    where
+        F: FnOnce(&Self::L) -> R
+    {
+        self.with_view(f)
+    }
+
+    /// Runs a function on the inner view, returning the result.
+    ///
+    /// Returns `None` if the inner view is unavailable.  This should only
+    /// happen with some views if they are already borrowed by another call.
+    fn with_lazy_view_mut<F, R>(&mut self, f: F) -> Option<R>
+    where
+        F: FnOnce(&mut Self::L) -> R
+    {
+        Some(f(&mut self.get_mut()))
     }
 
 }
