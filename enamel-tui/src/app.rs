@@ -26,7 +26,7 @@ impl EnamelApp {
         let dbmanager = Rc::new(DBManager::new(&settings));
 
         // TODO: get this from config
-        let initial_search = "tag:encrypted AND NOT tag:killed";
+        let initial_search = "tag:inbox AND NOT tag:killed";
         let initial_command = format!("search {}", initial_search);
 
 
@@ -36,7 +36,7 @@ impl EnamelApp {
 
 
         let db = dbmanager.get(notmuch::DatabaseMode::ReadOnly).unwrap();
-        let query = Arc::new(<notmuch::Database as notmuch::DatabaseExt>::create_query(db.clone(), &initial_search).unwrap());
+        let query = Arc::new(notmuch::Query::create(db.clone(), &initial_search).unwrap());
 
         let mut thread_list: ViewRef<ThreadListView> = siv.find_id("ThreadList").unwrap();
         thread_list.set_query(query);
