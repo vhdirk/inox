@@ -7,7 +7,7 @@
 An experimental email client based on notmuch, along with other utilities like
 afew and offlineimap.
 
-A lot of inspiration comes from [Astroid](https://github.com/astroidmail/astroid) and [alot])(https://github.com/pazz/alot).
+A lot of inspiration comes from [Astroid](https://github.com/astroidmail/astroid) and [alot](https://github.com/pazz/alot).
 I like how alot is all command driven. I also like how VSCode/Atom/Textmate work.
 So that's probably how I want this thing to work, too.
 
