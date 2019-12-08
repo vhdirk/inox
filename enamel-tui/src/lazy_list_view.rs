@@ -297,7 +297,7 @@ impl LazyView for ScrollView<ListView>{
 impl View for LazyListView {
 
     fn draw(&self, printer: &cursive::Printer<'_, '_>) {
-        self.view.draw(&printer)
+            self.view.draw(&printer)
     }
 
     fn layout(&mut self, size: cursive::Vec2) {
@@ -320,22 +320,32 @@ impl View for LazyListView {
                 self.move_focus(1, Direction::down())
             },
             Event::Char('j') | Event::Key(Key::Down) => {
-                let ret = self.move_focus(1, Direction::up());
-                if self.view.is_at_bottom() {
-                    return self.load_data()
-                }
-
-                ret
+                let ld = if self.view.is_at_bottom() {
+                    self.load_data()
+                } else {
+                    EventResult::Ignored
+                };
+                ld.and(self.move_focus(1, Direction::up())).and(self.view.on_event(event))
             },
             Event::Key(Key::PageUp) => {
                 self.move_focus(10, Direction::down())
             },
             Event::Key(Key::PageDown) => {
-                let ret = self.move_focus(10, Direction::up());
-
-                return self.load_data();
-                ret;
+                let ld = if self.view.is_at_bottom() {
+                    self.load_data()
+                } else {
+                    EventResult::Ignored
+                };
+                ld.and(self.move_focus(1, Direction::up())).and(self.view.on_event(event))
             },
+            Event::Mouse{..} => {
+                let ld = if self.view.is_at_bottom() {
+                    self.load_data()
+                } else {
+                    EventResult::Ignored
+                };
+                ld.and(self.view.on_event(event))
+            }
 
 
 

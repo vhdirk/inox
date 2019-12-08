@@ -123,15 +123,18 @@ impl ThreadListView {
             }
         }));
 
-        // let mut num = 0;
-        // while let Some(thread) = threads.next() {
-        //     self.view.add_child(&thread.id().to_string(), ThreadLineView::new(thread));
 
-        //     if num == 10 {
-        //         break;
-        //     }
-        //     num += 1;
-        // }
+        let mut num = 0;
+        let mt = self.threads.as_ref().unwrap();
+
+        while let Some(thread) = mt.borrow_mut().next() {
+            self.view.get_mut().add_child(&thread.id().to_string(), ThreadLineView::new(thread));
+
+            if num == 40 {
+                break;
+            }
+            num += 1;
+        }
 
 
     }
