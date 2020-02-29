@@ -41,7 +41,7 @@ futures-preview = "0.3.0-alpha"
 
 chrono = { version = "0.4", features = ["serde"] }
 
-gtk = { git = "https://github.com/vhdirk/gtk-rs", branch="subclassing", features=["v3_16"]}
+gtk = { git = "https://github.com/gtk-rs/gtk", features=["v3_16"]}
 cairo-rs = { git = "https://github.com/gtk-rs/cairo" }
 pango = { git = "https://github.com/gtk-rs/pango" }
 gdk = { git = "https://github.com/gtk-rs/gdk" }
@@ -56,11 +56,11 @@ gtk-sys = { git = "https://github.com/gtk-rs/sys" }
 gdk-sys = { git = "https://github.com/gtk-rs/sys" }
 gdk-pixbuf-sys = { git = "https://github.com/gtk-rs/sys" }
 cairo-sys-rs = { git = "https://github.com/gtk-rs/cairo" }
-webkit2gtk = { git = "https://github.com/vhdirk/webkit2gtk-rs", features=["v2_18"] }
-webkit2gtk-webextension = { git = "https://github.com/vhdirk/webkit2gtk-webextension-rs", features=["v2_18"] }
+webkit2gtk = { git = "https://github.com/gtk-rs/webkit2gtk-rs", features=["v2_18"] }
+webkit2gtk-webextension = { git = "https://github.com/gtk-rs/webkit2gtk-webextension-rs", features=["v2_18"] }
 
-capnp = { git="https://github.com/capnproto/capnproto-rust.git", branch="std-future"}
-capnp-rpc = { git="https://github.com/capnproto/capnproto-rust.git", branch="std-future"}
+capnp = { git="https://github.com/capnproto/capnproto-rust.git"}
+capnp-rpc = { git="https://github.com/capnproto/capnproto-rust.git"}
 
 crossbeam-channel = "0.2.1"
 rayon = "1.0.1"

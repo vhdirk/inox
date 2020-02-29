@@ -253,10 +253,10 @@ mod imp {
 
     impl CellRendererImpl for CellRendererThread {
 
-        fn render(&self,
+        fn render<P: IsA<gtk::Widget>>(&self,
             renderer: &gtk::CellRenderer,
             cr: &cairo::Context,
-            widget: &gtk::Widget,
+            widget: &P,
             background_area: &gtk::Rectangle,
             cell_area: &gtk::Rectangle,
             flags: gtk::CellRendererState,
@@ -265,7 +265,7 @@ mod imp {
             // calculate text width, we don't need to do this every time,
             // but we need access to the context.
             if  !self.cache.borrow().height_set {
-                self.calculate_height(widget);
+                self.calculate_height(widget.as_ref());
             }
 
             if self.thread.borrow().is_none(){
@@ -282,17 +282,17 @@ mod imp {
             self.settings.borrow_mut().font_description.set_weight(pango::Weight::Normal);
             }
 
-            self.render_background(&renderer, &cr, &widget, &background_area, &cell_area, flags);
-            self.render_date(&renderer, &cr, &widget, &background_area, &cell_area, flags); // returns height
+            self.render_background(&renderer, &cr, widget.as_ref(), &background_area, &cell_area, flags);
+            self.render_date(&renderer, &cr, widget.as_ref(), &background_area, &cell_area, flags); // returns height
 
             if thread.total_messages() > 1 {
             //render_message_count (cr, widget, cell_area);
-            self.render_authors(&renderer, &cr, &widget, &background_area, &cell_area, flags);
+            self.render_authors(&renderer, &cr, widget.as_ref(), &background_area, &cell_area, flags);
             }
 
-            self.render_authors(&renderer, &cr, &widget, &background_area, &cell_area, flags);
+            self.render_authors(&renderer, &cr, widget.as_ref(), &background_area, &cell_area, flags);
 
-            let tags_width = self.render_tags(&renderer, &cr, &widget, &background_area, &cell_area, flags); // returns width
+            let tags_width = self.render_tags(&renderer, &cr, widget.as_ref(), &background_area, &cell_area, flags); // returns width
             {
                 let mut cache = self.cache.borrow_mut();
                 cache.tags_width = tags_width;
@@ -301,14 +301,14 @@ mod imp {
                 cache.subject_start = cache.tags_start + cache.tags_width / pango::SCALE + (t);
             }
             //
-            self.render_subject(&renderer, &cr, &widget, &background_area, &cell_area, flags);
+            self.render_subject(&renderer, &cr, widget.as_ref(), &background_area, &cell_area, flags);
 
 
             // if (thread->flagged)
             //   render_flagged (cr, widget, cell_area);
             //
             if thread.has_attachment(){
-                self.render_attachment(&renderer, &cr, &widget, &background_area, &cell_area, flags);
+                self.render_attachment(&renderer, &cr, widget.as_ref(), &background_area, &cell_area, flags);
             }
             // /*
             // if (marked)
@@ -427,7 +427,7 @@ mod imp {
 
             cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
 
-            let color_str = if flags.contains(gtk::CellRendererState::SELECTED) { 
+            let color_str = if flags.contains(gtk::CellRendererState::SELECTED) {
                 settings.subject_color_selected.as_ref().unwrap().clone()
             } else {
                 settings.subject_color.as_ref().unwrap().clone()
@@ -621,7 +621,7 @@ mod imp {
         {
             let rthread = self.thread.borrow();
             let thread = rthread.as_ref().unwrap();
-            
+
             let settings = self.settings.borrow();
             let cache = self.cache.borrow_mut();
 
@@ -736,7 +736,7 @@ mod imp {
         {
             let rthread = self.thread.borrow();
             let thread = rthread.as_ref().unwrap();
-            
+
             let settings = self.settings.borrow();
             let cache = self.cache.borrow_mut();
 
