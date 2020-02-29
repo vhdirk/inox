@@ -27,7 +27,7 @@ pub fn about_dialog(window: &gtk::ApplicationWindow) {
     // dialog.set_artists(&["Dirk Van Haerenborgh"]);
     dialog.set_authors(authors);
 
-    dialog.connect_response(|dlg, _| dlg.destroy());
+    dialog.connect_response(|dlg, _| dlg.close());
 
     dialog.show();
 }

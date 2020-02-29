@@ -12,11 +12,3 @@ debug = true
 [profile.release]
 opt-level = 3
 debug = false
-
-
-[patch."https://github.com/gtk-rs/gtk"]
-gtk = { git = "https://github.com/vhdirk/gtk-rs", branch="subclassing", features=["futures"]}
-
-[patch."https://github.com/gtk-rs/webkit2gtk-rs"]
-webkit2gtk = { git = "https://github.com/vhdirk/webkit2gtk-rs"}
-

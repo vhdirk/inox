@@ -374,7 +374,7 @@ impl View for ListView {
         mut callback: AnyCb<'a>,
     ) {
         for view in self.children.iter_mut().filter_map(ListChild::view) {
-            view.call_on_any(selector, Box::new(|any| callback(any)));
+            view.call_on_any(selector, &mut Box::new(|any| callback(any)));
         }
     }
 
