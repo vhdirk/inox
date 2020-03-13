@@ -1,8 +1,8 @@
-# Enamel
+# Inox
 
 > Email with Notmuch Rust
 
-[![Build Status](https://travis-ci.org/vhdirk/enamel.svg?branch=master)](https://travis-ci.org/vhdirk/enamel)
+[![Build Status](https://travis-ci.org/vhdirk/inox.svg?branch=master)](https://travis-ci.org/vhdirk/inox)
 
 An experimental email client based on notmuch, along with other utilities like
 afew and offlineimap.
@@ -12,7 +12,7 @@ I like how alot is all command driven. I also like how VSCode/Atom/Textmate work
 So that's probably how I want this thing to work, too.
 
 # Goals
-I'm aiming for a nice and full-featured UI, but it should be fully operable with the keyboard.  
+I'm aiming for a nice and full-featured UI, but it should be fully operable with the keyboard.
 All settings should be stored in easily readable/editable config files, so you
 can centralize them in your dotfiles.
 While Astroid relies on an external editor for writing emails, I aim for a

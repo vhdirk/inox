@@ -1,0 +1,51 @@
+[package]
+name = "inox-tui"
+version = "0.0.1"
+authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
+workspace = "../"
+edition = "2018"
+
+[[bin]]
+name = "inox-tui"
+path = "src/main.rs"
+
+[dependencies]
+structopt = "0.2"
+log = "*"
+log4rs = "0.8.3"
+shellexpand = "*"
+net2 = "*"
+nix = "*"
+regex = "*"
+toml = "*"
+serde = "*"
+serde_derive = "*"
+serde_ini = "*"
+lazy_static = "1.0"
+vte = "0.3.2"
+supercow = "0.1.0"
+dirs = "1.0.4"
+unicode-width = "0.1.5"
+
+chrono = { version = "0.4", features = ["serde"] }
+
+crossbeam-channel = "0.2.1"
+rayon = "1.0.1"
+send-cell = "0.1.3"
+failure = "0.1.1"
+failure_derive = "0.1.1"
+md5 = "0.3.7"
+
+cursive = "*"
+
+inox-core = { path = "../inox-core" }
+
+notmuch = "*"
+gmime = { git = "https://github.com/vhdirk/gmime-rs"}
+
+# [patch.crates-io]
+# notmuch = { path = "../../notmuch-rs" }
+
+[dev-dependencies]
+cargo-expand = "*"
+pretty_assertions = "0.5.1"

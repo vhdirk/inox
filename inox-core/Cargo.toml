@@ -1,0 +1,51 @@
+[package]
+name = "inox-core"
+version = "0.0.1"
+authors = ["Dirk Van Haerenborgh <vhdirk@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "inox_core"
+path = "src/lib.rs"
+
+
+[dependencies]
+structopt = "0.2"
+log = "*"
+env_logger ="*"
+shellexpand = "*"
+net2 = "*"
+nix = "*"
+regex = "*"
+toml = "*"
+serde = "*"
+serde_derive = "*"
+serde_ini = "*"
+lazy_static = "1.0"
+vte = "0.3.2"
+chrono = { version = "0.4", features = ["serde"] }
+md5 = "0.3.7"
+supercow = "0.1.0"
+dirs = "1.0"
+
+gio = { git = "https://github.com/gtk-rs/gio" }
+glib = { git = "https://github.com/gtk-rs/glib" }
+glib-sys = { git = "https://github.com/gtk-rs/sys"}
+gio-sys = { git = "https://github.com/gtk-rs/sys"}
+gobject-sys = { git = "https://github.com/gtk-rs/sys"}
+
+notmuch = "*"
+gmime = { git = "https://github.com/vhdirk/gmime-rs"}
+
+# [patch.crates-io]
+#notmuch = { path = "../../notmuch-rs" }
+#gmime = { path = "../../gmime-rs" }
+
+[dev-dependencies]
+cargo-expand = "*"
+
+
+[[test]]
+name = "main"
+harness = false
+

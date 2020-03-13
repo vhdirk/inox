@@ -1,8 +1,8 @@
 [workspace]
 members = [
-    "enamel-core",
-    "enamel-gtk",
-    "enamel-tui"
+    "inox-core",
+    "inox-gtk"
+#    "inox-tui"
 ]
 
 [profile.dev]
@@ -12,3 +12,6 @@ debug = true
 [profile.release]
 opt-level = 3
 debug = false
+
+[patch."https://github.com/gtk-rs/gtk.git"]
+gtk = { path="../gtk-rs" }
