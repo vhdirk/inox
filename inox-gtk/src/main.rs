@@ -24,7 +24,7 @@ mod widgets;
 
 mod components;
 mod main_window;
-// mod webextension;
+mod webextension;
 
 use inox_core::settings::Settings;
 

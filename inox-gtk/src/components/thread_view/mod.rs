@@ -1,253 +1,285 @@
-// use std::rc::Rc;
-// use std::thread;
-// use std::process;
-// use std::cell::Cell;
-// use std::path::Path;
-// use serde_derive::{Serialize, Deserialize};
-// use log::*;
-// use gio;
-// use gio::prelude::*;
-// use gio::SocketListenerExt;
-
+use std::rc::Rc;
+use std::thread;
+use std::process;
+use std::cell::Cell;
+use std::path::Path;
+use std::sync::mpsc::{channel, Receiver};
 
-// use glib;
-// use gtk;
-// use gtk::prelude::*;
-// use webkit2gtk;
-// use webkit2gtk::{SettingsExt, WebViewExt, WebContextExt, PolicyDecisionExt, NavigationPolicyDecisionExt, URIRequestExt};
-// use std::sync::mpsc::{channel, Receiver};
-// use gmime;
-// use gmime::{ParserExt, PartExt};
-// use bincode;
-// use relm::{Relm, Widget, Update, connect, connect_stream, connect_async, connect_async_full};
-// use relm_derive::Msg;
-
-// use async_std::os::unix::net::{UnixStream, UnixListener};
-// use async_std::os::unix::io::IntoRawFd;
-
-// use uuid::Uuid;
-// use toml;
-
-// use notmuch;
-
-// use enamel_core::database::Thread;
-// use crate::app::EnamelApp;
+use async_std::os::unix::net::{UnixStream, UnixListener};
+use async_std::os::unix::io::IntoRawFd;
 
-// mod page_client;
-// use page_client::{PageClient, Msg as PageClientMsg};
-// mod theme;
-// use theme::ThreadViewTheme;
+use serde_derive::{Serialize, Deserialize};
+use log::*;
 
-// pub struct ThreadView{
-//     model: ThreadViewModel,
-//     container: gtk::Box,
-//     webview: webkit2gtk::WebView
-// }
-
-// pub struct ThreadViewModel {
-//     relm: Relm<ThreadView>,
-//     app: Rc<EnamelApp>,
-//     webcontext: webkit2gtk::WebContext,
-//     socket_listener: gio::SocketListener,
-//     page_client: Option<PageClient>,
-//     theme: ThreadViewTheme
-// }
+use gio;
+use gio::prelude::*;
+use gio::SocketListenerExt;
+use glib;
+use gtk;
+use gtk::prelude::*;
+use webkit2gtk;
+use webkit2gtk::{SettingsExt, WebViewExt, WebContextExt, PolicyDecisionExt, NavigationPolicyDecisionExt, URIRequestExt};
+use glib::Sender;
+use gmime;
+use gmime::{ParserExt, PartExt};
+use bincode;
 
+use uuid::Uuid;
+use toml;
 
+use notmuch;
 
+use inox_core::database::Thread;
+use crate::app::Action;
 
-// #[derive(Msg, Debug)]
-// pub enum Msg {
-//     InitializeWebExtensions,
-//     ExtensionConnect((gio::SocketConnection, Option<glib::Object>)),
-//     PageLoaded,
+mod page_client;
+use page_client::PageClient;
+mod theme;
+use theme::ThreadViewTheme;
 
-//     LoadChanged(webkit2gtk::LoadEvent),
-//     ReadyToRender,
-//     DecidePolicy(webkit2gtk::PolicyDecision, webkit2gtk::PolicyDecisionType),
 
-//     ShowThread(Thread)
-// }
+pub struct ThreadView{
+    pub widget: gtk::Box,
+    sender: Sender<Action>,
+    webview: webkit2gtk::WebView,
 
+    webcontext: webkit2gtk::WebContext,
+    socket_listener: gio::SocketListener,
+    page_client: Option<PageClient>,
+    theme: ThreadViewTheme
+}
 
-// impl ThreadViewModel{
 
-//     fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> gio::SocketListener
-//     {
-//         info!("initialize_web_extensions");
 
-//         let cur_exe = std::env::current_exe().unwrap();
-//         let exe_dir = cur_exe.parent().unwrap();
-//         let extdir = exe_dir.to_string_lossy();
+impl ThreadView{
 
-//         info!("setting web extensions directory: {:?}", extdir);
-//         ctx.set_web_extensions_directory(&extdir);
+    pub fn new(sender: Sender<Action>) -> Self {
 
-//         let socket_addr = format!("/tmp/enamel-tv-{}-{}.sock",
-//                                   process::id(),
-//                                   Uuid::new_v4());
+        let widget = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
-//         let gsock_addr = gio::UnixSocketAddress::new(Path::new(&socket_addr));
+        let webcontext = webkit2gtk::WebContext::get_default().unwrap();
+        webcontext.set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
 
-//         let listener = gio::SocketListener::new();
-//         let res = listener.add_address(&gsock_addr,
-//                                        gio::SocketType::Stream,
-//                                        gio::SocketProtocol::Default,
-//                                        Some(&gsock_addr)).unwrap();
-//         info!("sock addr: {:?}", socket_addr);
+        let listener = ThreadView::initialize_web_extensions(&webcontext);
 
-//         ctx.set_web_extensions_initialization_user_data(&socket_addr.to_variant());
-//         listener
-//     }
-// }
+        let webview = webkit2gtk::WebView::new_with_context_and_user_content_manager(&webcontext, &webkit2gtk::UserContentManager::new());
 
+        widget.pack_start(&webview, true, true, 0);
 
-// impl ThreadView{
 
-//     fn extension_connected(&mut self, conn: gio::SocketConnection, obj: Option<glib::Object>){
-//         debug!("ThreadView: extension_connected");
-//         let page_client = PageClient::new(conn);
-//         self.model.page_client = Some(page_client.clone());
+        let settings = webkit2gtk::WebViewExt::get_settings(&webview).unwrap();
 
-//         // TODO: create new macro to do this more elegantly
-//         // use self::PageClientMsg::PageLoaded as PageClient_PageLoaded;
-//         // let page_client_stream = page_client.stream.clone();
-//         // connect_stream!(page_client_stream@PageClient_PageLoaded, self.model.relm.stream(), Msg::PageLoaded);
-//     }
+        // settings.set_enable_scripts(true);
+        // settings.set_enable_java_applet(false);
+        settings.set_enable_plugins(false);
+        settings.set_auto_load_images(true);
+        settings.set_enable_dns_prefetching(false);
+        settings.set_enable_fullscreen(false);
+        settings.set_enable_html5_database(false);
+        settings.set_enable_html5_local_storage(false);
+        //settings.set_enable_mediastream(false);
+        // settings.set_enable_mediasource(false);
+        settings.set_enable_offline_web_application_cache(false);
+        // settings.set_enable_private_browsing(true);
+        // settings.set_enable_running_of_insecure_content(false);
+        // settings.set_enable_display_of_insecure_content(false);
+        settings.set_enable_xss_auditor(true);
+        settings.set_media_playback_requires_user_gesture(true);
+        settings.set_enable_developer_extras(true); // TODO: should only enabled conditionally
 
-//     fn load_changed(&mut self, event: webkit2gtk::LoadEvent){
-//         info!("ThreadView: load changed: {:?}", event);
 
-//         match event{
-//             webkit2gtk::LoadEvent::Finished => {
-//                 if self.model.page_client.is_some(){
-//                     self.model.relm.stream().emit(Msg::ReadyToRender);
+        ThreadView {
+            widget,
+            sender,
+            webview,
+            webcontext,
+            socket_listener: listener,
+            page_client: None,
+            theme: ThreadViewTheme::load()
+        }
 
-//                 }
-//             },
-//             _ => ()
-//         }
+    }
 
-//     }
+    pub fn setup_signals(&self) {
+    }
 
-//     fn ready_to_render(&mut self){
 
-//         match self.model.page_client.as_mut(){
-//             Some(pc) => {
-//                 pc.load(&self.model.theme);
+    fn load_changed(&mut self, event: webkit2gtk::LoadEvent){
+        info!("ThreadView: load changed: {:?}", event);
 
-//                 /* render messages in case we were not ready when first requested */
-//                 pc.clear_messages();
-//             },
-//             None => ()
-//         }
+        match event{
+            webkit2gtk::LoadEvent::Finished => {
+                if self.page_client.is_some(){
+                    // self.model.relm.stream().emit(Msg::ReadyToRender);
 
-//         self.render_messages();
-//     }
+                }
+            },
+            _ => ()
+        }
 
-//     // general message adding and rendering
-//     fn load_html(&self) {
+    }
 
-//         info!("render: loading html..");
+    fn ready_to_render(&mut self){
 
+        match self.page_client.as_mut(){
+            Some(pc) => {
+                pc.load(&self.theme);
 
-//         self.webview.load_html(&self.model.theme.html, None);
+                /* render messages in case we were not ready when first requested */
+                pc.clear_messages();
+            },
+            None => ()
+        }
 
-//     }
+        self.render_messages();
+    }
 
-//     fn show_thread(&mut self, thread: Thread){
+    fn extension_connected(&mut self, conn: gio::SocketConnection, obj: Option<glib::Object>){
+        debug!("ThreadView: extension_connected");
+        let page_client = PageClient::new(conn);
+        self.page_client = Some(page_client.clone());
 
+        // TODO: create new macro to do this more elegantly
+        // use self::PageClientMsg::PageLoaded as PageClient_PageLoaded;
+        // let page_client_stream = page_client.stream.clone();
+        // connect_stream!(page_client_stream@PageClient_PageLoaded, self.model.relm.stream(), Msg::PageLoaded);
+    }
 
-//         debug!("Showing thread {:?}", thread);
-//         let messages = thread.messages();
+    fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> gio::SocketListener
+    {
+        info!("initialize_web_extensions");
 
-//         debug!("Showing thread {:?} > messages {:?}", thread, messages);
-//         for msg in messages{
-//             let fname = msg.filename();
-//             info!("message: {:?}", fname);
+        let cur_exe = std::env::current_exe().unwrap();
+        let exe_dir = cur_exe.parent().unwrap();
+        let extdir = exe_dir.to_string_lossy();
 
-//             let stream = gmime::StreamFile::open(&fname.to_string_lossy(), &"r").unwrap();
-//             let parser = gmime::Parser::new_with_stream(&stream);
-//             let mmsg = parser.construct_message(None);
+        info!("setting web extensions directory: {:?}", extdir);
+        ctx.set_web_extensions_directory(&extdir);
 
-//             info!("created mime message: {:?}", mmsg);
+        let socket_addr = format!("/tmp/enamel-tv-{}-{}.sock",
+                                  process::id(),
+                                  Uuid::new_v4());
 
-//             let mut partiter = gmime::PartIter::new(&mmsg.unwrap());
+        let gsock_addr = gio::UnixSocketAddress::new(Path::new(&socket_addr));
 
-//             let mut hasnext = partiter.next();
-//             while hasnext {
-//                 let current = partiter.get_current().unwrap();
-//                 let parent = partiter.get_parent().unwrap();
+        let listener = gio::SocketListener::new();
+        let res = listener.add_address(&gsock_addr,
+                                       gio::SocketType::Stream,
+                                       gio::SocketProtocol::Default,
+                                       Some(&gsock_addr)).unwrap();
+        info!("sock addr: {:?}", socket_addr);
 
-//                 let p = parent.downcast::<gmime::Multipart>();
-//                 let part = current.downcast::<gmime::Part>();
+        ctx.set_web_extensions_initialization_user_data(&socket_addr.to_variant());
+        listener
+    }
 
-//                 if p.is_ok() && part.is_ok() {
-//                     if part.unwrap().is_attachment(){
-//                         debug!("Found attachment");
-//                     }
-//                 }
-//                 hasnext = partiter.next()
-//             }
 
-//         }
-//     }
 
+    // general message adding and rendering
+    fn load_html(&self) {
 
-//     fn render_messages(&mut self){
+        info!("render: loading html..");
 
-//     }
 
+        self.webview.load_html(&self.theme.html, None);
 
-//     fn decide_policy(&mut self, decision: &webkit2gtk::PolicyDecision, decision_type: webkit2gtk::PolicyDecisionType)
-//     {
+    }
 
-//         debug!("tv: decide policy");
+    fn show_thread(&mut self, thread: Thread){
 
-//         match decision_type {
-//             // navigate to
-//             webkit2gtk::PolicyDecisionType::NavigationAction => {
 
-//                 let navigation_decision:webkit2gtk::NavigationPolicyDecision = decision.clone().downcast::<webkit2gtk::NavigationPolicyDecision>().unwrap();
+        debug!("Showing thread {:?}", thread);
+        let messages = thread.messages();
 
-//                 if navigation_decision.get_navigation_type() == webkit2gtk::NavigationType::LinkClicked{
-//                     decision.ignore();
+        debug!("Showing thread {:?} > messages {:?}", thread, messages);
+        for msg in messages{
+            let fname = msg.filename();
+            info!("message: {:?}", fname);
 
-//                     // TODO: don't unwrap unconditionally
-//                     let uri = navigation_decision.get_request().unwrap().get_uri().unwrap();
-//                     info!("tv: navigating to: {}", uri);
+            let stream = gmime::StreamFile::open(&fname.to_string_lossy(), &"r").unwrap();
+            let parser = gmime::Parser::new_with_stream(&stream);
+            let mmsg = parser.construct_message(None);
 
-//                     let scheme = glib::uri_parse_scheme(&uri).unwrap();
+            info!("created mime message: {:?}", mmsg);
 
-//                     match scheme.as_str() {
-//                         "mailto" => {
-//                             //uri = uri.substr (scheme.length ()+1, uri.length () - scheme.length()-1);
-//                             //           UstringUtils::trim(uri);
-//                             //           main_window->add_mode (new EditMessage (main_window, uri));
-//                         },
-//                         "id" | "mid" => {
-//                             //main_window->add_mode (new ThreadIndex (main_window, uri));
-//                         },
-//                         "http" | "https" | "ftp" => {
-//                             //open_link (uri);
-//                         },
-//                         _ => {
-//                             error!("tv: unknown uri scheme '{}'. not opening. ", scheme);
-//                         }
+            let mut partiter = gmime::PartIter::new(&mmsg.unwrap());
 
-//                     };
+            let mut hasnext = partiter.next();
+            while hasnext {
+                let current = partiter.get_current().unwrap();
+                let parent = partiter.get_parent().unwrap();
 
-//                 }
+                let p = parent.downcast::<gmime::Multipart>();
+                let part = current.downcast::<gmime::Part>();
 
-//             },
-//             _ => {
-//                 decision.ignore();
-//             }
-//         };
+                if p.is_ok() && part.is_ok() {
+                    if part.unwrap().is_attachment(){
+                        debug!("Found attachment");
+                    }
+                }
+                hasnext = partiter.next()
+            }
 
-//   }
+        }
+    }
 
-// }
+
+    fn render_messages(&mut self){
+
+    }
+
+
+    fn decide_policy(&mut self, decision: &webkit2gtk::PolicyDecision, decision_type: webkit2gtk::PolicyDecisionType)
+    {
+
+        debug!("tv: decide policy");
+
+        match decision_type {
+            // navigate to
+            webkit2gtk::PolicyDecisionType::NavigationAction => {
+
+                let navigation_decision:webkit2gtk::NavigationPolicyDecision = decision.clone().downcast::<webkit2gtk::NavigationPolicyDecision>().unwrap();
+
+                if navigation_decision.get_navigation_type() == webkit2gtk::NavigationType::LinkClicked{
+                    decision.ignore();
+
+                    // TODO: don't unwrap unconditionally
+                    let uri = navigation_decision.get_request().unwrap().get_uri().unwrap();
+                    info!("tv: navigating to: {}", uri);
+
+                    let scheme = glib::uri_parse_scheme(&uri).unwrap();
+
+                    match scheme.as_str() {
+                        "mailto" => {
+                            //uri = uri.substr (scheme.length ()+1, uri.length () - scheme.length()-1);
+                            //           UstringUtils::trim(uri);
+                            //           main_window->add_mode (new EditMessage (main_window, uri));
+                        },
+                        "id" | "mid" => {
+                            //main_window->add_mode (new ThreadIndex (main_window, uri));
+                        },
+                        "http" | "https" | "ftp" => {
+                            //open_link (uri);
+                        },
+                        _ => {
+                            error!("tv: unknown uri scheme '{}'. not opening. ", scheme);
+                        }
+
+                    };
+
+                }
+
+            },
+            _ => {
+                decision.ignore();
+            }
+        };
+
+  }
+
+
+}
+
 
 
 // impl Update for ThreadView {
@@ -303,20 +335,7 @@
 
 //     fn view(_relm: &Relm<Self>, model: Self::Model) -> Self
 //     {
-//         let container = model.app.builder.get_object::<gtk::Box>("thread_view_box")
-//                                                .expect("Couldn't find thread_list_scrolled in ui file.");
 
-//         let ctx = model.webcontext.clone();
-
-//         let webview = webkit2gtk::WebView::new_with_context_and_user_content_manager(&ctx, &webkit2gtk::UserContentManager::new());
-
-//         container.pack_start(&webview, true, true, 0);
-
-//         ThreadView {
-//             model,
-//             container,
-//             webview
-//         }
 //     }
 
 

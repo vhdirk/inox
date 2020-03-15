@@ -65,7 +65,28 @@ impl ThreadList {
     }
 
     pub fn setup_signals(&self) {
+        let sender = self.sender.clone();
+
+        self.widget.get_selection().connect_changed(move |selection| {
+
+            let selected = selection.get_selected();
+            if selected.is_none() {
+                return;
+            }
+
+            let (model, iter) = selected.unwrap();
+            let store = model.downcast_ref::<gtk::ListStore>().unwrap();
+
+            let thread = if store.iter_is_valid(&iter) {
+                let lval = store.get_value(&iter, COLUMN_THREAD as i32);
+                lval.get::<&Thread>().unwrap_or(None).cloned()
+            } else {
+                None
+            };
+            sender.send(Action::SelectThread(thread));
+        });
     }
+
 
     pub fn set_threads(&self, threads: Threads) {
 

@@ -24,7 +24,7 @@ use crate::main_window::MainWindow;
 
 
 use inox_core::settings::Settings;
-
+use inox_core::database::thread::ArcThread;
 
 
 // use crate::api::{Station, StationRequest};
@@ -41,6 +41,7 @@ pub enum Action {
     SelectTag(Option<String>),
     Search(String),
     Query(Arc<notmuch::Query<'static>>),
+    SelectThread(Option<ArcThread>)
     // Reload,
     // ViewShowLibrary,
     // ViewShowPlayer,
@@ -130,8 +131,6 @@ impl ApplicationImpl for InoxApplicationPrivate {
 
         let db = app.init_database();
         self.database.replace(Some(db.clone()));
-
-        self.window.borrow().as_ref().unwrap().reload(db);
 
 
         // Setup action channel
@@ -229,13 +228,14 @@ impl InoxApplication {
         match action {
             Action::SelectTag(tag) => {
                 let search = match tag {
-                    Some(val) => format!("tag: {}", val),
+                    Some(val) => format!("tag:\"{}\"", val),
                     None => "".to_string()
                 };
                 self_.sender.send(Action::Search(search.to_owned())).unwrap()
             },
             Action::Search(search) => self_.sender.send(Action::Query(Arc::new(notmuch::Query::create(self_.database.borrow().as_ref().unwrap().clone(), &search).unwrap()))).unwrap(),
-            Action::Query(query) => self.perform_search(query)
+            Action::Query(query) => self.perform_search(query),
+            Action::SelectThread(thread) => ()
             // Action::ViewShowDiscover => self_.window.borrow().as_ref().unwrap().set_view(View::Discover),
             // Action::ViewShowLibrary => self_.window.borrow().as_ref().unwrap().set_view(View::Library),
             // Action::ViewShowPlayer => self_.window.borrow().as_ref().unwrap().set_view(View::Player),

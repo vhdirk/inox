@@ -25,16 +25,15 @@ use crate::app::{Action, InoxApplication, InoxApplicationPrivate};
 
 // use crate::headerbar::HeaderBar;
 
-use crate::components::tag_list::TagList;
 use crate::components::thread_list::ThreadList;
-// use crate::components::thread_view::{ThreadView, Msg as ThreadViewMsg};
+use crate::components::thread_view::ThreadView;
 
 pub struct MainWindowPrivate {
     window_builder: gtk::Builder,
     // menu_builder: gtk::Builder,
 
-    tag_list: RefCell<Option<TagList>>,
-    thread_list: RefCell<Option<ThreadList>>
+    thread_list: RefCell<Option<ThreadList>>,
+    thread_view: RefCell<Option<ThreadView>>
 
     // current_notification: RefCell<Option<Rc<Notification>>>,
 }
@@ -56,8 +55,9 @@ impl ObjectSubclass for MainWindowPrivate {
 
         Self {
             window_builder,
-            tag_list: RefCell::new(None),
-            thread_list: RefCell::new(None)
+            thread_list: RefCell::new(None),
+            thread_view: RefCell::new(None)
+
         }
     }
 }
@@ -115,18 +115,11 @@ impl MainWindow {
         let _app_private = InoxApplicationPrivate::from_instance(&app);
 
         // Add headerbar/content to the window itself
-        get_widget!(self_.window_builder, gtk::Box, main_header);
+        get_widget!(self_.window_builder, gtk::Paned, main_header);
         self.set_titlebar(Some(&main_header));
 
         get_widget!(self_.window_builder, gtk::Box, main_layout);
         self.add(&main_layout);
-
-        get_widget!(self_.window_builder, gtk::ScrolledWindow, tag_list_scrolled);
-        let tag_list = TagList::new(sender.clone());
-        tag_list.setup_signals();
-        tag_list_scrolled.add(&tag_list.widget);
-        tag_list.widget.show_all();
-        self_.tag_list.replace(Some(tag_list));
 
         get_widget!(self_.window_builder, gtk::ScrolledWindow, thread_list_scrolled);
         let thread_list = ThreadList::new(sender.clone());
@@ -135,16 +128,27 @@ impl MainWindow {
         thread_list_scrolled.add(&thread_list.widget);
         thread_list.widget.show_all();
         self_.thread_list.replace(Some(thread_list));
+
+
+        get_widget!(self_.window_builder, gtk::Box, thread_box);
+        let thread_view = ThreadView::new(sender.clone());
+        thread_view.setup_signals();
+
+        thread_box.add(&thread_view.widget);
+        thread_view.widget.show_all();
+        self_.thread_view.replace(Some(thread_view));
+
+
     }
 
     fn setup_signals(&self) {
         let self_ = MainWindowPrivate::from_instance(self);
 
-        get_widget!(self_.window_builder, gtk::HeaderBar, taglist_header);
+        get_widget!(self_.window_builder, gtk::Paned, main_header);
         get_widget!(self_.window_builder, gtk::Paned, main_paned);
 
-        let _width_bind = main_paned.bind_property("position", &taglist_header, "width-request")
-                                    .flags(glib::BindingFlags::SYNC_CREATE)
+        let _width_bind = main_paned.bind_property("position", &main_header, "position")
+                                    .flags(glib::BindingFlags::SYNC_CREATE | glib::BindingFlags::BIDIRECTIONAL)
                                     .transform_to(move |_binding, value| {
                                         let _offset = 0; //TODO: this offset was trial and error.
                                                         // we should calculate it somehow.
@@ -169,13 +173,6 @@ impl MainWindow {
         // currently doesn't implement GLib.ActionMap, since it's not supported in gtk-rs for subclassing (13-01-2020)
         let window = self.clone().upcast::<gtk::ApplicationWindow>();
         let _app = window.get_application().unwrap();
-    }
-
-    pub fn reload(&self, database: Arc<notmuch::Database>) {
-        let tags: Vec<String> = database.all_tags().unwrap().collect();
-        let self_ = MainWindowPrivate::from_instance(self);
-
-        self_.tag_list.borrow().as_ref().unwrap().set_tags(&tags);
     }
 
     pub fn set_query(&self, query: Arc<notmuch::Query<'static>>) {
@@ -323,11 +320,11 @@ impl MainWindow {
 //         let main_paned = self.model.app.builder.get_object::<gtk::Paned>("main_paned")
 //                                    .expect("Couldn't find main_paned in ui file.");
 
-//         let taglist_header = self.model.app.builder.get_object::<gtk::HeaderBar>("taglist_header")
-//                                  .expect("Couldn't find taglist_header in ui file.");
+//         let threadlist_header = self.model.app.builder.get_object::<gtk::HeaderBar>("threadlist_header")
+//                                  .expect("Couldn't find threadlist_header in ui file.");
 
 //         // // TODO: do I need to unbind this at some point?
-//         // let _width_bind = main_paned.bind_property("position", &taglist_header, "width-request")
+//         // let _width_bind = main_paned.bind_property("position", &threadlist_header, "width-request")
 //         //                             .flags(glib::BindingFlags::SYNC_CREATE)
 //         //                             .transform_to(move |_binding, value| {
 //         //                                 let offset = 6; //TODO: this offset was trial and error.
