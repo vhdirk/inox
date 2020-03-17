@@ -5,7 +5,7 @@
   <object class="GtkPaned" id="main_header">
     <property name="visible">True</property>
     <property name="can_focus">True</property>
-    <property name="position">150</property>
+    <property name="position">400</property>
     <property name="position_set">True</property>
     <child>
       <object class="GtkHeaderBar" id="threadlist_header">
@@ -125,7 +125,7 @@
       <object class="GtkPaned" id="main_paned">
         <property name="visible">True</property>
         <property name="can_focus">True</property>
-        <property name="position">150</property>
+        <property name="position">400</property>
         <property name="position_set">True</property>
         <child>
           <object class="GtkBox" id="thread_list_box">

@@ -23,6 +23,7 @@ env_logger ="*"
 pretty_env_logger = "0.4.0"
 shellexpand = "*"
 net2 = "*"
+libc = "*"
 nix = "*"
 regex = "*"
 toml = "*"
@@ -37,8 +38,8 @@ bincode = "1.0.1"
 bytes = { version = "0.4.12", features = ["serde"] }
 uuid = { version = "0.7", features = ["v4"] }
 fragile = "0.3.0"
-futures-preview = "0.3.0-alpha"
-
+futures = "0.3"
+async-std = "*"
 
 chrono = { version = "0.4", features = ["serde"] }
 
@@ -60,8 +61,13 @@ cairo-sys-rs = { git = "https://github.com/gtk-rs/cairo" }
 webkit2gtk = { git = "https://github.com/gtk-rs/webkit2gtk-rs", features=["v2_18"] }
 webkit2gtk-webextension = { git = "https://github.com/gtk-rs/webkit2gtk-webextension-rs", features=["v2_18"] }
 
-capnp = { git="https://github.com/capnproto/capnproto-rust.git"}
-capnp-rpc = { git="https://github.com/capnproto/capnproto-rust.git"}
+tarpc = { version = "0.20.0", path="../../tarpc/tarpc", features = ["serde1", "serde-transport", "tcp"] }
+tokio = { version = "0.2", features = ["time"] }
+tokio-serde = { version = "0.6", features = ["bincode", "json"] }
+tokio-util = { version = "0.3", features = ["compat"] }
+humantime = "1.0"
+fnv = "1.0"
+pin-project = "0.4"
 
 crossbeam-channel = "0.2.1"
 rayon = "1.0.1"
@@ -70,15 +76,10 @@ failure = "0.1.1"
 failure_derive = "0.1.1"
 md5 = "0.3.7"
 
-inox-core = { path = "../inox-core" }
-
 notmuch = "*"
 gmime = { git = "https://github.com/vhdirk/gmime-rs"}
 
-# [patch.crates-io]
-#notmuch = { path = "../../notmuch-rs" }
-#gmime = { path = "../../gmime-rs" }
-async-std = "*"
+inox-core = { path = "../inox-core" }
 
 
 [features]
@@ -87,6 +88,3 @@ default = ["gtk/v3_16"]
 [dev-dependencies]
 cargo-expand = "*"
 pretty_assertions = "0.5.1"
-
-[build-dependencies]
-capnpc = { git="https://github.com/capnproto/capnproto-rust.git", branch="std-future"}

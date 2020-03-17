@@ -13,5 +13,5 @@ debug = true
 opt-level = 3
 debug = false
 
-[patch."https://github.com/gtk-rs/gtk.git"]
-gtk = { path="../gtk-rs" }
+[patch.crates-io]
+tarpc = { path="../tarpc/tarpc" }

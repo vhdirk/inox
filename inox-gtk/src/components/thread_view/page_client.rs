@@ -1,96 +1,91 @@
-use std::thread;
+use std::io;
 use std::rc::Rc;
-use std::cell::RefCell;
-use gio::prelude::*;
-use gio::{SocketClientExt, SocketConnectionExt, SocketExt, IOStreamExt, InputStreamExt, OutputStreamExt};
+use futures::Future;
+use futures::future::TryFutureExt;
 
-use std::os::unix::net::UnixStream;
 use async_std::os::unix::net::{UnixStream as AsyncUnixStream};
-use async_std::os::unix::io::{AsRawFd, FromRawFd};
 
-use capnp::Error;
-use capnp::primitive_list;
-use capnp::capability::Promise;
+use log::*;
 
-use capnp_rpc::{RpcSystem, rpc_twoparty_capnp};
-use capnp_rpc::twoparty::VatNetwork;
 
-use futures::future::{self, FutureExt, TryFutureExt};
+use tarpc;
+use tarpc::{client};
+use tarpc::client::channel::RequestDispatch;
+use tarpc::rpc::{Response, ClientMessage};
+use tarpc::serde_transport::Transport;
 
-use crate::webext_capnp::page;
+use tokio_serde::formats::{Bincode};
+use tokio_util::compat::*;
+
+use crate::webextension::service;
+
 
 use super::theme::ThreadViewTheme;
 
 
 #[derive(Clone)]
 pub struct PageClient{
-    connection: gio::SocketConnection,
-    client: page::Client
+    client: service::PageClient
+}
+
+
+pub fn spawn_client<C, D>(client: client::NewClient<C, D>) -> io::Result<C>
+where
+    D: Future<Output = io::Result<()>> + Send + 'static,
+{
+    let dispatch = client
+        .dispatch
+        .unwrap_or_else(move |e| error!("Connection broken: {}", e));
+
+    let ctx = glib::MainContext::ref_thread_default();
+    ctx.spawn(dispatch);
+
+    Ok(client.client)
 }
 
 
 impl PageClient{
 
-    pub fn new(conn: gio::SocketConnection) -> Self
+    pub fn new(stream:  AsyncUnixStream) -> Self
     {
-        let mut rstream_sync: UnixStream = conn.get_socket().unwrap().get_fd();
-        let mut wstream_sync: UnixStream = rstream_sync.try_clone().unwrap();
+        let transport = Transport::from((stream.compat(), Bincode::default()));
+        let client = service::PageClient::new(client::Config::default(), transport);
 
-        let rstream: AsyncUnixStream = rstream_sync.into();
-        let wstream: AsyncUnixStream = wstream_sync.into();
-
-
-        let network =
-            Box::new(VatNetwork::new(rstream, wstream,
-                                     rpc_twoparty_capnp::Side::Client,
-                                     Default::default()));
-        let mut rpc_system = RpcSystem::new(network, None);
-        let client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-
-        let ctx = glib::MainContext::default();
-
-        ctx.push_thread_default();
-        ctx.spawn_local(rpc_system.then(move |_result| {
-            // TODO: do something with this result...
-
-            future::ready(())
-        }));
-        ctx.pop_thread_default();
-
-        // connection should stay alive while rstream and wstream are
         Self{
-            connection: conn,
-            client
+            client: spawn_client(client).unwrap()
         }
-
     }
 
     pub fn clear_messages(&mut self){
 
     }
 
-    pub async fn load(&mut self, theme: &ThreadViewTheme){
-        /* load style sheet */
-        dbg!("pc: sending page..");
+    pub async fn load(&mut self, _theme: &ThreadViewTheme){
+        // /* load style sheet */
+        // dbg!("pc: sending page..");
 
-        //self.client.
+        // //self.client.
 
-        let mut request = self.client.load_request();
-        request.get().set_html(&theme.html);
-        request.get().set_css(&theme.css);
+        // let mut request = self.client.load_request();
+        // request.get().set_html(&theme.html);
+        // request.get().set_css(&theme.css);
 
-        let ctx = glib::MainContext::default();
-        ctx.push_thread_default();
+        // let ctx = glib::MainContext::default();
+        // ctx.push_thread_default();
 
-        ctx.spawn_local(request.send().promise.and_then(|response| {
-            Promise::ok(())
-            }).then(move |_result| {
-                // TODO: do something with this result...
+        // ctx.spawn_local(request.send().promise.and_then(|response| {
+        //     Promise::ok(())
+        //     }).then(move |_result| {
+        //         // TODO: do something with this result...
 
-            future::ready(())
-        }));
+        //     future::ready(())
+        // }));
 
-        ctx.pop_thread_default();
+        // ctx.pop_thread_default();
+    }
+
+    pub fn is_ready(&self) -> bool {
+        return true;
     }
 }
 

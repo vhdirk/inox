@@ -1,33 +1,22 @@
-use std::rc::Rc;
-use std::thread;
-use std::process;
-use std::cell::Cell;
-use std::path::Path;
-use std::sync::mpsc::{channel, Receiver};
+use std::os::unix::prelude::*;
 
-use async_std::os::unix::net::{UnixStream, UnixListener};
-use async_std::os::unix::io::IntoRawFd;
+use std::os::unix::net::UnixStream;
+use std::os::unix::io::{FromRawFd};
+use async_std::os::unix::net::{UnixStream as AsyncUnixStream};
 
-use serde_derive::{Serialize, Deserialize};
 use log::*;
 
 use gio;
 use gio::prelude::*;
-use gio::SocketListenerExt;
+
 use glib;
 use gtk;
 use gtk::prelude::*;
 use webkit2gtk;
 use webkit2gtk::{SettingsExt, WebViewExt, WebContextExt, PolicyDecisionExt, NavigationPolicyDecisionExt, URIRequestExt};
-use glib::Sender;
+use glib::{Sender};
 use gmime;
 use gmime::{ParserExt, PartExt};
-use bincode;
-
-use uuid::Uuid;
-use toml;
-
-use notmuch;
 
 use inox_core::database::Thread;
 use crate::app::Action;
@@ -37,18 +26,34 @@ use page_client::PageClient;
 mod theme;
 use theme::ThreadViewTheme;
 
-
+#[derive(Clone)]
 pub struct ThreadView{
     pub widget: gtk::Box,
     sender: Sender<Action>,
     webview: webkit2gtk::WebView,
 
     webcontext: webkit2gtk::WebContext,
-    socket_listener: gio::SocketListener,
-    page_client: Option<PageClient>,
+    page_client: PageClient,
     theme: ThreadViewTheme
 }
 
+struct RawFdWrap {
+    pub fd: libc::c_int
+}
+
+impl IntoRawFd for RawFdWrap {
+    fn into_raw_fd(self) -> libc::c_int {
+        self.fd
+    }
+}
+
+impl FromRawFd for RawFdWrap {
+    unsafe fn from_raw_fd(fd: libc::c_int) -> Self {
+        Self {
+            fd
+        }
+    }
+}
 
 
 impl ThreadView{
@@ -60,7 +65,8 @@ impl ThreadView{
         let webcontext = webkit2gtk::WebContext::get_default().unwrap();
         webcontext.set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
 
-        let listener = ThreadView::initialize_web_extensions(&webcontext);
+        let stream = ThreadView::initialize_web_extensions(&webcontext);
+        let page_client = PageClient::new(stream);
 
         let webview = webkit2gtk::WebView::new_with_context_and_user_content_manager(&webcontext, &webkit2gtk::UserContentManager::new());
 
@@ -93,14 +99,34 @@ impl ThreadView{
             sender,
             webview,
             webcontext,
-            socket_listener: listener,
-            page_client: None,
+            page_client,
             theme: ThreadViewTheme::load()
         }
 
     }
 
     pub fn setup_signals(&self) {
+
+        let self_ = self.clone();
+        self.webview.connect_load_changed(move |_, event| {
+            let mut mself = self_.clone();
+
+            mself.load_changed(event);
+        });
+
+//     // add_events (Gdk::KEY_PRESS_MASK);
+        let self_ = self.clone();
+        self.webview.connect_decide_policy(move |_, decision, decision_type| {
+            let mut mself = self_.clone();
+            mself.decide_policy(decision, decision_type);
+            false
+        });
+
+        self.load_html();
+
+//     // register_keys ();
+
+
     }
 
 
@@ -109,46 +135,27 @@ impl ThreadView{
 
         match event{
             webkit2gtk::LoadEvent::Finished => {
-                if self.page_client.is_some(){
-                    // self.model.relm.stream().emit(Msg::ReadyToRender);
-
+                if self.page_client.is_ready(){
+                    self.ready_to_render();
                 }
             },
             _ => ()
         }
-
     }
 
     fn ready_to_render(&mut self){
 
-        match self.page_client.as_mut(){
-            Some(pc) => {
-                pc.load(&self.theme);
+        self.page_client.load(&self.theme);
 
-                /* render messages in case we were not ready when first requested */
-                pc.clear_messages();
-            },
-            None => ()
-        }
+        /* render messages in case we were not ready when first requested */
+        self.page_client.clear_messages();
 
         self.render_messages();
     }
 
-    fn extension_connected(&mut self, conn: gio::SocketConnection, obj: Option<glib::Object>){
-        debug!("ThreadView: extension_connected");
-        let page_client = PageClient::new(conn);
-        self.page_client = Some(page_client.clone());
-
-        // TODO: create new macro to do this more elegantly
-        // use self::PageClientMsg::PageLoaded as PageClient_PageLoaded;
-        // let page_client_stream = page_client.stream.clone();
-        // connect_stream!(page_client_stream@PageClient_PageLoaded, self.model.relm.stream(), Msg::PageLoaded);
-    }
-
-    fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> gio::SocketListener
+    fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> AsyncUnixStream
     {
         info!("initialize_web_extensions");
-
         let cur_exe = std::env::current_exe().unwrap();
         let exe_dir = cur_exe.parent().unwrap();
         let extdir = exe_dir.to_string_lossy();
@@ -156,23 +163,10 @@ impl ThreadView{
         info!("setting web extensions directory: {:?}", extdir);
         ctx.set_web_extensions_directory(&extdir);
 
-        let socket_addr = format!("/tmp/enamel-tv-{}-{}.sock",
-                                  process::id(),
-                                  Uuid::new_v4());
-
-        let gsock_addr = gio::UnixSocketAddress::new(Path::new(&socket_addr));
-
-        let listener = gio::SocketListener::new();
-        let res = listener.add_address(&gsock_addr,
-                                       gio::SocketType::Stream,
-                                       gio::SocketProtocol::Default,
-                                       Some(&gsock_addr)).unwrap();
-        info!("sock addr: {:?}", socket_addr);
-
-        ctx.set_web_extensions_initialization_user_data(&socket_addr.to_variant());
-        listener
+        let (local, remote) = UnixStream::pair().unwrap();
+        ctx.set_web_extensions_initialization_user_data(&remote.into_raw_fd().to_variant());
+        local.into()
     }
-
 
 
     // general message adding and rendering

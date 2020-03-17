@@ -11,6 +11,7 @@ use dirs;
 
 use gtk;
 
+
 use structopt::StructOpt;
 use structopt::clap::{App, Arg};
 
@@ -30,10 +31,6 @@ use inox_core::settings::Settings;
 
 use crate::app::InoxApplication;
 
-
-pub mod webext_capnp {
-  include!(concat!(env!("OUT_DIR"), "/resources/webext_capnp.rs"));
-}
 
 /// Init Gtk and logger.
 fn init() {

@@ -138,7 +138,7 @@ impl MainWindow {
         thread_view.widget.show_all();
         self_.thread_view.replace(Some(thread_view));
 
-
+        self.resize(800, 480);
     }
 
     fn setup_signals(&self) {

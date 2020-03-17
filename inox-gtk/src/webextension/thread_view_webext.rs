@@ -1,18 +1,21 @@
 
+use std::sync::{Arc, Mutex};
+use std::os::unix::net::UnixStream;
+use std::os::unix::io::{RawFd, FromRawFd};
+use async_std::os::unix::net::{UnixStream as AsyncUnixStream};
 
-use std::cell::RefCell;
-
+use futures::future::{self, Ready};
+use futures::stream;
 
 use log::*;
 use env_logger;
 
 use glib::Cast;
 
-
 use glib::variant::Variant;
 use gio;
 use gio::prelude::*;
-use gio::{SocketClientExt};
+
 use gtk::IconThemeExt;
 use webkit2gtk_webextension::{
     DOMDocument,
@@ -26,18 +29,16 @@ use webkit2gtk_webextension::{
     web_extension_init_with_data
 };
 
-use std::os::unix::net::UnixStream;
-use async_std::os::unix::net::{UnixStream as AsyncUnixStream};
+use tokio_util::compat::*;
 
-use futures::future::{self, FutureExt};
+use tarpc;
+use tarpc::{server, context};
+use tarpc::serde_transport::Transport;
 
-use capnp::{Error};
-use capnp::capability::Promise;
+use tokio_serde::formats::{Bincode};
 
-use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, pry};
-use capnp_rpc::twoparty::VatNetwork;
-
-use crate::webext_capnp::page;
+use crate::server_utils::handler_respond_with;
+use crate::service::Page;
 
 web_extension_init_with_data!();
 
@@ -65,20 +66,15 @@ const ATTACHMENT_ICON_WIDTH: i32 = 35;
 
 #[derive(Debug, Clone)]
 pub struct ThreadViewWebExt{
-    extension: WebExtension,
-    page_fut: RefCell<Option<webkit2gtk_webextension::WebPage>>,
-
-    allowed_uris: Vec<String>
+    extension: Arc<Mutex<WebExtension>>
 }
 
 impl ThreadViewWebExt{
 
     pub fn new(extension: webkit2gtk_webextension::WebExtension) -> Self{
         let webext = ThreadViewWebExt{
-            extension: extension.clone(),
-            page_fut: RefCell::new(None),
+            extension: Arc::new(Mutex::new(extension.clone())),
 
-            allowed_uris: vec![]
         };
         webext
     }
@@ -125,7 +121,6 @@ impl ThreadViewWebExt{
 pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Variant>) {
     init();
 
-
     /* load attachment icon */
     let theme = gtk::IconTheme::get_default().unwrap();
     let _attachment_icon = theme.load_icon(
@@ -139,69 +134,60 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
         ATTACHMENT_ICON_WIDTH,
         gtk::IconLookupFlags::USE_BUILTIN);
 
-
-    let user_string: Option<String> = user_data.and_then(Variant::get_str).map(ToOwned::to_owned);
-    debug!("user string: {:?}", user_string);
+    debug!("user data: {:?}", user_data);
+    let user_string: Option<RawFd> = user_data.and_then(Variant::get::<RawFd>);
 
     let socket_addr = user_string.unwrap();
 
-    let rstream_sync = UnixStream::connect(socket_addr).unwrap();
-    let wstream_sync = rstream_sync.try_clone().unwrap();
-
-    let rstream: AsyncUnixStream = rstream_sync.into();
-    let wstream: AsyncUnixStream = wstream_sync.into();
+    let stream: AsyncUnixStream = unsafe{ UnixStream::from_raw_fd(socket_addr) }.into();
+    let transport = Transport::from((stream.compat(), Bincode::default()));
 
     let webext = ThreadViewWebExt::new(extension.clone());
 
-    let page_srv = page::ToClient::new(webext).into_client::<::capnp_rpc::Server>();
-
-    let network = VatNetwork::new(rstream,
-                                  wstream,
-                                  rpc_twoparty_capnp::Side::Server,
-                                  Default::default());
-
-    let rpc_system = RpcSystem::new(Box::new(network), Some(page_srv.clone().client));
-    // let client: page::Server = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Client);
-
+    let server = handler_respond_with(
+        server::new(server::Config::default()).incoming(stream::once(future::ready(transport))),
+        webext.serve());
 
     let ctx = glib::MainContext::default();
-
     ctx.push_thread_default();
-    ctx.spawn_local(rpc_system.then(move |result| {
-        // TODO: do something with this result...
-        info!("rpc_system done? {:?}", result);
-        future::ready(())
-    }));
+    ctx.spawn_local(server);
     ctx.pop_thread_default();
 }
 
-impl page::Server for ThreadViewWebExt
+impl Page for ThreadViewWebExt
 {
-    fn allow_remote_images(&mut self,
-            _params: page::AllowRemoteImagesParams,
-            _results: page::AllowRemoteImagesResults)
-            -> Promise<(), Error>
+    type AllowRemoteImagesFut = Ready<()>;
+
+    fn allow_remote_images(self, _: context::Context, _name: String)
+            -> Self::AllowRemoteImagesFut
     {
-        Promise::ok(())
+        future::ready(())
     }
 
-    fn load(&mut self,
-            params: page::LoadParams,
-            _results: page::LoadResults)
-            -> Promise<(), Error>
+    type LoadFut = Ready<()>;
+
+    fn load(self, _: context::Context,
+            html_content: String,
+            css_content: String,
+            _part_css: String,
+            _allowed_uris: Vec<String>,
+            _use_stdout: bool,
+            _use_syslog: bool,
+            _disable_log: bool,
+            _log_level: String)
+            -> Self::LoadFut
     {
 
         info!("loading page");
         // let page = self.page.as_ref().unwrap();
         // TODO:
-        let page = self.extension.get_page(1).unwrap();
+        let extension = self.extension.try_lock().unwrap();
+        let page = extension.get_page(1).unwrap();
         let document: DOMDocument = page.get_dom_document().unwrap();
 
         // load html
         let html_element = document.create_element("HTML").unwrap();
-
-        let html_content = pry!(pry!(params.get()).get_html());
-        html_element.set_outer_html(html_content);
+        html_element.set_outer_html(&html_content);
 
         let dom_html_elem = html_element.downcast::<webkit2gtk_webextension::DOMHTMLElement>().unwrap();
         document.set_body(&dom_html_elem);
@@ -209,8 +195,7 @@ impl page::Server for ThreadViewWebExt
         // load css style
         info!("loading stylesheet");
         let style_element = document.create_element("STYLE").unwrap();
-        let css_content = pry!(pry!(params.get()).get_css());
-        let style_text = document.create_text_node(css_content).unwrap();
+        let style_text = document.create_text_node(&css_content).unwrap();
 
         style_element.append_child(&style_text);
 
@@ -223,11 +208,9 @@ impl page::Server for ThreadViewWebExt
         //   part_css = s.part_css ();
 
         // add allowed uris
-        let allowed_uris_r = pry!(pry!(params.get()).get_allowed_uris());
-        let allowed_uris = allowed_uris_r.iter().filter_map(|x| x.ok()).map(ToOwned::to_owned);
-        self.allowed_uris = self.allowed_uris.iter().cloned().chain(allowed_uris).collect();
+        // self.allowed_uris = allowed_uris;
 
-        Promise::ok(())
+        future::ready(())
     }
 
 }

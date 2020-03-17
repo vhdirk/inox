@@ -235,7 +235,7 @@ impl InoxApplication {
             },
             Action::Search(search) => self_.sender.send(Action::Query(Arc::new(notmuch::Query::create(self_.database.borrow().as_ref().unwrap().clone(), &search).unwrap()))).unwrap(),
             Action::Query(query) => self.perform_search(query),
-            Action::SelectThread(thread) => ()
+            Action::SelectThread(_thread) => ()
             // Action::ViewShowDiscover => self_.window.borrow().as_ref().unwrap().set_view(View::Discover),
             // Action::ViewShowLibrary => self_.window.borrow().as_ref().unwrap().set_view(View::Library),
             // Action::ViewShowPlayer => self_.window.borrow().as_ref().unwrap().set_view(View::Player),
