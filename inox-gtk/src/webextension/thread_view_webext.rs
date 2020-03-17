@@ -169,7 +169,7 @@ impl Page for ThreadViewWebExt
     fn load(self, _: context::Context,
             html_content: String,
             css_content: String,
-            _part_css: String,
+            _part_css: Option<String>,
             _allowed_uris: Vec<String>,
             _use_stdout: bool,
             _use_syslog: bool,

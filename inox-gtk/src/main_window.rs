@@ -24,6 +24,7 @@ use crate::get_widget;
 use crate::app::{Action, InoxApplication, InoxApplicationPrivate};
 
 // use crate::headerbar::HeaderBar;
+use inox_core::database::Thread;
 
 use crate::components::thread_list::ThreadList;
 use crate::components::thread_view::ThreadView;
@@ -179,6 +180,28 @@ impl MainWindow {
         let self_ = MainWindowPrivate::from_instance(self);
         let threads = <notmuch::Query as notmuch::QueryExt>::search_threads(query).unwrap();
         self_.thread_list.borrow().as_ref().unwrap().set_threads(threads);
+    }
+
+    pub fn open_thread(&self, thread: Option<Thread>) {
+
+        let self_ = MainWindowPrivate::from_instance(self);
+
+        match thread {
+            Some(thread) => {
+                self.update_titlebar(Some(&thread.subject()));
+                self_.thread_view.borrow().as_ref().unwrap().show_thread(thread)
+            },
+            None => {
+                self.update_titlebar(None);
+            }
+        }
+    }
+
+
+    pub fn update_titlebar(&self, title: Option<&str>) {
+        let self_ = MainWindowPrivate::from_instance(self);
+        get_widget!(self_.window_builder, gtk::HeaderBar, conversation_header);
+        conversation_header.set_subtitle(title);
     }
 
 

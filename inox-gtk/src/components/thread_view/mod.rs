@@ -37,25 +37,6 @@ pub struct ThreadView{
     theme: ThreadViewTheme
 }
 
-struct RawFdWrap {
-    pub fd: libc::c_int
-}
-
-impl IntoRawFd for RawFdWrap {
-    fn into_raw_fd(self) -> libc::c_int {
-        self.fd
-    }
-}
-
-impl FromRawFd for RawFdWrap {
-    unsafe fn from_raw_fd(fd: libc::c_int) -> Self {
-        Self {
-            fd
-        }
-    }
-}
-
-
 impl ThreadView{
 
     pub fn new(sender: Sender<Action>) -> Self {
@@ -143,7 +124,7 @@ impl ThreadView{
         }
     }
 
-    fn ready_to_render(&mut self){
+    async fn ready_to_render(&mut self){
 
         self.page_client.load(&self.theme);
 
@@ -179,8 +160,15 @@ impl ThreadView{
 
     }
 
-    fn show_thread(&mut self, thread: Thread){
+    pub fn load_thread(&self, thread: Thread){
 
+
+
+    }
+
+
+
+    pub fn show_thread(&self, thread: Thread){
 
         debug!("Showing thread {:?}", thread);
         let messages = thread.messages();
@@ -218,7 +206,7 @@ impl ThreadView{
     }
 
 
-    fn render_messages(&mut self){
+    async fn render_messages(&mut self){
 
     }
 

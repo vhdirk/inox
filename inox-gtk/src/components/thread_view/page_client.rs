@@ -9,7 +9,7 @@ use log::*;
 
 
 use tarpc;
-use tarpc::{client};
+use tarpc::{client, context};
 use tarpc::client::channel::RequestDispatch;
 use tarpc::rpc::{Response, ClientMessage};
 use tarpc::serde_transport::Transport;
@@ -60,11 +60,32 @@ impl PageClient{
 
     }
 
-    pub async fn load(&mut self, _theme: &ThreadViewTheme){
-        // /* load style sheet */
-        // dbg!("pc: sending page..");
+    pub async fn load(&mut self, theme: &ThreadViewTheme){
+        /* load style sheet */
+        debug!("pc: sending page..");
 
+        self.client.load(context::current(),
+            theme.html.to_owned(),
+            theme.css.to_owned(),
+            theme.part_css.to_owned(),
+            vec![],
+            true,
+            true,
+            false,
+            "".to_string()).await;
         // //self.client.
+
+// //     s.set_css  (thread_view->theme.thread_view_css.c_str ());
+// //     s.set_part_css (thread_view->theme.part_css.c_str ());
+// //     s.set_html (thread_view->theme.thread_view_html.c_str ());
+
+// //     s.set_use_stdout (astroid->log_stdout);
+// //     s.set_use_syslog (astroid->log_syslog);
+// //     s.set_disable_log (astroid->disable_log);
+// //     s.set_log_level (astroid->log_level);
+
+
+
 
         // let mut request = self.client.load_request();
         // request.get().set_html(&theme.html);

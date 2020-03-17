@@ -135,7 +135,7 @@ impl ApplicationImpl for InoxApplicationPrivate {
 
         // Setup action channel
         let receiver = self.receiver.borrow_mut().take().unwrap();
-        receiver.attach(None, move |action| app.process_action(action));
+        receiver.attach(None, move |action|  app.process_action(action));
 
         // Setup settings signal (we get notified when a key gets changed)
         // self.settings.connect_changed(clone!(@strong self.sender as sender => move |_, key_str| {
@@ -223,6 +223,7 @@ impl InoxApplication {
     fn process_action(&self, action: Action) -> glib::Continue {
         let self_ = InoxApplicationPrivate::from_instance(self);
 
+
         debug!("processing action {:?}", action);
 
         match action {
@@ -235,7 +236,7 @@ impl InoxApplication {
             },
             Action::Search(search) => self_.sender.send(Action::Query(Arc::new(notmuch::Query::create(self_.database.borrow().as_ref().unwrap().clone(), &search).unwrap()))).unwrap(),
             Action::Query(query) => self.perform_search(query),
-            Action::SelectThread(_thread) => ()
+            Action::SelectThread(thread) => self.open_thread(thread),
             // Action::ViewShowDiscover => self_.window.borrow().as_ref().unwrap().set_view(View::Discover),
             // Action::ViewShowLibrary => self_.window.borrow().as_ref().unwrap().set_view(View::Library),
             // Action::ViewShowPlayer => self_.window.borrow().as_ref().unwrap().set_view(View::Player),
@@ -272,6 +273,11 @@ impl InoxApplication {
     fn perform_search(&self, query: Arc<notmuch::Query<'static>>) {
         let self_ = InoxApplicationPrivate::from_instance(self);
         self_.window.borrow().as_ref().unwrap().set_query(query);
+    }
+
+    fn open_thread(&self, thread: Option<ArcThread>) {
+        let self_ = InoxApplicationPrivate::from_instance(self);
+        self_.window.borrow().as_ref().unwrap().open_thread(thread);
     }
 
 }
