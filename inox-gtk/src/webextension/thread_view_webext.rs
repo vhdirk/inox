@@ -33,12 +33,14 @@ use tokio_util::compat::*;
 
 use tarpc;
 use tarpc::{server, context};
+use tarpc::server::BaseChannel;
+use tarpc::rpc::server::Channel;
 use tarpc::serde_transport::Transport;
 
 use tokio_serde::formats::{Bincode};
 
-use crate::server_utils::handler_respond_with;
-use crate::service::Page;
+use crate::rpc::handler_respond_with;
+use crate::service::{Page, Message};
 
 web_extension_init_with_data!();
 
@@ -64,9 +66,42 @@ fn init() {
 const ATTACHMENT_ICON_WIDTH: i32 = 35;
 
 
+
+pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Variant>) {
+    init();
+
+    debug!("user data: {:?}", user_data);
+    let user_string: Option<RawFd> = user_data.and_then(Variant::get::<RawFd>);
+
+    let socket_addr = user_string.unwrap();
+
+    debug!("socket_addr: {:?}", socket_addr);
+
+
+    let stream: AsyncUnixStream = unsafe{ UnixStream::from_raw_fd(socket_addr) }.into();
+    let transport = Transport::from((stream.compat(), Bincode::default()));
+
+    let webext = ThreadViewWebExt::new(extension.clone());
+
+    let channel = BaseChannel::new(server::Config::default(), transport);
+
+    // channel.respond_with(webex.serve()).execute();
+    // let server = handler_respond_with(
+    //     server::new(server::Config::default()).incoming(stream::once(future::ready(transport))),
+    //     webext.serve());
+
+    let ctx = glib::MainContext::default();
+    // ctx.push_thread_default();
+    ctx.spawn_local(channel.respond_with(webext.serve()).execute());
+    // ctx.pop_thread_default();
+}
+
 #[derive(Debug, Clone)]
 pub struct ThreadViewWebExt{
-    extension: Arc<Mutex<WebExtension>>
+    extension: Arc<Mutex<WebExtension>>,
+    part_css: Option<String>,
+    allowed_uris: Vec<String>,
+    indent_messages: bool
 }
 
 impl ThreadViewWebExt{
@@ -74,13 +109,31 @@ impl ThreadViewWebExt{
     pub fn new(extension: webkit2gtk_webextension::WebExtension) -> Self{
         let webext = ThreadViewWebExt{
             extension: Arc::new(Mutex::new(extension.clone())),
-
+            part_css: None,
+            indent_messages: true,
+            allowed_uris: vec![]
         };
         webext
     }
 
 
     pub fn on_page_created(&self, _page: &webkit2gtk_webextension::WebPage){
+
+        /* load attachment icon */
+        let theme = gtk::IconTheme::get_default().unwrap();
+        let _attachment_icon = theme.load_icon(
+            "mail-attachment-symbolic",
+            ATTACHMENT_ICON_WIDTH,
+            gtk::IconLookupFlags::USE_BUILTIN);
+
+        /* load marked icon */
+        let _marked_icon = theme.load_icon (
+            "object-select-symbolic",
+            ATTACHMENT_ICON_WIDTH,
+            gtk::IconLookupFlags::USE_BUILTIN);
+
+
+
 
         // race condition with rpc system here
         // info!("WEEEEEE {:?}{:?}{:?}", self, page, page.get_id());
@@ -118,41 +171,6 @@ impl ThreadViewWebExt{
 }
 
 
-pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Variant>) {
-    init();
-
-    /* load attachment icon */
-    let theme = gtk::IconTheme::get_default().unwrap();
-    let _attachment_icon = theme.load_icon(
-        "mail-attachment-symbolic",
-        ATTACHMENT_ICON_WIDTH,
-        gtk::IconLookupFlags::USE_BUILTIN);
-
-    /* load marked icon */
-    let _marked_icon = theme.load_icon (
-        "object-select-symbolic",
-        ATTACHMENT_ICON_WIDTH,
-        gtk::IconLookupFlags::USE_BUILTIN);
-
-    debug!("user data: {:?}", user_data);
-    let user_string: Option<RawFd> = user_data.and_then(Variant::get::<RawFd>);
-
-    let socket_addr = user_string.unwrap();
-
-    let stream: AsyncUnixStream = unsafe{ UnixStream::from_raw_fd(socket_addr) }.into();
-    let transport = Transport::from((stream.compat(), Bincode::default()));
-
-    let webext = ThreadViewWebExt::new(extension.clone());
-
-    let server = handler_respond_with(
-        server::new(server::Config::default()).incoming(stream::once(future::ready(transport))),
-        webext.serve());
-
-    let ctx = glib::MainContext::default();
-    ctx.push_thread_default();
-    ctx.spawn_local(server);
-    ctx.pop_thread_default();
-}
 
 impl Page for ThreadViewWebExt
 {
@@ -166,11 +184,11 @@ impl Page for ThreadViewWebExt
 
     type LoadFut = Ready<()>;
 
-    fn load(self, _: context::Context,
+    fn load(mut self, _: context::Context,
             html_content: String,
             css_content: String,
-            _part_css: Option<String>,
-            _allowed_uris: Vec<String>,
+            part_css: Option<String>,
+            allowed_uris: Vec<String>,
             _use_stdout: bool,
             _use_syslog: bool,
             _disable_log: bool,
@@ -204,15 +222,55 @@ impl Page for ThreadViewWebExt
 
         info!("loaded page");
 
-        //   /* store part / iframe css for later */
-        //   part_css = s.part_css ();
+        // store part / iframe css for later
+        self.part_css = part_css;
 
         // add allowed uris
-        // self.allowed_uris = allowed_uris;
+        self.allowed_uris = allowed_uris;
 
         future::ready(())
     }
 
+    type ClearMessagesFut = Ready<()>;
+    fn clear_messages(self, _: context::Context) -> Self::ClearMessagesFut {
+
+        debug!("clearing all messages.");
+
+        let extension = self.extension.try_lock().unwrap();
+        let page = extension.get_page(1).unwrap();
+        let document: DOMDocument = page.get_dom_document().unwrap();
+
+        let container = document.get_element_by_id("message_container").unwrap();
+        container.set_inner_html("<span id=\"placeholder\"></span>");
+
+        //   /* reset */
+        //   focused_message = "";
+        //   focused_element = -1;
+        //   messages.clear ();
+        //   state = AstroidMessages::State();
+        //   allow_remote_resources = false;
+        //   indent_messages = false;
+
+        future::ready(())
+    }
+
+
+    type AddMessageFut = Ready<()>;
+    fn add_message(self, _: context::Context, messages: Message) -> Self::AddMessageFut {
+        debug!("add_message");
+
+        future::ready(())
+
+    }
+
+
+    type AddMessagesFut = Ready<()>;
+    fn add_messages(self, _: context::Context, messages: Vec<Message>) -> Self::AddMessagesFut {
+        debug!("add_messages");
+
+        future::ready(())
+
+    }
 }
 
 

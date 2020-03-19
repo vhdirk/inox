@@ -1,137 +1,139 @@
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use std::rc::Rc;
+use std::borrow::Cow;
 use std::iter::Iterator;
-
+use serde::{Serialize, Deserialize};
 use glib::{glib_boxed_type, glib_boxed_derive_traits};
 use glib::subclass::boxed::BoxedType;
 
 use notmuch;
 
-#[derive(Clone, Debug)]
-pub struct RcThread(Rc<notmuch::Thread<'static, 'static>>);
+use super::message::Message;
 
-impl BoxedType for RcThread {
-    const NAME: &'static str = "enamel_RcThread";
+
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct ThreadCache {
+    is_unread: bool,
+    has_attachment: bool,
+    tags: Vec<String>
+}
+
+impl Default for ThreadCache {
+
+    fn default() -> Self {
+        Self{
+            is_unread: true,
+            has_attachment: false,
+            tags: vec![]
+        }
+    }
+}
+
+
+
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Thread{
+
+    #[serde(skip)]
+    thread: Option<Arc<notmuch::Thread<'static, 'static>>>,
+
+    cache: ThreadCache
+}
+
+impl BoxedType for Thread {
+    const NAME: &'static str = "inox_Thread";
     glib_boxed_type!();
 }
-glib_boxed_derive_traits!(RcThread);
-
-impl Deref for RcThread{
-    type Target = Rc<notmuch::Thread<'static, 'static>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for RcThread{
-    fn deref_mut(&mut self) -> &mut Rc<notmuch::Thread<'static, 'static>> {
-        &mut self.0
-    }
-}
-unsafe impl Send for RcThread{}
-
-
-#[derive(Clone, Debug)]
-pub struct ArcThread(Arc<notmuch::Thread<'static, 'static>>);
-
-impl BoxedType for ArcThread {
-    const NAME: &'static str = "enamel_ArcThread";
-    glib_boxed_type!();
-}
-glib_boxed_derive_traits!(ArcThread);
-
-impl ArcThread{
-    pub fn new(thread: notmuch::Thread<'static, 'static>) -> Self{
-        Self(Arc::new(thread))
-    }
-}
-
-impl Deref for ArcThread{
-    type Target = Arc<notmuch::Thread<'static, 'static>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for ArcThread{
-    fn deref_mut(&mut self) -> &mut Arc<notmuch::Thread<'static, 'static>> {
-        &mut self.0
-    }
-}
-unsafe impl Send for ArcThread{}
-unsafe impl Sync for ArcThread{}
-
-// easy shorthand
-pub type Thread = ArcThread;
-
-
+glib_boxed_derive_traits!(Thread);
 
 // TODO: get from settings
 const TAG_UNREAD: &str = "unread";
 const TAG_ATTACHMENT: &str = "attachment";
 
 
-pub trait ThreadExtra<'d, 'q>
-where
-    'd: 'q,
-    Self: Sized
-{
-    fn has_tag(&self, tag: &str) -> bool;
-    fn is_unread(&self) -> bool;
-    fn has_attachment(&self) -> bool;
+impl Thread{
+    pub fn new(thread: notmuch::Thread<'static, 'static>) -> Self{
+        Self{
+            thread: Some(Arc::new(thread)),
+            cache: ThreadCache::default()
+        }
+    }
 
-    // {
-    //     let tags:Vec<String> = thread.tags().collect();
-    //     tags.contains(&TAG_UNREAD.to_string())
+    pub fn tags(&self) -> &Vec<String> {
+        if let Some(thread) = &self.thread {
+            let mut cache = self.cache.clone();
+            cache.tags = thread.tags().collect()
+        }
+        &self.cache.tags
+    }
+
+    pub fn has_tag(&self, tag: &str) -> bool
+    {
+        self.tags().contains(&tag.to_string())
+    }
+
+    pub fn is_unread(&self) -> bool
+    {
+        match &self.thread {
+            Some(thread) => self.has_tag(TAG_UNREAD),
+            None => self.cache.is_unread
+        }
+
+    }
+
+    pub fn has_attachment(&self) -> bool
+    {
+        self.has_tag(TAG_ATTACHMENT)
+    }
+
+
+    pub fn id(self: &Self) -> &str {
+        self.thread.as_ref().unwrap().id()
+    }
+
+    pub fn total_messages(self: &Self) -> i32 {
+        self.thread.as_ref().unwrap().total_messages()
+    }
+
+    // pub fn total_files(self: &Self) -> i32 {
+    //     self.thread.as_ref().unwrap().total_files()
     // }
-    // fn has_attachment<'s, S>(thread: S) -> bool
-    // where
-    //     S: Into<Supercow<'s, notmuch::Thread<'o, O>>>,
-    // {
-    //     let tags:Vec<String> = notmuch::ThreadExt::tags(thread.into()).collect();
-    //     tags.contains(&TAG_ATTACHMENT.to_string())
-    // }  
-}
 
-impl<'d, 'q> ThreadExtra<'d, 'q> for notmuch::Thread<'d, 'q> where 'd: 'q {
-
-    fn has_tag(&self, tag: &str) -> bool
-    {
-        let tags:Vec<String> = self.tags().collect();
-        tags.contains(&tag.to_string())
+    pub fn toplevel_messages(self: &Self) -> notmuch::Messages<'_, notmuch::Thread<'static, 'static>> {
+        <notmuch::Thread<'static, 'static> as notmuch::ThreadExt<'static, 'static>>::toplevel_messages(self.thread.as_ref().unwrap().clone())
     }
 
-    fn is_unread(&self) -> bool
-    {
-        self.has_tag(TAG_UNREAD)
+    pub fn matched_messages(self: &Self) -> i32 {
+        self.thread.as_ref().unwrap().matched_messages()
     }
 
-    fn has_attachment(&self) -> bool
-    {
-        self.has_tag(TAG_ATTACHMENT)
-    }
-}
+    pub fn messages(self: &Self) -> Vec<Message> {
 
-impl<'d, 'q> ThreadExtra<'d, 'q> for Rc<notmuch::Thread<'d, 'q>> where 'd: 'q {
-
-    fn has_tag(&self, tag: &str) -> bool
-    {
-        let tags:Vec<String> = self.tags().collect();
-        tags.contains(&tag.to_string())
+        <notmuch::Thread<'static, 'static> as notmuch::ThreadExt<'static, 'static>>::messages(self.thread.as_ref().unwrap().clone()).map(Message::new).collect()
     }
 
-    fn is_unread(&self) -> bool
-    {
-        self.has_tag(TAG_UNREAD)
+
+    pub fn subject(self: &Self) -> Cow<'_, str> {
+        self.thread.as_ref().unwrap().subject()
     }
 
-    fn has_attachment(&self) -> bool
-    {
-        self.has_tag(TAG_ATTACHMENT)
+    pub fn authors(self: &Self) -> Vec<String> {
+        self.thread.as_ref().unwrap().authors()
     }
+
+    /// Get the date of the oldest message in 'thread' as a time_t value.
+    pub fn oldest_date(self: &Self) -> i64 {
+        self.thread.as_ref().unwrap().oldest_date()
+    }
+
+    /// Get the date of the newest message in 'thread' as a time_t value.
+    pub fn newest_date(self: &Self) -> i64 {
+        self.thread.as_ref().unwrap().newest_date()
+    }
+
 }
 
 // impl Iterator for Threads {

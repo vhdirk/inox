@@ -28,9 +28,6 @@ use gtk::subclass::cell_renderer::CellRendererImpl;
 use glib::{glib_wrapper, glib_object_wrapper, glib_object_subclass, glib_object_impl};
 
 
-
-use inox_core::database::ThreadExtra;
-
 use super::util::*;
 
 use inox_core::database::Thread;
@@ -771,7 +768,7 @@ mod imp {
     //     if (!thread_index->plugins->format_tags (tags, bg.to_string (), (flags & Gtk::CELL_RENDERER_SELECTED) != 0, tag_string)) {
     // # endif
 
-            let tags: Vec<String> = thread.tags().collect();
+            let tags: Vec<String> = thread.tags().to_vec();
             tag_string = concat_tags_color(&tags, true, settings.tags_length, &bg);
     // # ifndef DISABLE_PLUGINS
     //     }

@@ -17,12 +17,11 @@ interface Page{
 }
 
 
-interface Message{
+interface Thread {
 
-    # Mark(/*message_id:*/String,
-    #      /*marked:*/bool)#
-    # Hidden(/*message_id:*/String,
-    #        /*hidden:*/bool),
 
+}
+
+interface Message {
 
 }

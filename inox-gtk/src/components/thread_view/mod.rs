@@ -1,5 +1,5 @@
 use std::os::unix::prelude::*;
-
+use std::cell::RefCell;
 use std::os::unix::net::UnixStream;
 use std::os::unix::io::{FromRawFd};
 use async_std::os::unix::net::{UnixStream as AsyncUnixStream};
@@ -20,6 +20,7 @@ use gmime::{ParserExt, PartExt};
 
 use inox_core::database::Thread;
 use crate::app::Action;
+use crate::spawn;
 
 mod page_client;
 use page_client::PageClient;
@@ -34,7 +35,8 @@ pub struct ThreadView{
 
     webcontext: webkit2gtk::WebContext,
     page_client: PageClient,
-    theme: ThreadViewTheme
+    theme: ThreadViewTheme,
+    thread: RefCell<Option<Thread>>
 }
 
 impl ThreadView{
@@ -80,8 +82,9 @@ impl ThreadView{
             sender,
             webview,
             webcontext,
-            page_client,
-            theme: ThreadViewTheme::load()
+            page_client: page_client,
+            theme: ThreadViewTheme::load(),
+            thread: RefCell::new(None)
         }
 
     }
@@ -126,12 +129,12 @@ impl ThreadView{
 
     async fn ready_to_render(&mut self){
 
-        self.page_client.load(&self.theme);
+        self.page_client.load(&self.theme).await;
 
         /* render messages in case we were not ready when first requested */
-        self.page_client.clear_messages();
+        self.page_client.clear_messages().await;
 
-        self.render_messages();
+        // self.render_messages().await;
     }
 
     fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> AsyncUnixStream
@@ -162,7 +165,17 @@ impl ThreadView{
 
     pub fn load_thread(&self, thread: Thread){
 
+        info!("load_thread: {:?}", thread);
 
+        let mut client = self.page_client.clone();
+        let mut self_ = self.clone();
+
+        let future = async move {
+            client.clear_messages().await;
+            self_.render_messages(thread).await
+        };
+
+        spawn!(future);
 
     }
 
@@ -205,8 +218,79 @@ impl ThreadView{
         }
     }
 
+    async fn add_message(&mut self, message: &notmuch::Message<'_, notmuch::Thread<'_, '_>>) {
 
-    async fn render_messages(&mut self){
+        let mut client = self.page_client.clone();
+
+        client.add_message(message);
+    }
+
+
+    async fn render_messages(&mut self, thread: Thread){
+
+        debug!("render: html loaded, building messages..");
+
+
+        // for message in thread.messages() {
+        //     self.add_message(&message).await;
+        // }
+
+
+
+    // /* set message state vector */
+    // state.clear ();
+    // focused_message.clear ();
+
+    // if (mthread) {
+    //   for (auto &m : mthread->messages) {
+    //     add_message (m);
+    //   }
+
+    //   page_client->update_state ();
+    //   update_all_indent_states ();
+
+    //   /* focus oldest unread message */
+    //   if (!edit_mode) {
+    //     for (auto &m : mthread->messages_by_time ()) {
+    //       if (m->has_tag ("unread")) {
+    //         focused_message = m;
+    //         break;
+    //       }
+    //     }
+    //   }
+
+    //   if (!focused_message) {
+    //     LOG (debug) << "tv: no message focused, focusing newest message.";
+    //     focused_message = *max_element (
+    //         mthread->messages.begin (),
+    //         mthread->messages.end (),
+    //         [](refptr<Message> &a, refptr<Message> &b)
+    //           {
+    //             return ( a->time < b->time );
+    //           });
+    //   }
+
+    //   expand (focused_message);
+    //   focus_message (focused_message);
+
+    //   ready = true;
+    //   emit_ready ();
+
+    //   if (!edit_mode && !unread_setup) {
+    //     unread_setup = true;
+
+    //     if (unread_delay > 0) {
+    //       Glib::signal_timeout ().connect (
+    //           sigc::mem_fun (this, &ThreadView::unread_check), std::max (80., (unread_delay * 1000.) / 2));
+    //     } else {
+    //       unread_check ();
+    //     }
+    //   }
+    // } else {
+    //   LOG (debug) << "tv: no message thread.";
+    // }
+
+
 
     }
 

@@ -24,7 +24,7 @@ use crate::main_window::MainWindow;
 
 
 use inox_core::settings::Settings;
-use inox_core::database::thread::ArcThread;
+use inox_core::database::thread::Thread;
 
 
 // use crate::api::{Station, StationRequest};
@@ -41,7 +41,7 @@ pub enum Action {
     SelectTag(Option<String>),
     Search(String),
     Query(Arc<notmuch::Query<'static>>),
-    SelectThread(Option<ArcThread>)
+    SelectThread(Option<Thread>)
     // Reload,
     // ViewShowLibrary,
     // ViewShowPlayer,
@@ -275,7 +275,7 @@ impl InoxApplication {
         self_.window.borrow().as_ref().unwrap().set_query(query);
     }
 
-    fn open_thread(&self, thread: Option<ArcThread>) {
+    fn open_thread(&self, thread: Option<Thread>) {
         let self_ = InoxApplicationPrivate::from_instance(self);
         self_.window.borrow().as_ref().unwrap().open_thread(thread);
     }

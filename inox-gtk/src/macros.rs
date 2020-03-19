@@ -44,3 +44,10 @@ macro_rules! get_widget {
     };
 }
 
+#[macro_export]
+macro_rules! spawn {
+    ($future:expr) => {
+        let ctx = glib::MainContext::default();
+        ctx.spawn_local($future);
+    };
+}

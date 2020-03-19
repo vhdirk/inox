@@ -189,7 +189,9 @@ impl MainWindow {
         match thread {
             Some(thread) => {
                 self.update_titlebar(Some(&thread.subject()));
-                self_.thread_view.borrow().as_ref().unwrap().show_thread(thread)
+
+                let thread_view = self_.thread_view.borrow().as_ref().unwrap().clone();
+                thread_view.load_thread(thread);
             },
             None => {
                 self.update_titlebar(None);
