@@ -5,6 +5,7 @@ use std::fs::DirBuilder;
 use log::*;
 use pretty_env_logger;
 use dirs;
+use tokio;
 
 #[cfg(test)]
 
@@ -14,7 +15,6 @@ use gtk;
 
 use structopt::StructOpt;
 use structopt::clap::{App, Arg};
-
 mod macros;
 mod static_resource;
 mod constants;
@@ -72,7 +72,8 @@ fn default_config_path() -> PathBuf{
     default_config
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     init();
 
     let mut default_config = dirs::config_dir().unwrap();

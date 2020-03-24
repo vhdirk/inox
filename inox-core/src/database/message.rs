@@ -5,11 +5,10 @@ use std::borrow::Cow;
 use std::iter::Iterator;
 use std::path::PathBuf;
 use serde::{Serialize, Deserialize};
-use glib::{glib_boxed_type, glib_boxed_derive_traits};
+use glib::GBoxed;
 use glib::subclass::boxed::BoxedType;
 
 use notmuch;
-
 
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -31,7 +30,8 @@ impl Default for MessageCache {
 }
 
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, GBoxed)]
+#[gboxed(type_name = "inox_Message")]
 pub struct Message{
 
     #[serde(skip)]
@@ -39,13 +39,6 @@ pub struct Message{
 
     cache: MessageCache
 }
-
-impl BoxedType for Message {
-    const NAME: &'static str = "inox_Message";
-    glib_boxed_type!();
-}
-glib_boxed_derive_traits!(Message);
-
 
 impl Message{
     pub fn new(message: notmuch::Message<'static, notmuch::Thread<'static, 'static>>) -> Self{

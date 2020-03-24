@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::borrow::Cow;
 use std::iter::Iterator;
 use serde::{Serialize, Deserialize};
-use glib::{glib_boxed_type, glib_boxed_derive_traits};
+use glib::GBoxed;
 use glib::subclass::boxed::BoxedType;
 
 use notmuch;
@@ -34,7 +34,8 @@ impl Default for ThreadCache {
 
 
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, GBoxed)]
+#[gboxed(type_name = "inox_Thread")]
 pub struct Thread{
 
     #[serde(skip)]
@@ -42,12 +43,6 @@ pub struct Thread{
 
     cache: ThreadCache
 }
-
-impl BoxedType for Thread {
-    const NAME: &'static str = "inox_Thread";
-    glib_boxed_type!();
-}
-glib_boxed_derive_traits!(Thread);
 
 // TODO: get from settings
 const TAG_UNREAD: &str = "unread";

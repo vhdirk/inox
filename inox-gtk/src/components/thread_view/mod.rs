@@ -1,8 +1,7 @@
 use std::os::unix::prelude::*;
 use std::cell::RefCell;
-use std::os::unix::net::UnixStream;
 use std::os::unix::io::{FromRawFd};
-use async_std::os::unix::net::{UnixStream as AsyncUnixStream};
+use tokio::net::UnixStream;
 
 use log::*;
 
@@ -137,7 +136,7 @@ impl ThreadView{
         // self.render_messages().await;
     }
 
-    fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> AsyncUnixStream
+    fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> UnixStream
     {
         info!("initialize_web_extensions");
         let cur_exe = std::env::current_exe().unwrap();
@@ -148,8 +147,8 @@ impl ThreadView{
         ctx.set_web_extensions_directory(&extdir);
 
         let (local, remote) = UnixStream::pair().unwrap();
-        ctx.set_web_extensions_initialization_user_data(&remote.into_raw_fd().to_variant());
-        local.into()
+        ctx.set_web_extensions_initialization_user_data(&remote.as_raw_fd().to_variant());
+        local
     }
 
 
@@ -171,7 +170,10 @@ impl ThreadView{
         let mut self_ = self.clone();
 
         let future = async move {
+            debug!("clearing messages");
             client.clear_messages().await;
+
+            debug!("render messages");
             self_.render_messages(thread).await
         };
 

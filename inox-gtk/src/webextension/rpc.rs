@@ -84,8 +84,8 @@ where
         .dispatch
         .unwrap_or_else(move |e| error!("Connection broken: {}", e));
 
-    let ctx = glib::MainContext::ref_thread_default();
-    ctx.spawn_local(dispatch);
+    let ctx = glib::MainContext::default();
+    tokio::spawn(dispatch);
 
     Ok(client.client)
 }

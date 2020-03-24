@@ -1,9 +1,7 @@
 
 use std::sync::{Arc, Mutex};
-use std::os::unix::net::UnixStream;
 use std::os::unix::io::{RawFd, FromRawFd};
-use async_std::os::unix::net::{UnixStream as AsyncUnixStream};
-
+use futures::io::AsyncReadExt;
 use futures::future::{self, Ready};
 use futures::stream;
 
@@ -29,6 +27,8 @@ use webkit2gtk_webextension::{
     web_extension_init_with_data
 };
 
+use tokio;
+use tokio::net::UnixStream;
 use tokio_util::compat::*;
 
 use tarpc;
@@ -78,22 +78,30 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
     debug!("socket_addr: {:?}", socket_addr);
 
 
-    let stream: AsyncUnixStream = unsafe{ UnixStream::from_raw_fd(socket_addr) }.into();
-    let transport = Transport::from((stream.compat(), Bincode::default()));
+    let mut stream: UnixStream = unsafe{ UnixStream::from_raw_fd(socket_addr) }.into();
+    // let transport = Transport::from((stream.compat(), Bincode::default()));
 
     let webext = ThreadViewWebExt::new(extension.clone());
 
-    let channel = BaseChannel::new(server::Config::default(), transport);
 
-    // channel.respond_with(webex.serve()).execute();
-    // let server = handler_respond_with(
-    //     server::new(server::Config::default()).incoming(stream::once(future::ready(transport))),
-    //     webext.serve());
+    // let channel = BaseChannel::new(server::Config::default(), transport);
+
+//     // channel.respond_with(webex.serve()).execute();
+//     // let server = handler_respond_with(
+//     //     server::new(server::Config::default()).incoming(stream::once(future::ready(transport))),
+//     //     webext.serve());
 
     let ctx = glib::MainContext::default();
     // ctx.push_thread_default();
-    ctx.spawn_local(channel.respond_with(webext.serve()).execute());
+    // ctx.spawn_local(channel.respond_with(webext.serve()).execute());
     // ctx.pop_thread_default();
+
+
+    ctx.spawn_local(async move {
+        let mut response = Vec::new();
+        let result = stream.read_to_end(&mut response).await;
+        debug!("result {:?}, response: {:?}", result, response);
+    });
 }
 
 #[derive(Debug, Clone)]

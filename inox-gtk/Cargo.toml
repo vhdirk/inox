@@ -61,8 +61,9 @@ cairo-sys-rs = { git = "https://github.com/gtk-rs/cairo" }
 webkit2gtk = { git = "https://github.com/gtk-rs/webkit2gtk-rs", features=["v2_18"] }
 webkit2gtk-webextension = { git = "https://github.com/gtk-rs/webkit2gtk-webextension-rs", features=["v2_18"] }
 
-tarpc = { version = "0.20.0", path="../../tarpc/tarpc", features = ["tokio1", "serde1", "serde-transport", "tcp"] }
-tokio = { version = "0.2", features = ["time"] }
+# path="../../tarpc/tarpc",
+tarpc = { version = "0.20.0", features = ["tokio1", "serde1", "serde-transport", "tcp"] }
+tokio = { version = "0.2", features = ["macros", "time", "uds"] }
 tokio-serde = { version = "0.6", features = ["bincode", "json"] }
 tokio-util = { version = "0.3", features = ["compat"] }
 humantime = "1.0"

@@ -3,7 +3,7 @@ use std::rc::Rc;
 use futures::Future;
 use futures::future::{self, Ready, TryFutureExt};
 
-use async_std::os::unix::net::{UnixStream as AsyncUnixStream};
+use tokio::net::UnixStream;
 
 use log::*;
 
@@ -33,9 +33,9 @@ pub struct PageClient{
 
 impl PageClient{
 
-    pub fn new(stream:  AsyncUnixStream) -> Self
+    pub fn new(stream: UnixStream) -> Self
     {
-        let transport = Transport::from((stream.compat(), Bincode::default()));
+        let transport = Transport::from((stream, Bincode::default()));
         let client = service::PageClient::new(client::Config::default(), transport);
 
         Self{
