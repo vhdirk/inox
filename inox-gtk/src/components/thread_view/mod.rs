@@ -1,7 +1,7 @@
 use std::os::unix::prelude::*;
 use std::cell::RefCell;
 use std::os::unix::io::{FromRawFd};
-use tokio::net::UnixStream;
+use async_std::os::unix::net::UnixStream;
 
 use log::*;
 

@@ -61,14 +61,9 @@ cairo-sys-rs = { git = "https://github.com/gtk-rs/cairo" }
 webkit2gtk = { git = "https://github.com/gtk-rs/webkit2gtk-rs", features=["v2_18"] }
 webkit2gtk-webextension = { git = "https://github.com/gtk-rs/webkit2gtk-webextension-rs", features=["v2_18"] }
 
-# path="../../tarpc/tarpc",
-tarpc = { version = "0.20.0", features = ["tokio1", "serde1", "serde-transport", "tcp"] }
-tokio = { version = "0.2", features = ["macros", "time", "uds"] }
-tokio-serde = { version = "0.6", features = ["bincode", "json"] }
-tokio-util = { version = "0.3", features = ["compat"] }
-humantime = "1.0"
-fnv = "1.0"
-pin-project = "0.4"
+capnp = "0.12"
+capnp-rpc = "0.12"
+capnp-futures = "0.12"
 
 rand = "0.7"
 crossbeam-channel = "0.2.1"
@@ -90,3 +85,6 @@ default = ["gtk/v3_16"]
 [dev-dependencies]
 cargo-expand = "*"
 pretty_assertions = "0.5.1"
+
+[build-dependencies]
+capnpc = "0.12"

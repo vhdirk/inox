@@ -1,4 +1,5 @@
 use std::process::Command;
+use capnpc;
 
 fn main() {
     // Rerun the build script when files in the resources folder are changed.
@@ -16,4 +17,9 @@ fn main() {
         .current_dir("resources")
         .status()
         .unwrap();
+
+    capnpc::CompilerCommand::new()
+        .file("resources/webext.capnp")
+        .run()
+        .expect("compiling schema");
 }

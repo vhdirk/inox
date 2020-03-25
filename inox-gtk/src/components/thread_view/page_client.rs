@@ -1,33 +1,31 @@
 use std::io;
 use std::rc::Rc;
 use futures::Future;
-use futures::future::{self, Ready, TryFutureExt};
-
-use tokio::net::UnixStream;
+use futures::future::{self, Ready, FutureExt, TryFutureExt};
+use futures::io::AsyncReadExt;
+use async_std::os::unix::net::UnixStream;
 
 use log::*;
 
+use capnp::Error;
+use capnp::primitive_list;
+use capnp::capability::Promise;
 
-use tarpc;
-use tarpc::{client, context};
-use tarpc::client::channel::RequestDispatch;
-use tarpc::rpc::{Response, ClientMessage};
-use tarpc::serde_transport::Transport;
-
-use tokio_serde::formats::{Bincode};
-use tokio_util::compat::*;
+use capnp_rpc::{RpcSystem, rpc_twoparty_capnp};
+use capnp_rpc::twoparty::VatNetwork;
 
 use notmuch;
-use crate::webextension::service;
 
+use crate::webext_capnp::page;
+// use crate::webextension::service;
+// use crate::webextension::rpc::spawn_client;
 
 use super::theme::ThreadViewTheme;
-use crate::webextension::rpc::spawn_client;
 
 
 #[derive(Clone)]
 pub struct PageClient{
-    client: service::PageClient
+    client: page::Client
 }
 
 
@@ -35,11 +33,26 @@ impl PageClient{
 
     pub fn new(stream: UnixStream) -> Self
     {
-        let transport = Transport::from((stream, Bincode::default()));
-        let client = service::PageClient::new(client::Config::default(), transport);
+        let (read_half, write_half) = stream.split();
+
+        let network =
+            Box::new(VatNetwork::new(read_half, write_half,
+                                               rpc_twoparty_capnp::Side::Client,
+                                               Default::default()));
+
+        let mut rpc_system = RpcSystem::new(network, None);
+        let client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+
+        let ctx = glib::MainContext::default();
+        ctx.push_thread_default();
+        ctx.spawn_local(rpc_system.then(move |_result| {
+            // TODO: do something with this result...
+            future::ready(())
+        }));
+        ctx.pop_thread_default();
 
         Self{
-            client: spawn_client(client).unwrap()
+            client
         }
     }
 
@@ -47,16 +60,15 @@ impl PageClient{
         /* load style sheet */
         debug!("pc: sending page..");
 
-        self.client.load(context::current(),
-            theme.html.to_owned(),
-            theme.css.to_owned(),
-            theme.part_css.to_owned(),
-            vec![],
-            true,
-            true,
-            false,
-            "".to_string()).await;
-        // //self.client.
+        let mut request = self.client.load_request();
+        request.get().set_html(&theme.html);
+        request.get().set_css(&theme.css);
+
+        request.send().promise.then(move |_result| {
+            // TODO: do something with this result...
+
+            future::ready(())
+        }).await
 
 // //     s.set_css  (thread_view->theme.thread_view_css.c_str ());
 // //     s.set_part_css (thread_view->theme.part_css.c_str ());
@@ -75,7 +87,18 @@ impl PageClient{
 
 
     pub async fn clear_messages(&mut self) -> () {
-        self.client.clear_messages(context::current()).await.unwrap()
+        // self.client.clear_messages(context::current()).await.unwrap()
+
+
+        let mut request = self.client.clear_messages_request();
+        // request.get().set_html(&theme.html);
+        // request.get().set_css(&theme.css);
+
+        request.send().promise.then(move |_result| {
+            // TODO: do something with this result...
+
+            future::ready(())
+        }).await
     }
 
     pub async fn add_message(&mut self, message: &notmuch::Message<'_, notmuch::Thread<'_, '_>>) -> () {

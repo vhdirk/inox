@@ -5,13 +5,8 @@ use std::fs::DirBuilder;
 use log::*;
 use pretty_env_logger;
 use dirs;
-use tokio;
-
-#[cfg(test)]
-
 
 use gtk;
-
 
 use structopt::StructOpt;
 use structopt::clap::{App, Arg};
@@ -31,6 +26,9 @@ use inox_core::settings::Settings;
 
 use crate::app::InoxApplication;
 
+pub mod webext_capnp {
+  include!(concat!(env!("OUT_DIR"), "/resources/webext_capnp.rs"));
+}
 
 /// Init Gtk and logger.
 fn init() {
@@ -72,8 +70,7 @@ fn default_config_path() -> PathBuf{
     default_config
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     init();
 
     let mut default_config = dirs::config_dir().unwrap();

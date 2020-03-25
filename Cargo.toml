@@ -13,6 +13,5 @@ debug = true
 opt-level = 3
 debug = false
 
-[patch.crates-io]
-tarpc = { path="../tarpc/tarpc" }
+# [patch.crates-io]
 # notmuch-rs = { path="../notmuch-rs" }
