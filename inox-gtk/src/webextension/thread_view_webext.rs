@@ -1,46 +1,36 @@
-
-use std::sync::{Arc, Mutex};
-use std::os::unix::io::{RawFd, FromRawFd};
+use futures::future::{self, FutureExt, Ready};
 use futures::io::AsyncReadExt;
-use futures::future::{self, Ready, FutureExt};
 use futures::stream;
-use async_std::os::unix::net::UnixStream;
+use std::os::unix::io::{FromRawFd, RawFd};
+use std::os::unix::prelude::*;
+use std::sync::{Arc, Mutex};
 
 use log::*;
-use env_logger;
+use pretty_env_logger;
 
 use glib::Cast;
 
-use glib::variant::Variant;
 use gio;
 use gio::prelude::*;
+use glib::variant::Variant;
 
 use gtk::IconThemeExt;
 use webkit2gtk_webextension::{
-    DOMDocument,
-    DOMDocumentExt,
-    DOMElementExt,
-    WebExtension,
-    WebExtensionExt,
-    WebPage,
-    WebPageExt,
-    DOMNodeExt,
-    web_extension_init_with_data
+    web_extension_init_with_data, DOMDocument, DOMDocumentExt, DOMElementExt, DOMNodeExt,
+    WebExtension, WebExtensionExt, WebPage, WebPageExt,
 };
 
-use capnp::Error;
-use capnp::primitive_list;
 use capnp::capability::Promise;
+use capnp::primitive_list;
+use capnp::Error;
 
-use capnp_rpc::{RpcSystem, rpc_twoparty_capnp, pry};
 use capnp_rpc::twoparty::VatNetwork;
+use capnp_rpc::{pry, rpc_twoparty_capnp, RpcSystem};
 
+use crate::rpc::{RawFdWrap, SocketConnectionUtil};
 use crate::webext_capnp::page;
-// use crate::rpc::handler_respond_with;
-// use crate::service::{Page, Message};
 
 web_extension_init_with_data!();
-
 
 /// Init Gtk and logger.
 fn init() {
@@ -49,7 +39,7 @@ fn init() {
     static START: Once = Once::new();
 
     START.call_once(|| {
-        env_logger::init();
+        pretty_env_logger::init();
 
         // we're being called in an environment that has gtk already
         // initialized, but gtk-rs does not know that.
@@ -62,29 +52,27 @@ fn init() {
 
 const ATTACHMENT_ICON_WIDTH: i32 = 35;
 
-
-
 pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Variant>) {
     init();
 
     debug!("user data: {:?}", user_data);
-    let user_string: Option<RawFd> = user_data.and_then(Variant::get::<RawFd>);
+    let socket_addr: RawFd = user_data.and_then(Variant::get::<RawFd>).unwrap();
+    let socket = unsafe { gio::Socket::new_from_fd(RawFdWrap::from_raw_fd(socket_addr)) }.unwrap();
 
-    let socket_addr = user_string.unwrap();
+    debug!("socket connected?: {:?}", socket.is_connected());
 
-    debug!("socket_addr: {:?}", socket_addr);
+    let connection = socket.connection_factory_create_connection().unwrap();
+    let ostream = connection.get_async_output_stream().unwrap();
+    let istream = connection.get_async_input_stream().unwrap();
 
+    let network = Box::new(VatNetwork::new(
+        istream,
+        ostream,
+        rpc_twoparty_capnp::Side::Server,
+        Default::default(),
+    ));
 
-    let mut stream: UnixStream = unsafe{ UnixStream::from_raw_fd(socket_addr) }.into();
-
-    let (read_half, write_half) = stream.split();
-
-    let network =
-        Box::new(VatNetwork::new(read_half, write_half,
-                                 rpc_twoparty_capnp::Side::Server,
-                                 Default::default()));
-
-    let webext = ThreadViewWebExt::new(extension.clone());
+    let webext = ThreadViewWebExt::new(socket, connection, extension.clone());
     let page_srv = page::ToClient::new(webext).into_client::<capnp_rpc::Server>();
     let rpc_system = RpcSystem::new(network, Some(page_srv.clone().client));
 
@@ -99,43 +87,47 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
 }
 
 #[derive(Debug, Clone)]
-pub struct ThreadViewWebExt{
+pub struct ThreadViewWebExt {
+    socket: gio::Socket,
+    connection: gio::SocketConnection,
     extension: WebExtension,
     part_css: Option<String>,
     allowed_uris: Vec<String>,
-    indent_messages: bool
+    indent_messages: bool,
 }
 
-impl ThreadViewWebExt{
-
-    pub fn new(extension: webkit2gtk_webextension::WebExtension) -> Self{
-        let webext = ThreadViewWebExt{
-            extension: extension,
+impl ThreadViewWebExt {
+    pub fn new(
+        socket: gio::Socket,
+        connection: gio::SocketConnection,
+        extension: webkit2gtk_webextension::WebExtension,
+    ) -> Self {
+        let webext = ThreadViewWebExt {
+            socket,
+            connection,
+            extension,
             part_css: None,
             indent_messages: true,
-            allowed_uris: vec![]
+            allowed_uris: vec![],
         };
         webext
     }
 
-
-    pub fn on_page_created(&self, _page: &webkit2gtk_webextension::WebPage){
-
+    pub fn on_page_created(&self, _page: &webkit2gtk_webextension::WebPage) {
         /* load attachment icon */
         let theme = gtk::IconTheme::get_default().unwrap();
         let _attachment_icon = theme.load_icon(
             "mail-attachment-symbolic",
             ATTACHMENT_ICON_WIDTH,
-            gtk::IconLookupFlags::USE_BUILTIN);
+            gtk::IconLookupFlags::USE_BUILTIN,
+        );
 
         /* load marked icon */
-        let _marked_icon = theme.load_icon (
+        let _marked_icon = theme.load_icon(
             "object-select-symbolic",
             ATTACHMENT_ICON_WIDTH,
-            gtk::IconLookupFlags::USE_BUILTIN);
-
-
-
+            gtk::IconLookupFlags::USE_BUILTIN,
+        );
 
         // race condition with rpc system here
         // info!("WEEEEEE {:?}{:?}{:?}", self, page, page.get_id());
@@ -173,21 +165,19 @@ impl ThreadViewWebExt{
 }
 
 impl page::Server for ThreadViewWebExt {
-
-    fn allow_remote_images(&mut self,
-            _params: page::AllowRemoteImagesParams,
-            _results: page::AllowRemoteImagesResults)
-            -> Promise<(), Error>
-    {
+    fn allow_remote_images(
+        &mut self,
+        _params: page::AllowRemoteImagesParams,
+        _results: page::AllowRemoteImagesResults,
+    ) -> Promise<(), Error> {
         Promise::ok(())
     }
 
-    fn load(&mut self,
-            params: page::LoadParams,
-            _results: page::LoadResults)
-            -> Promise<(), Error>
-    {
-
+    fn load(
+        &mut self,
+        params: page::LoadParams,
+        _results: page::LoadResults,
+    ) -> Promise<(), Error> {
         info!("loading page");
         // let page = self.page.as_ref().unwrap();
         // TODO:
@@ -200,7 +190,9 @@ impl page::Server for ThreadViewWebExt {
         let html_content = pry!(pry!(params.get()).get_html());
         html_element.set_outer_html(html_content);
 
-        let dom_html_elem = html_element.downcast::<webkit2gtk_webextension::DOMHTMLElement>().unwrap();
+        let dom_html_elem = html_element
+            .downcast::<webkit2gtk_webextension::DOMHTMLElement>()
+            .unwrap();
         document.set_body(&dom_html_elem);
 
         // load css style
@@ -208,7 +200,6 @@ impl page::Server for ThreadViewWebExt {
         let style_element = document.create_element("STYLE").unwrap();
         let css_content = pry!(pry!(params.get()).get_css());
         let style_text = document.create_text_node(css_content).unwrap();
-
         style_element.append_child(&style_text);
 
         let header = document.get_head().unwrap();
@@ -216,124 +207,50 @@ impl page::Server for ThreadViewWebExt {
 
         info!("loaded page");
 
-        //   /* store part / iframe css for later */
-        //   part_css = s.part_css ();
+        // store part / iframe css for later
+        let part_css = pry!(pry!(params.get()).get_part_css());
+        self.part_css = Some(part_css.to_string());
 
         // add allowed uris
         let allowed_uris_r = pry!(pry!(params.get()).get_allowed_uris());
-        let allowed_uris = allowed_uris_r.iter().filter_map(|x| x.ok()).map(ToOwned::to_owned);
-        self.allowed_uris = self.allowed_uris.iter().cloned().chain(allowed_uris).collect();
+        let allowed_uris = allowed_uris_r
+            .iter()
+            .filter_map(|x| x.ok())
+            .map(ToOwned::to_owned);
+        self.allowed_uris = self
+            .allowed_uris
+            .iter()
+            .cloned()
+            .chain(allowed_uris)
+            .collect();
 
         Promise::ok(())
     }
 
+    fn clear_messages(
+        &mut self,
+        params: page::ClearMessagesParams,
+        _results: page::ClearMessagesResults,
+    ) -> Promise<(), Error> {
+        debug!("clearing all messages.");
 
+        let page = self.extension.get_page(1).unwrap();
+        let document: DOMDocument = page.get_dom_document().unwrap();
 
+        let container = document.get_element_by_id("message_container").unwrap();
+        container.set_inner_html("<span id=\"placeholder\"></span>");
+
+        //   /* reset */
+        //   focused_message = "";
+        //   focused_element = -1;
+        //   messages.clear ();
+        //   state = AstroidMessages::State();
+        //   allow_remote_resources = false;
+        //   indent_messages = false;
+
+        Promise::ok(())
+    }
 }
-
-
-// impl Page for ThreadViewWebExt
-// {
-//     type AllowRemoteImagesFut = Ready<()>;
-
-//     fn allow_remote_images(self, _: context::Context, _name: String)
-//             -> Self::AllowRemoteImagesFut
-//     {
-//         future::ready(())
-//     }
-
-//     type LoadFut = Ready<()>;
-
-//     fn load(mut self, _: context::Context,
-//             html_content: String,
-//             css_content: String,
-//             part_css: Option<String>,
-//             allowed_uris: Vec<String>,
-//             _use_stdout: bool,
-//             _use_syslog: bool,
-//             _disable_log: bool,
-//             _log_level: String)
-//             -> Self::LoadFut
-//     {
-
-//         info!("loading page");
-//         // let page = self.page.as_ref().unwrap();
-//         // TODO:
-//         let extension = self.extension.try_lock().unwrap();
-//         let page = extension.get_page(1).unwrap();
-//         let document: DOMDocument = page.get_dom_document().unwrap();
-
-//         // load html
-//         let html_element = document.create_element("HTML").unwrap();
-//         html_element.set_outer_html(&html_content);
-
-//         let dom_html_elem = html_element.downcast::<webkit2gtk_webextension::DOMHTMLElement>().unwrap();
-//         document.set_body(&dom_html_elem);
-
-//         // load css style
-//         info!("loading stylesheet");
-//         let style_element = document.create_element("STYLE").unwrap();
-//         let style_text = document.create_text_node(&css_content).unwrap();
-
-//         style_element.append_child(&style_text);
-
-//         let header = document.get_head().unwrap();
-//         header.append_child(&style_element);
-
-//         info!("loaded page");
-
-//         // store part / iframe css for later
-//         self.part_css = part_css;
-
-//         // add allowed uris
-//         self.allowed_uris = allowed_uris;
-
-//         future::ready(())
-//     }
-
-//     type ClearMessagesFut = Ready<()>;
-//     fn clear_messages(self, _: context::Context) -> Self::ClearMessagesFut {
-
-//         debug!("clearing all messages.");
-
-//         let extension = self.extension.try_lock().unwrap();
-//         let page = extension.get_page(1).unwrap();
-//         let document: DOMDocument = page.get_dom_document().unwrap();
-
-//         let container = document.get_element_by_id("message_container").unwrap();
-//         container.set_inner_html("<span id=\"placeholder\"></span>");
-
-//         //   /* reset */
-//         //   focused_message = "";
-//         //   focused_element = -1;
-//         //   messages.clear ();
-//         //   state = AstroidMessages::State();
-//         //   allow_remote_resources = false;
-//         //   indent_messages = false;
-
-//         future::ready(())
-//     }
-
-
-//     type AddMessageFut = Ready<()>;
-//     fn add_message(self, _: context::Context, messages: Message) -> Self::AddMessageFut {
-//         debug!("add_message");
-
-//         future::ready(())
-
-//     }
-
-
-//     type AddMessagesFut = Ready<()>;
-//     fn add_messages(self, _: context::Context, messages: Vec<Message>) -> Self::AddMessagesFut {
-//         debug!("add_messages");
-
-//         future::ready(())
-
-//     }
-// }
-
-
 
 fn scroll_by(page: &WebPage, pixels: i64) {
     let document = page.get_dom_document().unwrap();
@@ -360,5 +277,3 @@ fn scroll_top(page: &WebPage) {
     let body = document.get_body().unwrap();
     body.set_scroll_top(0);
 }
-
-

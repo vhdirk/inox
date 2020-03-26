@@ -1,62 +1,69 @@
+use async_std::os::unix::net::UnixStream;
+use futures::future::{self, FutureExt, Ready, TryFutureExt};
+use futures::io::AsyncReadExt;
+use futures::Future;
 use std::io;
 use std::rc::Rc;
-use futures::Future;
-use futures::future::{self, Ready, FutureExt, TryFutureExt};
-use futures::io::AsyncReadExt;
-use async_std::os::unix::net::UnixStream;
+
+use gio::prelude::*;
+use gio::{IOStreamExt, SocketExt};
 
 use log::*;
 
-use capnp::Error;
-use capnp::primitive_list;
 use capnp::capability::Promise;
+use capnp::primitive_list;
+use capnp::Error;
 
-use capnp_rpc::{RpcSystem, rpc_twoparty_capnp};
 use capnp_rpc::twoparty::VatNetwork;
+use capnp_rpc::{rpc_twoparty_capnp, RpcSystem};
 
 use notmuch;
 
 use crate::webext_capnp::page;
-// use crate::webextension::service;
-// use crate::webextension::rpc::spawn_client;
+use crate::webextension::rpc::SocketConnectionUtil;
 
 use super::theme::ThreadViewTheme;
 
-
 #[derive(Clone)]
-pub struct PageClient{
-    client: page::Client
+pub struct PageClient {
+    socket: gio::Socket,
+    connection: gio::SocketConnection,
+    client: page::Client,
 }
 
+impl PageClient {
+    pub fn new(socket: gio::Socket) -> Self {
+        let connection = socket.connection_factory_create_connection().unwrap();
+        let ostream = connection.get_async_output_stream().unwrap();
+        let istream = connection.get_async_input_stream().unwrap();
 
-impl PageClient{
-
-    pub fn new(stream: UnixStream) -> Self
-    {
-        let (read_half, write_half) = stream.split();
-
-        let network =
-            Box::new(VatNetwork::new(read_half, write_half,
-                                               rpc_twoparty_capnp::Side::Client,
-                                               Default::default()));
+        let network = Box::new(VatNetwork::new(
+            istream,
+            ostream,
+            rpc_twoparty_capnp::Side::Client,
+            Default::default(),
+        ));
 
         let mut rpc_system = RpcSystem::new(network, None);
         let client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
         let ctx = glib::MainContext::default();
         ctx.push_thread_default();
-        ctx.spawn_local(rpc_system.then(move |_result| {
+        ctx.spawn_local(rpc_system.then(move |result| {
+            debug!("rpc system result {:?}", result);
             // TODO: do something with this result...
             future::ready(())
         }));
         ctx.pop_thread_default();
 
-        Self{
-            client
+        Self {
+            socket,
+            connection,
+            client,
         }
     }
 
-    pub async fn load(&mut self, theme: &ThreadViewTheme) -> (){
+    pub async fn load(&mut self, theme: &ThreadViewTheme) -> () {
         /* load style sheet */
         debug!("pc: sending page..");
 
@@ -64,219 +71,218 @@ impl PageClient{
         request.get().set_html(&theme.html);
         request.get().set_css(&theme.css);
 
-        request.send().promise.then(move |_result| {
-            // TODO: do something with this result...
+        request
+            .send()
+            .promise
+            .then(move |_result| {
+                // TODO: do something with this result...
 
-            future::ready(())
-        }).await
+                future::ready(())
+            })
+            .await
 
-// //     s.set_css  (thread_view->theme.thread_view_css.c_str ());
-// //     s.set_part_css (thread_view->theme.part_css.c_str ());
-// //     s.set_html (thread_view->theme.thread_view_html.c_str ());
+        // //     s.set_css  (thread_view->theme.thread_view_css.c_str ());
+        // //     s.set_part_css (thread_view->theme.part_css.c_str ());
+        // //     s.set_html (thread_view->theme.thread_view_html.c_str ());
 
-// //     s.set_use_stdout (astroid->log_stdout);
-// //     s.set_use_syslog (astroid->log_syslog);
-// //     s.set_disable_log (astroid->disable_log);
-// //     s.set_log_level (astroid->log_level);
-
+        // //     s.set_use_stdout (astroid->log_stdout);
+        // //     s.set_use_syslog (astroid->log_syslog);
+        // //     s.set_disable_log (astroid->disable_log);
+        // //     s.set_log_level (astroid->log_level);
     }
 
     pub fn is_ready(&self) -> bool {
         return true;
     }
 
-
     pub async fn clear_messages(&mut self) -> () {
-        // self.client.clear_messages(context::current()).await.unwrap()
-
+        debug!("pc: clear messages..");
 
         let mut request = self.client.clear_messages_request();
-        // request.get().set_html(&theme.html);
-        // request.get().set_css(&theme.css);
+        request
+            .send()
+            .promise
+            .then(move |_result| {
+                // TODO: do something with this result...
 
-        request.send().promise.then(move |_result| {
-            // TODO: do something with this result...
-
-            future::ready(())
-        }).await
+                future::ready(())
+            })
+            .await
     }
 
-    pub async fn add_message(&mut self, message: &notmuch::Message<'_, notmuch::Thread<'_, '_>>) -> () {
+    pub async fn add_message(
+        &mut self,
+        message: &notmuch::Message<'_, notmuch::Thread<'_, '_>>,
+    ) -> () {
         // self.client.add_message(context::current(), self.serialize_message(message)).await.unwrap()
     }
 
     // TODO: I think we can do this elegantly with serde
-   // fn serialize_message(&self, message: &notmuch::Message<'_, notmuch::Thread<'_, '_>>) -> service::Message {
+    // fn serialize_message(&self, message: &notmuch::Message<'_, notmuch::Thread<'_, '_>>) -> service::Message {
 
+    //           msg.set_mid (m->safe_mid());
 
+    //     Address sender (m->sender);
+    //     msg.mutable_sender()->set_name (sender.fail_safe_name ());
+    //     msg.mutable_sender()->set_email (sender.email ());
+    //     msg.mutable_sender ()->set_full_address (sender.full_address ());
 
+    //     for (Address &recipient: AddressList(m->to()).addresses) {
+    //       AstroidMessages::Address * a = msg.mutable_to()->add_addresses();
+    //       a->set_name (recipient.fail_safe_name ());
+    //       a->set_email (recipient.email ());
+    //       a->set_full_address (recipient.full_address ());
+    //     }
 
-//           msg.set_mid (m->safe_mid());
+    //     for (Address &recipient: AddressList(m->cc()).addresses) {
+    //       AstroidMessages::Address * a = msg.mutable_cc()->add_addresses();
+    //       a->set_name (recipient.fail_safe_name ());
+    //       a->set_email (recipient.email ());
+    //       a->set_full_address (recipient.full_address ());
+    //     }
 
-//     Address sender (m->sender);
-//     msg.mutable_sender()->set_name (sender.fail_safe_name ());
-//     msg.mutable_sender()->set_email (sender.email ());
-//     msg.mutable_sender ()->set_full_address (sender.full_address ());
+    //     for (Address &recipient: AddressList(m->bcc()).addresses) {
+    //       AstroidMessages::Address * a = msg.mutable_bcc()->add_addresses();
+    //       a->set_name (recipient.fail_safe_name ());
+    //       a->set_email (recipient.email ());
+    //       a->set_full_address (recipient.full_address ());
+    //     }
 
-//     for (Address &recipient: AddressList(m->to()).addresses) {
-//       AstroidMessages::Address * a = msg.mutable_to()->add_addresses();
-//       a->set_name (recipient.fail_safe_name ());
-//       a->set_email (recipient.email ());
-//       a->set_full_address (recipient.full_address ());
-//     }
+    //     msg.set_date_pretty (m->pretty_date ());
+    //     msg.set_date_verbose (m->pretty_verbose_date (true));
 
-//     for (Address &recipient: AddressList(m->cc()).addresses) {
-//       AstroidMessages::Address * a = msg.mutable_cc()->add_addresses();
-//       a->set_name (recipient.fail_safe_name ());
-//       a->set_email (recipient.email ());
-//       a->set_full_address (recipient.full_address ());
-//     }
+    //     msg.set_subject (m->subject);
 
-//     for (Address &recipient: AddressList(m->bcc()).addresses) {
-//       AstroidMessages::Address * a = msg.mutable_bcc()->add_addresses();
-//       a->set_name (recipient.fail_safe_name ());
-//       a->set_email (recipient.email ());
-//       a->set_full_address (recipient.full_address ());
-//     }
+    //     msg.set_patch (m->is_patch ());
 
-//     msg.set_date_pretty (m->pretty_date ());
-//     msg.set_date_verbose (m->pretty_verbose_date (true));
+    //     msg.set_missing_content (m->missing_content);
 
-//     msg.set_subject (m->subject);
+    //     /* tags */
+    //     {
+    //       unsigned char cv[] = { 0xff, 0xff, 0xff };
 
-//     msg.set_patch (m->is_patch ());
+    //       ustring tags_s;
 
-//     msg.set_missing_content (m->missing_content);
+    // # ifndef DISABLE_PLUGINS
+    //       if (!thread_view->plugins->format_tags (m->tags, "#ffffff", false, tags_s)) {
+    // #  endif
 
-//     /* tags */
-//     {
-//       unsigned char cv[] = { 0xff, 0xff, 0xff };
+    //         tags_s = VectorUtils::concat_tags_color (m->tags, false, 0, cv);
 
-//       ustring tags_s;
+    // # ifndef DISABLE_PLUGINS
+    //       }
+    // # endif
 
-// # ifndef DISABLE_PLUGINS
-//       if (!thread_view->plugins->format_tags (m->tags, "#ffffff", false, tags_s)) {
-// #  endif
+    //       msg.set_tag_string (tags_s);
 
-//         tags_s = VectorUtils::concat_tags_color (m->tags, false, 0, cv);
+    //       for (ustring &tag : m->tags) {
+    //         msg.add_tags (tag);
+    //       }
+    //     }
 
-// # ifndef DISABLE_PLUGINS
-//       }
-// # endif
+    //     /* avatar */
+    //     {
+    //       ustring uri = "";
+    //       auto se = Address(m->sender);
+    // # ifdef DISABLE_PLUGINS
+    //       if (false) {
+    // # else
+    //       if (thread_view->plugins->get_avatar_uri (se.email (), Gravatar::DefaultStr[Gravatar::Default::RETRO], 48, m, uri)) {
+    // # endif
+    //         ; // all fine, use plugins avatar
+    //       } else {
+    //         if (enable_gravatar) {
+    //           uri = Gravatar::get_image_uri (se.email (),Gravatar::Default::RETRO , 48);
+    //         }
+    //       }
 
-//       msg.set_tag_string (tags_s);
+    //       msg.set_gravatar (uri);
+    //     }
 
-//       for (ustring &tag : m->tags) {
-//         msg.add_tags (tag);
-//       }
-//     }
+    //     /* set preview */
+    //     {
+    //       ustring bp = m->plain_text (false);
+    //       if (static_cast<int>(bp.size()) > MAX_PREVIEW_LEN)
+    //         bp = bp.substr(0, MAX_PREVIEW_LEN - 3) + "...";
 
-//     /* avatar */
-//     {
-//       ustring uri = "";
-//       auto se = Address(m->sender);
-// # ifdef DISABLE_PLUGINS
-//       if (false) {
-// # else
-//       if (thread_view->plugins->get_avatar_uri (se.email (), Gravatar::DefaultStr[Gravatar::Default::RETRO], 48, m, uri)) {
-// # endif
-//         ; // all fine, use plugins avatar
-//       } else {
-//         if (enable_gravatar) {
-//           uri = Gravatar::get_image_uri (se.email (),Gravatar::Default::RETRO , 48);
-//         }
-//       }
+    //       while (true) {
+    //         size_t i = bp.find ("<br>");
 
-//       msg.set_gravatar (uri);
-//     }
+    //         if (i == ustring::npos) break;
 
-//     /* set preview */
-//     {
-//       ustring bp = m->plain_text (false);
-//       if (static_cast<int>(bp.size()) > MAX_PREVIEW_LEN)
-//         bp = bp.substr(0, MAX_PREVIEW_LEN - 3) + "...";
+    //         bp.erase (i, 4);
+    //       }
 
-//       while (true) {
-//         size_t i = bp.find ("<br>");
+    //       msg.set_preview (Glib::Markup::escape_text (bp));
+    //     }
 
-//         if (i == ustring::npos) break;
+    //     if (astroid->config().get<std::string> ("thread_view.preferred_type") == "plain" &&
+    //         astroid->config().get<bool> ("thread_view.preferred_html_only")) {
+    //       /* check if we have a preferred part - and open first viewable if not */
+    //       bool found_preferred = false;
+    //       for (auto &c : m->all_parts ()) {
+    //         if (c->preferred) {
+    //           found_preferred = true;
+    //           break;
+    //         }
+    //       }
 
-//         bp.erase (i, 4);
-//       }
+    //       /* take first viewable */
+    //       if (!found_preferred) {
+    //         for (auto &c : m->all_parts ()) {
+    //           if (c->viewable) {
+    //             c->preferred = true;
+    //             break;
+    //           }
+    //         }
+    //       }
+    //     }
 
-//       msg.set_preview (Glib::Markup::escape_text (bp));
-//     }
+    //     /* build structure */
+    //     if (!m->missing_content) {
+    //       msg.set_allocated_root (build_mime_tree (m, m->root, true, false, keep_state));
+    //     }
 
-//     if (astroid->config().get<std::string> ("thread_view.preferred_type") == "plain" &&
-//         astroid->config().get<bool> ("thread_view.preferred_html_only")) {
-//       /* check if we have a preferred part - and open first viewable if not */
-//       bool found_preferred = false;
-//       for (auto &c : m->all_parts ()) {
-//         if (c->preferred) {
-//           found_preferred = true;
-//           break;
-//         }
-//       }
+    //     /* add MIME messages */
+    //     for (refptr<Chunk> &c : m->mime_messages ()) {
+    //       auto _c = msg.add_mime_messages ();
+    //       auto _n = build_mime_tree (m, c, false, true, keep_state);
+    //       *_c = *_n;
+    //       delete _n;
 
-//       /* take first viewable */
-//       if (!found_preferred) {
-//         for (auto &c : m->all_parts ()) {
-//           if (c->viewable) {
-//             c->preferred = true;
-//             break;
-//           }
-//         }
-//       }
-//     }
+    //       if (!keep_state) {
+    //         // add MIME message to message state
+    //         MessageState::Element e (MessageState::ElementType::MimeMessage, c->id);
+    //         thread_view->state[m].elements.push_back (e);
+    //       }
+    //     }
 
-//     /* build structure */
-//     if (!m->missing_content) {
-//       msg.set_allocated_root (build_mime_tree (m, m->root, true, false, keep_state));
-//     }
+    //     /* add attachments */
+    //     for (refptr<Chunk> &c : m->attachments ()) {
 
-//     /* add MIME messages */
-//     for (refptr<Chunk> &c : m->mime_messages ()) {
-//       auto _c = msg.add_mime_messages ();
-//       auto _n = build_mime_tree (m, c, false, true, keep_state);
-//       *_c = *_n;
-//       delete _n;
+    //       auto _c = msg.add_attachments ();
+    //       auto _n = build_mime_tree (m, c, false, true, keep_state);
 
-//       if (!keep_state) {
-//         // add MIME message to message state
-//         MessageState::Element e (MessageState::ElementType::MimeMessage, c->id);
-//         thread_view->state[m].elements.push_back (e);
-//       }
-//     }
+    //       *_c = *_n;
+    //       delete _n;
 
-//     /* add attachments */
-//     for (refptr<Chunk> &c : m->attachments ()) {
+    //       _c->set_thumbnail (get_attachment_thumbnail (c));
 
-//       auto _c = msg.add_attachments ();
-//       auto _n = build_mime_tree (m, c, false, true, keep_state);
+    //       if (!c->content_id.empty ()) {
+    //         /* send content if CID is set */
+    //         _c->set_content (get_attachment_data (c));
+    //       }
 
-//       *_c = *_n;
-//       delete _n;
+    //       if (!keep_state) {
+    //         // add attachment to message state
+    //         MessageState::Element e (MessageState::ElementType::Attachment, c->id);
+    //         thread_view->state[m].elements.push_back (e);
+    //       }
+    //     }
 
-//       _c->set_thumbnail (get_attachment_thumbnail (c));
+    //     return msg;
 
-//       if (!c->content_id.empty ()) {
-//         /* send content if CID is set */
-//         _c->set_content (get_attachment_data (c));
-//       }
-
-//       if (!keep_state) {
-//         // add attachment to message state
-//         MessageState::Element e (MessageState::ElementType::Attachment, c->id);
-//         thread_view->state[m].elements.push_back (e);
-//       }
-//     }
-
-//     return msg;
-
-
-//    }
-
-
+    //    }
 }
 
 //     pub fn load(&mut self){
@@ -621,7 +627,6 @@ impl PageClient{
 //       thread_view->state[m].elements.end (),
 //       [&] (auto e) { return e.id == el.id; })->focusable = false;
 
-
 //     /* make siblings focusable */
 //     for (auto &c : c->siblings) {
 //       std::find_if (
@@ -897,7 +902,6 @@ impl PageClient{
 //             em = (c = g_mime_certificate_get_email (ce), c ? c : "");
 //             ky = (c = g_mime_certificate_get_key_id (ce), c ? c : "");
 
-
 // # if (GMIME_MAJOR_VERSION < 3)
 //             switch (g_mime_signature_get_status (s)) {
 //               case GMIME_SIGNATURE_STATUS_GOOD:
@@ -1058,7 +1062,6 @@ impl PageClient{
 //     }
 
 //     part->set_use (use);
-
 
 //     if (use) {
 //       if (c->viewable) {

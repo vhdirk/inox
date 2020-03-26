@@ -1,5 +1,5 @@
-use std::process::Command;
 use capnpc;
+use std::process::Command;
 
 fn main() {
     // Rerun the build script when files in the resources folder are changed.
@@ -7,7 +7,12 @@ fn main() {
     println!("cargo:rerun-if-changed=resources/*");
 
     Command::new("sassc")
-        .args(&["-t", "compressed", "html/thread_view.scss", "html/thread_view.css"])
+        .args(&[
+            "-t",
+            "compressed",
+            "html/thread_view.scss",
+            "html/thread_view.css",
+        ])
         .current_dir("resources")
         .status()
         .unwrap();

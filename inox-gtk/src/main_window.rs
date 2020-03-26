@@ -1,27 +1,23 @@
 use std::cell::RefCell;
 use std::sync::Arc;
 
-use gtk::GtkWindowExt;
-use gtk;
-use glib;
 use futures::future::FutureExt;
+use gio::prelude::*;
+use glib;
 use glib::subclass;
 use glib::subclass::prelude::*;
 use glib::translate::*;
 use glib::Sender;
-use glib::{glib_wrapper, glib_object_wrapper, glib_object_subclass, glib_object_impl};
-use gio::prelude::*;
+use glib::{glib_object_impl, glib_object_subclass, glib_object_wrapper, glib_wrapper};
+use gtk;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-
+use gtk::GtkWindowExt;
 
 use log::*;
 
-
-
-
-use crate::get_widget;
 use crate::app::{Action, InoxApplication, InoxApplicationPrivate};
+use crate::get_widget;
 
 // use crate::headerbar::HeaderBar;
 use inox_core::database::Thread;
@@ -32,14 +28,9 @@ use crate::components::thread_view::ThreadView;
 pub struct MainWindowPrivate {
     window_builder: gtk::Builder,
     // menu_builder: gtk::Builder,
-
     thread_list: RefCell<Option<ThreadList>>,
-    thread_view: RefCell<Option<ThreadView>>
-
-    // current_notification: RefCell<Option<Rc<Notification>>>,
+    thread_view: RefCell<Option<ThreadView>>, // current_notification: RefCell<Option<Rc<Notification>>>,
 }
-
-
 
 impl ObjectSubclass for MainWindowPrivate {
     const NAME: &'static str = "inox_MainWindow";
@@ -50,15 +41,14 @@ impl ObjectSubclass for MainWindowPrivate {
     glib_object_subclass!();
 
     fn new() -> Self {
-
         // static_resource::new_builder().get_object::<gtk::ApplicationWindow>("main_window");
-        let window_builder = gtk::Builder::new_from_resource("/com/github/vhdirk/Inox/gtk/main_window.ui");
+        let window_builder =
+            gtk::Builder::new_from_resource("/com/github/vhdirk/Inox/gtk/main_window.ui");
 
         Self {
             window_builder,
             thread_list: RefCell::new(None),
-            thread_view: RefCell::new(None)
-
+            thread_view: RefCell::new(None),
         }
     }
 }
@@ -83,7 +73,6 @@ impl WindowImpl for MainWindowPrivate {}
 // Implement Gtk.ApplicationWindow for MainWindow
 impl ApplicationWindowImpl for MainWindowPrivate {}
 
-
 // Wrap MainWindowPrivate into a usable gtk-rs object
 glib_wrapper! {
     pub struct MainWindow(
@@ -101,7 +90,10 @@ glib_wrapper! {
 impl MainWindow {
     pub fn new(sender: Sender<Action>, app: InoxApplication) -> Self {
         // Create new GObject and downcast it into MainWindow
-        let window = glib::Object::new(MainWindow::static_type(), &[]).unwrap().downcast::<MainWindow>().unwrap();
+        let window = glib::Object::new(MainWindow::static_type(), &[])
+            .unwrap()
+            .downcast::<MainWindow>()
+            .unwrap();
 
         app.add_window(&window.clone());
         window.setup_widgets(sender.clone());
@@ -112,7 +104,11 @@ impl MainWindow {
 
     pub fn setup_widgets(&self, sender: Sender<Action>) {
         let self_ = MainWindowPrivate::from_instance(self);
-        let app: InoxApplication = self.get_application().unwrap().downcast::<InoxApplication>().unwrap();
+        let app: InoxApplication = self
+            .get_application()
+            .unwrap()
+            .downcast::<InoxApplication>()
+            .unwrap();
         let _app_private = InoxApplicationPrivate::from_instance(&app);
 
         // Add headerbar/content to the window itself
@@ -122,14 +118,17 @@ impl MainWindow {
         get_widget!(self_.window_builder, gtk::Box, main_layout);
         self.add(&main_layout);
 
-        get_widget!(self_.window_builder, gtk::ScrolledWindow, thread_list_scrolled);
+        get_widget!(
+            self_.window_builder,
+            gtk::ScrolledWindow,
+            thread_list_scrolled
+        );
         let thread_list = ThreadList::new(sender.clone());
         thread_list.setup_signals();
 
         thread_list_scrolled.add(&thread_list.widget);
         thread_list.widget.show_all();
         self_.thread_list.replace(Some(thread_list));
-
 
         get_widget!(self_.window_builder, gtk::Box, thread_box);
         let thread_view = ThreadView::new(sender.clone());
@@ -148,14 +147,15 @@ impl MainWindow {
         get_widget!(self_.window_builder, gtk::Paned, main_header);
         get_widget!(self_.window_builder, gtk::Paned, main_paned);
 
-        let _width_bind = main_paned.bind_property("position", &main_header, "position")
-                                    .flags(glib::BindingFlags::SYNC_CREATE | glib::BindingFlags::BIDIRECTIONAL)
-                                    .transform_to(move |_binding, value| {
-                                        let _offset = 0; //TODO: this offset was trial and error.
-                                                        // we should calculate it somehow.
-                                        Some((value.get::<i32>().unwrap_or(Some(0)).unwrap()).to_value())
-                                    })
-                                    .build();
+        let _width_bind = main_paned
+            .bind_property("position", &main_header, "position")
+            .flags(glib::BindingFlags::SYNC_CREATE | glib::BindingFlags::BIDIRECTIONAL)
+            .transform_to(move |_binding, value| {
+                let _offset = 0; //TODO: this offset was trial and error.
+                                 // we should calculate it somehow.
+                Some((value.get::<i32>().unwrap_or(Some(0)).unwrap()).to_value())
+            })
+            .build();
 
         // window gets closed
         self.connect_delete_event(move |window, _| {
@@ -179,11 +179,15 @@ impl MainWindow {
     pub fn set_query(&self, query: Arc<notmuch::Query<'static>>) {
         let self_ = MainWindowPrivate::from_instance(self);
         let threads = <notmuch::Query as notmuch::QueryExt>::search_threads(query).unwrap();
-        self_.thread_list.borrow().as_ref().unwrap().set_threads(threads);
+        self_
+            .thread_list
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .set_threads(threads);
     }
 
     pub fn open_thread(&self, thread: Option<Thread>) {
-
         let self_ = MainWindowPrivate::from_instance(self);
 
         match thread {
@@ -192,21 +196,18 @@ impl MainWindow {
 
                 let thread_view = self_.thread_view.borrow().as_ref().unwrap().clone();
                 thread_view.load_thread(thread);
-            },
+            }
             None => {
                 self.update_titlebar(None);
             }
         }
     }
 
-
     pub fn update_titlebar(&self, title: Option<&str>) {
         let self_ = MainWindowPrivate::from_instance(self);
         get_widget!(self_.window_builder, gtk::HeaderBar, conversation_header);
         conversation_header.set_subtitle(title);
     }
-
-
 }
 
 // #[derive(Msg)]
@@ -231,8 +232,6 @@ impl MainWindow {
 //     threadview: Component<ThreadView>
 // }
 
-
-
 // // TODO: Factor out the hamburger menu
 // // TODO: Make a proper state machine for the headerbar states
 // pub struct MainWindow {
@@ -255,7 +254,6 @@ impl MainWindow {
 //         };
 //         debug!("qs: {:?}", qs);
 
-
 //         let query = <notmuch::Database as notmuch::DatabaseExt>::create_query(db, &qs).unwrap();
 //         let threads = <notmuch::Query<'_> as notmuch::QueryExt>::search_threads(query).unwrap();
 
@@ -265,7 +263,6 @@ impl MainWindow {
 //     fn on_thread_selected(self: &mut Self, thread: Thread){
 //         self.widgets.threadview.emit(ThreadViewMsg::ShowThread(thread))
 //     }
-
 
 // }
 
@@ -311,12 +308,10 @@ impl MainWindow {
 //                                   .expect("Couldn't find main_window in ui file.");
 //         window.set_application(Some(&model.app.instance));
 
-
 //         let headerbar = relm_init::<HeaderBar>(model.app.clone()).unwrap();
 //         let taglist = relm_init::<TagList>(model.app.clone()).unwrap();
 //         let threadlist = relm_init::<ThreadList>(model.app.clone()).unwrap();
 //         let threadview = relm_init::<ThreadView>(model.app.clone()).unwrap();
-
 
 //         // TODO: what would be the best place to connect all UI signals?
 //         use self::TagListMsg::ItemSelect as TagList_ItemSelect;
@@ -324,8 +319,6 @@ impl MainWindow {
 
 //         use self::ThreadListMsg::ThreadSelect as ThreadList_ThreadSelect;
 //         connect!(threadlist@ThreadList_ThreadSelect(ref thread), relm, Msg::ThreadSelect(thread.as_ref().unwrap().clone()));
-
-
 
 //         MainWindow {
 //             model,

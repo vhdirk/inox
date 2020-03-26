@@ -1,14 +1,13 @@
 use std::fs::File;
 use std::io::prelude::*;
 
-use std::path::Path;
+use serde_derive::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::path::Path;
 use toml;
-use serde_derive::{Serialize, Deserialize};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Config {
-
     #[serde(default = "default_version")]
     pub version: i16,
 
@@ -21,22 +20,20 @@ pub struct Config {
     #[serde(default)]
     pub accounts: BTreeMap<String, AccountConfig>,
     //shortcuts: ShortcutConfig,
-
 }
 
-impl Config{
+impl Config {
     pub fn load(location: &Path) -> Self {
         let mut conf_contents = String::new();
 
         match File::open(&location) {
             Ok(mut file) => {
                 file.read_to_string(&mut conf_contents);
-            },
+            }
             Err(_err) => {
                 conf_contents = "".to_string();
-            },
+            }
         };
-
 
         toml::from_str(&conf_contents).unwrap()
     }
@@ -50,10 +47,7 @@ impl Config{
     //     return Ok(());
     //
     // }
-
 }
-
-
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct DebugConfig {
@@ -63,8 +57,8 @@ pub struct DebugConfig {
 
 impl Default for DebugConfig {
     fn default() -> Self {
-        DebugConfig{
-            dryrun_sending: default_debug_dryrun_sending()
+        DebugConfig {
+            dryrun_sending: default_debug_dryrun_sending(),
         }
     }
 }
@@ -75,11 +69,10 @@ pub struct NotMuchConfig {
     pub path: String,
 }
 
-
 impl Default for NotMuchConfig {
     fn default() -> Self {
-        NotMuchConfig{
-            path: default_notmuch_config_path()
+        NotMuchConfig {
+            path: default_notmuch_config_path(),
         }
     }
 }
@@ -91,14 +84,13 @@ pub struct AccountConfig {
     pub email: String,
 }
 
-
 fn default_version() -> i16 {
     1
 }
 
 fn default_notmuch_config_path() -> String {
     let env_var = std::env::var("NOTMUCH_CONFIG");
-    if env_var.is_ok(){
+    if env_var.is_ok() {
         return env_var.unwrap();
     };
     "~/.notmuch-config".to_string()

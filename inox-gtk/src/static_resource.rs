@@ -20,7 +20,6 @@ pub fn init() -> Result<(), Error> {
     Ok(())
 }
 
-
 pub fn new_builder() -> Result<gtk::Builder, Error> {
     // The order here is important because some ui file depends on others
 
@@ -45,8 +44,9 @@ pub fn new_builder() -> Result<gtk::Builder, Error> {
     //        .expect("Can't load ui file: server_chooser_menu.ui");
     // builder.add_from_resource("/com/github/vhdirk/Inox/gtk/stickers_popover.ui")
     //        .expect("Can't load ui file: stickers_popover.ui");
-    builder.add_from_resource("/com/github/vhdirk/Inox/gtk/main_window.ui")
-            .expect("Can't load ui file: main_window.ui");
+    builder
+        .add_from_resource("/com/github/vhdirk/Inox/gtk/main_window.ui")
+        .expect("Can't load ui file: main_window.ui");
 
     // Depends on main_window
     // These are all dialogs transient for main_window
@@ -71,4 +71,3 @@ pub fn new_builder() -> Result<gtk::Builder, Error> {
 
     Ok(builder)
 }
-

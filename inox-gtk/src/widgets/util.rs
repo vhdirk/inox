@@ -1,18 +1,17 @@
+use gdk;
+use glib;
+use md5;
 use std::ops::AddAssign;
 use std::str::FromStr;
-use glib;
-use gdk;
-use md5;
 
-pub trait ToHex{
+pub trait ToHex {
     fn to_hex(&self) -> String;
 }
 
-
-impl ToHex for gdk::RGBA
-{
-    fn to_hex(&self) -> String{
-        let hex = format!("#{:02x}{:02x}{:02x}{:02x}",
+impl ToHex for gdk::RGBA {
+    fn to_hex(&self) -> String {
+        let hex = format!(
+            "#{:02x}{:02x}{:02x}{:02x}",
             (self.red * 255.0 / 65535.0) as u8,
             (self.green * 255.0 / 65535.0) as u8,
             (self.blue * 255.0 / 65535.0) as u8,
@@ -22,8 +21,7 @@ impl ToHex for gdk::RGBA
     }
 }
 
-pub fn get_tag_color_rgba(tag: &str, canvascolor: &gdk::RGBA) -> (gdk::RGBA, gdk::RGBA)
-{
+pub fn get_tag_color_rgba(tag: &str, canvascolor: &gdk::RGBA) -> (gdk::RGBA, gdk::RGBA) {
     //TODO: get from settings
     let tags_upper_color = gdk::RGBA::from_str(&"#e5e5e5".to_string()).unwrap();
     let tags_lower_color = gdk::RGBA::from_str(&"#333333".to_string()).unwrap();
@@ -51,50 +49,50 @@ pub fn get_tag_color_rgba(tag: &str, canvascolor: &gdk::RGBA) -> (gdk::RGBA, gdk
      * luminocity of background color.
      */
 
-    let bg = gdk::RGBA{
-        red: f64::from(tc[0]) * (tags_upper_color.red - tags_lower_color.red) + tags_lower_color.red,
-        green: f64::from(tc[1]) * (tags_upper_color.green - tags_lower_color.green) + tags_lower_color.green,
-        blue: f64::from(tc[2]) * (tags_upper_color.blue - tags_lower_color.blue) + tags_lower_color.blue,
-        alpha: 0.0
+    let bg = gdk::RGBA {
+        red: f64::from(tc[0]) * (tags_upper_color.red - tags_lower_color.red)
+            + tags_lower_color.red,
+        green: f64::from(tc[1]) * (tags_upper_color.green - tags_lower_color.green)
+            + tags_lower_color.green,
+        blue: f64::from(tc[2]) * (tags_upper_color.blue - tags_lower_color.blue)
+            + tags_lower_color.blue,
+        alpha: 0.0,
     };
 
-    let bc = gdk::RGBA{
+    let bc = gdk::RGBA {
         red: bg.red * (65535.0) / (255.0),
         green: bg.green * (65535.0) / (255.0),
         blue: bg.blue * (65535.0) / (255.0),
-        alpha: (tags_alpha * (65535.0))
+        alpha: (tags_alpha * (65535.0)),
     };
 
-    let lum: f64 = ((bg.red * tags_alpha + (1.0 - tags_alpha) * canvascolor.red ) * 0.2126 +
-                       (bg.green * tags_alpha + (1.0 - tags_alpha) * canvascolor.green) * 0.7152 +
-                       (bg.blue * tags_alpha + (1.0 - tags_alpha) * canvascolor.blue) * 0.0722) / 255.0;
+    let lum: f64 = ((bg.red * tags_alpha + (1.0 - tags_alpha) * canvascolor.red) * 0.2126
+        + (bg.green * tags_alpha + (1.0 - tags_alpha) * canvascolor.green) * 0.7152
+        + (bg.blue * tags_alpha + (1.0 - tags_alpha) * canvascolor.blue) * 0.0722)
+        / 255.0;
     /* float avg = (bg[0] + bg[1] + bg[2]) / (3 * 255.0); */
-
 
     let fc = if lum > 0.5 {
         gdk::RGBA::from_str("#000000").unwrap()
-    }else{
+    } else {
         gdk::RGBA::from_str("#f2f2f2").unwrap()
     };
 
     (fc, bc)
-  }
-
-
-
-pub fn get_tag_color (tag: &str, canvascolor: &gdk::RGBA) -> (String, String){
-  let clrs = get_tag_color_rgba(&tag, &canvascolor);
-
-  (clrs.0.to_hex(), clrs.1.to_hex())
 }
 
+pub fn get_tag_color(tag: &str, canvascolor: &gdk::RGBA) -> (String, String) {
+    let clrs = get_tag_color_rgba(&tag, &canvascolor);
 
-pub fn concat_tags_color(tags: &[String],
-                         use_pango: bool,
-                         maxlen: i32,
-                         canvascolor: &gdk::RGBA) ->String
-{
+    (clrs.0.to_hex(), clrs.1.to_hex())
+}
 
+pub fn concat_tags_color(
+    tags: &[String],
+    use_pango: bool,
+    maxlen: i32,
+    canvascolor: &gdk::RGBA,
+) -> String {
     let mut tag_string = "".to_string();
     let mut first = true;
     let mut broken = false;
@@ -119,7 +117,9 @@ pub fn concat_tags_color(tags: &[String],
 
         if maxlen > 0 {
             broken = true;
-            if len >= maxlen{ break; }
+            if len >= maxlen {
+                break;
+            }
             broken = false;
 
             if (len + tag.len() as i32 + 2) > maxlen {
@@ -132,14 +132,15 @@ pub fn concat_tags_color(tags: &[String],
         }
 
         if use_pango {
-            tag_string.add_assign(&format!("<span bgcolor=\"{}\" color=\"{}\"> {} </span>",
-                                  colors.1,
-                                  colors.0,
-                                  glib::markup_escape_text(tag.as_str())));
-
+            tag_string.add_assign(&format!(
+                "<span bgcolor=\"{}\" color=\"{}\"> {} </span>",
+                colors.1,
+                colors.0,
+                glib::markup_escape_text(tag.as_str())
+            ));
         } else {
             colors.1.truncate(7);
-            let mut bg =  gdk::RGBA::from_str(&colors.1).unwrap();
+            let mut bg = gdk::RGBA::from_str(&colors.1).unwrap();
             bg.alpha = tags_alpha;
 
             tag_string.add_assign(&format!("<span style=\"background-color: rgba({}, {}, {}, {}); color: {} !important; white-space: pre;\"> {} </span>",
@@ -150,7 +151,6 @@ pub fn concat_tags_color(tags: &[String],
                                 colors.0,
                                 glib::markup_escape_text(tag.as_str())));
         }
-
     }
     if broken {
         tag_string.add_assign("..");

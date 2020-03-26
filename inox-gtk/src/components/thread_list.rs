@@ -1,22 +1,19 @@
-
-
 use gio::prelude::*;
+use glib::Sender;
 use gtk;
 use gtk::prelude::*;
-use glib::Sender;
 
 use notmuch;
 
-use inox_core::database::Thread;
-use crate::widgets::thread_list_cell_renderer::CellRendererThread;
 use crate::app::Action;
+use crate::widgets::thread_list_cell_renderer::CellRendererThread;
+use inox_core::database::Thread;
 
 type Threads = notmuch::Threads<'static, 'static>;
 
-const COLUMN_ID:u8 = 0;
-const COLUMN_THREAD:u8 = 1;
-const COLUMN_AUTHORS:u8 = 2;
-
+const COLUMN_ID: u8 = 0;
+const COLUMN_THREAD: u8 = 1;
+const COLUMN_AUTHORS: u8 = 2;
 
 fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
     let column = gtk::TreeViewColumn::new();
@@ -27,7 +24,6 @@ fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
     column.set_title(&title);
     tree.append_column(&column);
 }
-
 
 fn create_liststore() -> gtk::ListStore {
     gtk::ListStore::new(&[String::static_type(), Thread::static_type()])
@@ -43,7 +39,6 @@ pub struct ThreadList {
 
     // num_threads: u32,
     // num_threads_loaded: u32
-
     sender: Sender<Action>,
 }
 
@@ -67,29 +62,28 @@ impl ThreadList {
     pub fn setup_signals(&self) {
         let sender = self.sender.clone();
 
-        self.widget.get_selection().connect_changed(move |selection| {
+        self.widget
+            .get_selection()
+            .connect_changed(move |selection| {
+                let selected = selection.get_selected();
+                if selected.is_none() {
+                    return;
+                }
 
-            let selected = selection.get_selected();
-            if selected.is_none() {
-                return;
-            }
+                let (model, iter) = selected.unwrap();
+                let store = model.downcast_ref::<gtk::ListStore>().unwrap();
 
-            let (model, iter) = selected.unwrap();
-            let store = model.downcast_ref::<gtk::ListStore>().unwrap();
-
-            let thread = if store.iter_is_valid(&iter) {
-                let lval = store.get_value(&iter, COLUMN_THREAD as i32);
-                lval.get::<&Thread>().unwrap_or(None).cloned()
-            } else {
-                None
-            };
-            sender.send(Action::SelectThread(thread));
-        });
+                let thread = if store.iter_is_valid(&iter) {
+                    let lval = store.get_value(&iter, COLUMN_THREAD as i32);
+                    lval.get::<&Thread>().unwrap_or(None).cloned()
+                } else {
+                    None
+                };
+                sender.send(Action::SelectThread(thread));
+            });
     }
 
-
     pub fn set_threads(&self, threads: Threads) {
-
         let model = create_liststore();
         self.widget.set_model(Some(&model));
         for thread in threads {
@@ -97,28 +91,21 @@ impl ThreadList {
         }
     }
 
-
-    fn add_thread(&self, thread: Thread){
-
+    fn add_thread(&self, thread: Thread) {
         let thread_id = thread.id().clone();
 
-        self.widget.get_model().unwrap().downcast_ref::<gtk::ListStore>().unwrap().insert_with_values(None,
-            &[COLUMN_ID as u32,
-              COLUMN_THREAD as u32
-            ],
-            &[&thread_id.to_value(),
-              &thread
-            ]);
+        self.widget
+            .get_model()
+            .unwrap()
+            .downcast_ref::<gtk::ListStore>()
+            .unwrap()
+            .insert_with_values(
+                None,
+                &[COLUMN_ID as u32, COLUMN_THREAD as u32],
+                &[&thread_id.to_value(), &thread],
+            );
     }
-
-
 }
-
-
-
-
-
-
 
 // use std::rc::Rc;
 // use std::sync::{Arc};
@@ -146,7 +133,6 @@ impl ThreadList {
 // const COLUMN_THREAD:u8 = 1;
 // const COLUMN_AUTHORS:u8 = 2;
 
-
 // fn append_text_column(tree: &gtk::TreeView, id: i32, title: &str) {
 //     let column = gtk::TreeViewColumn::new();
 //     let cell = CellRendererThread::new();
@@ -165,10 +151,6 @@ impl ThreadList {
 //         Continue(!single_shot.unwrap_or(false))
 //     })
 // }
-
-
-
-
 
 // #[derive(Msg, Debug)]
 // pub enum Msg {
@@ -192,7 +174,6 @@ impl ThreadList {
 //     // Fail
 // }
 
-
 // pub struct ThreadList{
 //     model: ThreadListModel,
 //     scrolled_window: gtk::ScrolledWindow,
@@ -213,8 +194,6 @@ impl ThreadList {
 //     num_threads_loaded: u32
 // }
 
-
-
 // fn create_liststore() -> gtk::ListStore{
 //     gtk::ListStore::new(&[String::static_type(), Thread::static_type()])
 // }
@@ -231,18 +210,15 @@ impl ThreadList {
 
 //         self.model.thread_list = threads.map(Arc::new);
 
-
 //         // // let do_run = run.clone();
 //         // gtk::idle_add(move || {
 //         //     debug!("thread count: {:?}", query.count_threads().unwrap());
 //         //     Continue(false)
 //         // });
 
-
 //         gtk_idle_add(self.model.relm.stream(), || Msg::AsyncFetch(AsyncFetchEvent::Init), Some(true));
 
 //     }
-
 
 //     fn add_thread(&mut self, thread: Thread){
 
@@ -269,9 +245,7 @@ impl ThreadList {
 
 //     }
 
-
 // }
-
 
 // impl Update for ThreadList {
 //     type Model = ThreadListModel;
@@ -311,7 +285,6 @@ impl ThreadList {
 //     }
 // }
 
-
 // impl Widget for ThreadList {
 
 //     type Root = gtk::ScrolledWindow;
@@ -328,7 +301,6 @@ impl ThreadList {
 //         let tree_model = create_liststore();
 //         let tree_filter = gtk::TreeModelFilter::new(&tree_model, None);
 //         let tree_view = gtk::TreeView::new();
-
 
 //         tree_view.set_headers_visible(false);
 //         append_text_column(&tree_view, COLUMN_THREAD as i32, "Thread");

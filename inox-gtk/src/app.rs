@@ -1,31 +1,27 @@
-
 #![allow(new_without_default)]
 use std;
-use std::env;
 use std::cell::RefCell;
+use std::env;
 use std::rc::Rc;
 
-use std::sync::Arc;
 use std::path::PathBuf;
+use std::sync::Arc;
 
-use log::*;
+use gio::subclass::prelude::ApplicationImpl;
+use gio::{self, prelude::*, ApplicationExt, ApplicationFlags};
 use glib::subclass::{self, prelude::*};
 use glib::translate::*;
+use glib::{glib_object_impl, glib_object_subclass, glib_object_wrapper, glib_wrapper};
 use glib::{Receiver, Sender};
-use glib::{glib_wrapper, glib_object_wrapper, glib_object_subclass, glib_object_impl};
-use gio::{self, prelude::*, ApplicationFlags, ApplicationExt};
-use gio::subclass::prelude::ApplicationImpl;
 use gtk::prelude::*;
 use gtk::subclass::application::GtkApplicationImpl;
+use log::*;
 
 use crate::constants;
 use crate::main_window::MainWindow;
 
-
-
-use inox_core::settings::Settings;
 use inox_core::database::thread::Thread;
-
+use inox_core::settings::Settings;
 
 // use crate::api::{Station, StationRequest};
 // use crate::audio::{GCastDevice, PlaybackState, Player, Song};
@@ -41,23 +37,22 @@ pub enum Action {
     SelectTag(Option<String>),
     Search(String),
     Query(Arc<notmuch::Query<'static>>),
-    SelectThread(Option<Thread>)
-    // Reload,
-    // ViewShowLibrary,
-    // ViewShowPlayer,
-    // ViewRaise,
-    // ViewShowNotification(Rc<Notification>),
-    // PlaybackConnectGCastDevice(GCastDevice),
-    // PlaybackDisconnectGCastDevice,
-    // PlaybackSetStation(Box<Station>),
-    // PlaybackStart,
-    // PlaybackStop,
-    // PlaybackSetVolume(f64),
-    // PlaybackSaveSong(Song),
-    // LibraryAddStations(Vec<Station>),
-    // LibraryRemoveStations(Vec<Station>),
-    // SearchFor(StationRequest), // TODO: is this neccessary?,
-    // SettingsKeyChanged(Key),
+    SelectThread(Option<Thread>), // Reload,
+                                  // ViewShowLibrary,
+                                  // ViewShowPlayer,
+                                  // ViewRaise,
+                                  // ViewShowNotification(Rc<Notification>),
+                                  // PlaybackConnectGCastDevice(GCastDevice),
+                                  // PlaybackDisconnectGCastDevice,
+                                  // PlaybackSetStation(Box<Station>),
+                                  // PlaybackStart,
+                                  // PlaybackStop,
+                                  // PlaybackSetVolume(f64),
+                                  // PlaybackSaveSong(Song),
+                                  // LibraryAddStations(Vec<Station>),
+                                  // LibraryRemoveStations(Vec<Station>),
+                                  // SearchFor(StationRequest), // TODO: is this neccessary?,
+                                  // SettingsKeyChanged(Key)
 }
 
 pub struct InoxApplicationPrivate {
@@ -69,7 +64,6 @@ pub struct InoxApplicationPrivate {
     // pub player: Player,
     // pub library: Library,
     // pub storefront: StoreFront,
-
     settings: RefCell<Option<Rc<Settings>>>,
 }
 
@@ -95,7 +89,7 @@ impl ObjectSubclass for InoxApplicationPrivate {
             receiver,
             window,
             database: RefCell::new(None),
-            settings: RefCell::new(None)
+            settings: RefCell::new(None),
         }
     }
 }
@@ -122,20 +116,20 @@ impl ApplicationImpl for InoxApplicationPrivate {
         }
 
         // No window available -> we have to create one
-        let app = ObjectSubclass::get_instance(self).downcast::<InoxApplication>().unwrap();
+        let app = ObjectSubclass::get_instance(self)
+            .downcast::<InoxApplication>()
+            .unwrap();
         let window = app.create_window();
         window.present();
         self.window.replace(Some(window));
         info!("Created application window.");
 
-
         let db = app.init_database();
         self.database.replace(Some(db.clone()));
 
-
         // Setup action channel
         let receiver = self.receiver.borrow_mut().take().unwrap();
-        receiver.attach(None, move |action|  app.process_action(action));
+        receiver.attach(None, move |action| app.process_action(action));
 
         // Setup settings signal (we get notified when a key gets changed)
         // self.settings.connect_changed(clone!(@strong self.sender as sender => move |_, key_str| {
@@ -148,7 +142,6 @@ impl ApplicationImpl for InoxApplicationPrivate {
 
         // Small workaround to update every view to the correct sorting/order.
         // send!(self.sender, Action::SettingsKeyChanged(Key::ViewSorting));
-
     }
 }
 
@@ -167,17 +160,25 @@ glib_wrapper! {
 
 impl InoxApplication {
     pub fn run(settings: Rc<Settings>) {
-        info!("{} ({})", constants::APPLICATION_NAME, constants::APPLICATION_ID);
+        info!(
+            "{} ({})",
+            constants::APPLICATION_NAME,
+            constants::APPLICATION_ID
+        );
         // info!("Version: {} ({})", config::VERSION, config::PROFILE);
         // info!("Isahc version: {}", isahc::version());
 
         // Create new GObject and downcast it into InoxApplication
-        let app = glib::Object::new(InoxApplication::static_type(),
-            &[("application-id", &Some(constants::APPLICATION_ID)),
-              ("flags", &ApplicationFlags::empty())])
-            .unwrap()
-            .downcast::<InoxApplication>()
-            .unwrap();
+        let app = glib::Object::new(
+            InoxApplication::static_type(),
+            &[
+                ("application-id", &Some(constants::APPLICATION_ID)),
+                ("flags", &ApplicationFlags::empty()),
+            ],
+        )
+        .unwrap()
+        .downcast::<InoxApplication>()
+        .unwrap();
 
         app.set_resource_base_path(Some("/com/github/vhdirk/Inox"));
         let self_ = InoxApplicationPrivate::from_instance(&app);
@@ -211,11 +212,22 @@ impl InoxApplication {
         window
     }
 
-    fn init_database(&self) -> Arc<notmuch::Database>{
+    fn init_database(&self) -> Arc<notmuch::Database> {
         let self_ = InoxApplicationPrivate::from_instance(self);
 
-        let db_path = PathBuf::from(&self_.settings.borrow().as_ref().unwrap().notmuch_config.database.path.clone());
-        let database = Arc::new(notmuch::Database::open(&db_path, notmuch::DatabaseMode::ReadOnly).unwrap());
+        let db_path = PathBuf::from(
+            &self_
+                .settings
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .notmuch_config
+                .database
+                .path
+                .clone(),
+        );
+        let database =
+            Arc::new(notmuch::Database::open(&db_path, notmuch::DatabaseMode::ReadOnly).unwrap());
 
         database
     }
@@ -223,18 +235,29 @@ impl InoxApplication {
     fn process_action(&self, action: Action) -> glib::Continue {
         let self_ = InoxApplicationPrivate::from_instance(self);
 
-
         debug!("processing action {:?}", action);
 
         match action {
             Action::SelectTag(tag) => {
                 let search = match tag {
                     Some(val) => format!("tag:\"{}\"", val),
-                    None => "".to_string()
+                    None => "".to_string(),
                 };
-                self_.sender.send(Action::Search(search.to_owned())).unwrap()
-            },
-            Action::Search(search) => self_.sender.send(Action::Query(Arc::new(notmuch::Query::create(self_.database.borrow().as_ref().unwrap().clone(), &search).unwrap()))).unwrap(),
+                self_
+                    .sender
+                    .send(Action::Search(search.to_owned()))
+                    .unwrap()
+            }
+            Action::Search(search) => self_
+                .sender
+                .send(Action::Query(Arc::new(
+                    notmuch::Query::create(
+                        self_.database.borrow().as_ref().unwrap().clone(),
+                        &search,
+                    )
+                    .unwrap(),
+                )))
+                .unwrap(),
             Action::Query(query) => self.perform_search(query),
             Action::SelectThread(thread) => self.open_thread(thread),
             // Action::ViewShowDiscover => self_.window.borrow().as_ref().unwrap().set_view(View::Discover),
@@ -279,14 +302,7 @@ impl InoxApplication {
         let self_ = InoxApplicationPrivate::from_instance(self);
         self_.window.borrow().as_ref().unwrap().open_thread(thread);
     }
-
 }
-
-
-
-
-
-
 
 // #[derive(Debug, Clone)]
 // pub enum Action {
@@ -335,7 +351,6 @@ impl InoxApplication {
 //         let builder = new_builder().unwrap();
 //         let dbmanager = Rc::new(DBManager::new(&settings));
 
-
 //         //let weak_s = settings.downgrade();
 //         // let weak_app = application.downgrade();
 //         // window.connect_delete_event(move |window, _| {
@@ -356,7 +371,6 @@ impl InoxApplication {
 //         //     app.quit();
 //         //     Inhibit(false)
 //         // });
-
 
 //         // let window = gtk::ApplicationWindow::new(application);
 //         // window.set_title(constants::APPLICATION_NAME);
@@ -419,12 +433,10 @@ impl InoxApplication {
 //         let window = relm_init::<MainWindow>(app.clone()).ok();
 //         app.window.replace(window);
 
-
 //         app.setup_gactions();
 //         app.setup_timed_callbacks();
 
 //         app.instance.connect_activate(clone!(app => move |_| app.activate()));
-
 
 //         // Retrieve the previous window position and size.
 //         // WindowGeometry::from_settings(&app.settings).apply(&app.window);
@@ -440,7 +452,6 @@ impl InoxApplication {
 //         window.show();
 //         window.present();
 //     }
-
 
 //     fn setup_timed_callbacks(&self) {
 //         // self.setup_dark_theme();
@@ -611,5 +622,3 @@ impl InoxApplication {
 //         ApplicationExtManual::run(&application, &args);
 //     }
 // }
-
-

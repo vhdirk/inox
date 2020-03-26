@@ -1,20 +1,20 @@
-use std::rc::Rc;
-use std::path::PathBuf;
 use std::fs::DirBuilder;
+use std::path::PathBuf;
+use std::rc::Rc;
 
+use dirs;
 use log::*;
 use pretty_env_logger;
-use dirs;
 
 use gtk;
 
-use structopt::StructOpt;
 use structopt::clap::{App, Arg};
-mod macros;
-mod static_resource;
-mod constants;
+use structopt::StructOpt;
 mod app;
+mod constants;
+mod macros;
 mod settings;
+mod static_resource;
 // mod headerbar;
 mod widgets;
 
@@ -27,7 +27,7 @@ use inox_core::settings::Settings;
 use crate::app::InoxApplication;
 
 pub mod webext_capnp {
-  include!(concat!(env!("OUT_DIR"), "/resources/webext_capnp.rs"));
+    include!(concat!(env!("OUT_DIR"), "/resources/webext_capnp.rs"));
 }
 
 /// Init Gtk and logger.
@@ -47,22 +47,22 @@ fn init() {
 
 #[derive(Debug, StructOpt)]
 struct Args {
-    #[structopt(help="The configuration file to load.", parse(from_os_str))]
+    #[structopt(help = "The configuration file to load.", parse(from_os_str))]
     config: Option<PathBuf>,
-    #[structopt(help="Print help message.")]
+    #[structopt(help = "Print help message.")]
     help: bool,
 }
 
-impl Default for Args{
+impl Default for Args {
     fn default() -> Self {
-        Args{
+        Args {
             config: Some(default_config_path()),
-            help: false
+            help: false,
         }
     }
 }
 
-fn default_config_path() -> PathBuf{
+fn default_config_path() -> PathBuf {
     let mut default_config = dirs::config_dir().unwrap();
     default_config.push("enamel");
     default_config.push("config");
@@ -78,7 +78,8 @@ fn main() {
 
     DirBuilder::new()
         .recursive(true)
-        .create(default_config.to_str().unwrap()).unwrap();
+        .create(default_config.to_str().unwrap())
+        .unwrap();
 
     // let args = Args::from_args();
 
@@ -91,20 +92,19 @@ fn main() {
                 .short("c")
                 .long("config")
                 .default_value(default_config.to_str().unwrap())
-                .help(
-                    "The configuration file to load.",
-                ),
+                .help("The configuration file to load."),
         )
         .get_matches();
 
-    let conf_location = args.value_of("config")
-                        .unwrap_or(default_config.to_str().unwrap())
-                        .to_string();
+    let conf_location = args
+        .value_of("config")
+        .unwrap_or(default_config.to_str().unwrap())
+        .to_string();
 
     debug!("Using config file {:?}", conf_location);
 
     // load the settings
-    let conf_path:PathBuf = PathBuf::from(conf_location);
+    let conf_path: PathBuf = PathBuf::from(conf_location);
     let settings = Rc::new(Settings::new(&conf_path.as_path()));
 
     // Initialize variables
@@ -122,6 +122,3 @@ fn main() {
     // Run app itself
     InoxApplication::run(settings);
 }
-
-
-
