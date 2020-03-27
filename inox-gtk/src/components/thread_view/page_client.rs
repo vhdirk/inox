@@ -20,23 +20,20 @@ use capnp_rpc::{rpc_twoparty_capnp, RpcSystem};
 use notmuch;
 
 use crate::webext_capnp::page;
-use crate::webextension::rpc::SocketConnectionUtil;
 
 use super::theme::ThreadViewTheme;
 
 #[derive(Clone)]
 pub struct PageClient {
     socket: gio::Socket,
-    connection: gio::SocketConnection,
     client: page::Client,
 }
 
 impl PageClient {
     pub fn new(socket: gio::Socket) -> Self {
         let connection = socket.connection_factory_create_connection().unwrap();
-        let ostream = connection.get_async_output_stream().unwrap();
-        let istream = connection.get_async_input_stream().unwrap();
-
+        let stream = connection.into_async_read_write().unwrap();
+        let (istream, ostream) = stream.split();
         let network = Box::new(VatNetwork::new(
             istream,
             ostream,
@@ -58,7 +55,6 @@ impl PageClient {
 
         Self {
             socket,
-            connection,
             client,
         }
     }

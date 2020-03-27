@@ -150,7 +150,7 @@ impl ThreadView {
             AddressFamily::Unix,
             SockType::Stream,
             None,
-            SockFlag::SOCK_NONBLOCK | SockFlag::SOCK_CLOEXEC,
+            SockFlag::empty(),
         )
         .unwrap();
 
