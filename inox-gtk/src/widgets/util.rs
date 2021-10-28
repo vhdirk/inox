@@ -12,10 +12,10 @@ impl ToHex for gdk::RGBA {
     fn to_hex(&self) -> String {
         let hex = format!(
             "#{:02x}{:02x}{:02x}{:02x}",
-            (self.red * 255.0 / 65535.0) as u8,
-            (self.green * 255.0 / 65535.0) as u8,
-            (self.blue * 255.0 / 65535.0) as u8,
-            (self.alpha * 255.0) as u8
+            (self.red() * 255.0 / 65535.0) as u8,
+            (self.green() * 255.0 / 65535.0) as u8,
+            (self.blue() * 255.0 / 65535.0) as u8,
+            (self.alpha() * 255.0) as u8
         );
         hex.to_string()
     }
@@ -49,26 +49,26 @@ pub fn get_tag_color_rgba(tag: &str, canvascolor: &gdk::RGBA) -> (gdk::RGBA, gdk
      * luminocity of background color.
      */
 
-    let bg = gdk::RGBA {
-        red: f64::from(tc[0]) * (tags_upper_color.red - tags_lower_color.red)
-            + tags_lower_color.red,
-        green: f64::from(tc[1]) * (tags_upper_color.green - tags_lower_color.green)
-            + tags_lower_color.green,
-        blue: f64::from(tc[2]) * (tags_upper_color.blue - tags_lower_color.blue)
-            + tags_lower_color.blue,
-        alpha: 0.0,
-    };
+    let bg = gdk::RGBA::new(
+        f64::from(tc[0]) * (tags_upper_color.red() - tags_lower_color.red())
+            + tags_lower_color.red(),
+        f64::from(tc[1]) * (tags_upper_color.green() - tags_lower_color.green())
+            + tags_lower_color.green(),
+        f64::from(tc[2]) * (tags_upper_color.blue() - tags_lower_color.blue())
+            + tags_lower_color.blue(),
+        0.0,
+    );
 
-    let bc = gdk::RGBA {
-        red: bg.red * (65535.0) / (255.0),
-        green: bg.green * (65535.0) / (255.0),
-        blue: bg.blue * (65535.0) / (255.0),
-        alpha: (tags_alpha * (65535.0)),
-    };
+    let bc = gdk::RGBA::new(
+        bg.red() * (65535.0) / (255.0),
+        bg.green() * (65535.0) / (255.0),
+        bg.blue() * (65535.0) / (255.0),
+        tags_alpha * (65535.0),
+    );
 
-    let lum: f64 = ((bg.red * tags_alpha + (1.0 - tags_alpha) * canvascolor.red) * 0.2126
-        + (bg.green * tags_alpha + (1.0 - tags_alpha) * canvascolor.green) * 0.7152
-        + (bg.blue * tags_alpha + (1.0 - tags_alpha) * canvascolor.blue) * 0.0722)
+    let lum: f64 = ((bg.red() * tags_alpha + (1.0 - tags_alpha) * canvascolor.red()) * 0.2126
+        + (bg.green() * tags_alpha + (1.0 - tags_alpha) * canvascolor.green()) * 0.7152
+        + (bg.blue() * tags_alpha + (1.0 - tags_alpha) * canvascolor.blue()) * 0.0722)
         / 255.0;
     /* float avg = (bg[0] + bg[1] + bg[2]) / (3 * 255.0); */
 
@@ -141,13 +141,12 @@ pub fn concat_tags_color(
         } else {
             colors.1.truncate(7);
             let mut bg = gdk::RGBA::from_str(&colors.1).unwrap();
-            bg.alpha = tags_alpha;
 
             tag_string.add_assign(&format!("<span style=\"background-color: rgba({}, {}, {}, {}); color: {} !important; white-space: pre;\"> {} </span>",
-                                (bg.red * 255.0) as u8,
-                                (bg.green * 255.0) as u8,
-                                (bg.blue * 255.0) as u8,
-                                bg.alpha,
+                                (bg.red() * 255.0) as u8,
+                                (bg.green() * 255.0) as u8,
+                                (bg.blue() * 255.0) as u8,
+                                tags_alpha,
                                 colors.0,
                                 glib::markup_escape_text(tag.as_str())));
         }

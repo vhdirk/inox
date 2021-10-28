@@ -12,11 +12,11 @@ use gio::prelude::*;
 use glib;
 use glib::Sender;
 use gmime;
-use gmime::{ParserExt, PartExt};
+use gmime::traits::{ParserExt, PartExt};
 use gtk;
 use gtk::prelude::*;
 use webkit2gtk;
-use webkit2gtk::{
+use webkit2gtk::traits::{
     NavigationPolicyDecisionExt, PolicyDecisionExt, SettingsExt, URIRequestExt, WebContextExt,
     WebViewExt,
 };
@@ -47,20 +47,19 @@ impl ThreadView {
     pub fn new(sender: Sender<Action>) -> Self {
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
-        let webcontext = webkit2gtk::WebContext::get_default().unwrap();
+        let webcontext = webkit2gtk::WebContext::default().unwrap();
         webcontext.set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
 
         let stream = ThreadView::initialize_web_extensions(&webcontext);
         let page_client = PageClient::new(stream);
 
-        let webview = webkit2gtk::WebView::new_with_context_and_user_content_manager(
-            &webcontext,
-            &webkit2gtk::UserContentManager::new(),
-        );
+        let webview = webkit2gtk::WebViewBuilder::new()
+            .web_context(&webcontext)
+            .user_content_manager(&webkit2gtk::UserContentManager::new()).build();
 
         widget.pack_start(&webview, true, true, 0);
 
-        let settings = webkit2gtk::WebViewExt::get_settings(&webview).unwrap();
+        let settings = WebViewExt::settings(&webview).unwrap();
 
         // settings.set_enable_scripts(true);
         // settings.set_enable_java_applet(false);
@@ -156,7 +155,7 @@ impl ThreadView {
 
         ctx.set_web_extensions_initialization_user_data(&remote.to_variant());
 
-        unsafe { gio::Socket::new_from_fd(RawFdWrap::from_raw_fd(local)) }.unwrap()
+        unsafe { gio::Socket::from_fd(RawFdWrap::from_raw_fd(local)) }.unwrap()
     }
 
     // general message adding and rendering
@@ -193,7 +192,7 @@ impl ThreadView {
             info!("message: {:?}", fname);
 
             let stream = gmime::StreamFile::open(&fname.to_string_lossy(), &"r").unwrap();
-            let parser = gmime::Parser::new_with_stream(&stream);
+            let parser = gmime::Parser::with_stream(&stream);
             let mmsg = parser.construct_message(None);
 
             info!("created mime message: {:?}", mmsg);
@@ -202,8 +201,8 @@ impl ThreadView {
 
             let mut hasnext = partiter.next();
             while hasnext {
-                let current = partiter.get_current().unwrap();
-                let parent = partiter.get_parent().unwrap();
+                let current = partiter.current().unwrap();
+                let parent = partiter.parent().unwrap();
 
                 let p = parent.downcast::<gmime::Multipart>();
                 let part = current.downcast::<gmime::Part>();
@@ -218,7 +217,7 @@ impl ThreadView {
         }
     }
 
-    async fn add_message(&mut self, message: &notmuch::Message<'_, notmuch::Thread<'_, '_>>) {
+    async fn add_message(&mut self, message: &notmuch::Message) {
         let mut client = self.page_client.clone();
 
         client.add_message(message);
@@ -300,17 +299,12 @@ impl ThreadView {
                     .downcast::<webkit2gtk::NavigationPolicyDecision>()
                     .unwrap();
 
-                if navigation_decision.get_navigation_type()
-                    == webkit2gtk::NavigationType::LinkClicked
+                if navigation_decision.navigation_type() == webkit2gtk::NavigationType::LinkClicked
                 {
                     decision.ignore();
 
                     // TODO: don't unwrap unconditionally
-                    let uri = navigation_decision
-                        .get_request()
-                        .unwrap()
-                        .get_uri()
-                        .unwrap();
+                    let uri = navigation_decision.request().unwrap().uri().unwrap();
                     info!("tv: navigating to: {}", uri);
 
                     let scheme = glib::uri_parse_scheme(&uri).unwrap();
@@ -342,7 +336,7 @@ impl ThreadView {
 
 // impl Update for ThreadView {
 //     type Model = ThreadViewModel;
-//     type ModelParam = Rc<EnamelApp>;
+//     type ModelParam = Rc<InoxApp>;
 //     type Msg = Msg;
 
 //     fn model(relm: &Relm<Self>, app: Self::ModelParam) -> Self::Model {

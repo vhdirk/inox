@@ -6,20 +6,20 @@ use cursive::Cursive;
 use cursive::views::{ViewRef, ListView};
 use cursive::view::Identifiable;
 
-use enamel_core::settings::Settings;
-use enamel_core::database::Manager as DBManager;
+use inox_core::settings::Settings;
+use inox_core::database::Manager as DBManager;
 
 use notmuch;
 
 use crate::thread_list::ThreadListView;
 
 
-pub struct EnamelApp {
+pub struct InoxApp {
     settings: Rc<Settings>,
     dbmanager: Rc<DBManager>
 }
 
-impl EnamelApp {
+impl InoxApp {
 
     pub fn new(siv: &mut Cursive, settings: Rc<Settings>) -> Self {
 

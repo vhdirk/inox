@@ -9,8 +9,6 @@ use crate::app::Action;
 use crate::widgets::thread_list_cell_renderer::CellRendererThread;
 use inox_core::database::Thread;
 
-type Threads = notmuch::Threads<'static, 'static>;
-
 const COLUMN_ID: u8 = 0;
 const COLUMN_THREAD: u8 = 1;
 const COLUMN_AUTHORS: u8 = 2;
@@ -35,7 +33,7 @@ pub struct ThreadList {
     model: gtk::ListStore,
     filter: gtk::TreeModelFilter,
     // idle_handle: RefCell<Option<glib::SourceId>>,
-    // thread_list: RefCell<Option<Arc<Threads>>>,
+    // thread_list: RefCell<Option<Threads>>,
 
     // num_threads: u32,
     // num_threads_loaded: u32
@@ -63,9 +61,9 @@ impl ThreadList {
         let sender = self.sender.clone();
 
         self.widget
-            .get_selection()
+            .selection()
             .connect_changed(move |selection| {
-                let selected = selection.get_selected();
+                let selected = selection.selected();
                 if selected.is_none() {
                     return;
                 }
@@ -74,8 +72,8 @@ impl ThreadList {
                 let store = model.downcast_ref::<gtk::ListStore>().unwrap();
 
                 let thread = if store.iter_is_valid(&iter) {
-                    let lval = store.get_value(&iter, COLUMN_THREAD as i32);
-                    lval.get::<&Thread>().unwrap_or(None).cloned()
+                    let lval = store.value(&iter, COLUMN_THREAD as i32);
+                    lval.get::<&Thread>().ok().cloned()
                 } else {
                     None
                 };
@@ -83,7 +81,7 @@ impl ThreadList {
             });
     }
 
-    pub fn set_threads(&self, threads: Threads) {
+    pub fn set_threads(&self, threads: notmuch::Threads) {
         let model = create_liststore();
         self.widget.set_model(Some(&model));
         for thread in threads {
@@ -92,18 +90,18 @@ impl ThreadList {
     }
 
     fn add_thread(&self, thread: Thread) {
-        let thread_id = thread.id().clone();
+        let thread_id = &(*thread.id()).to_owned();
 
-        self.widget
-            .get_model()
-            .unwrap()
-            .downcast_ref::<gtk::ListStore>()
-            .unwrap()
-            .insert_with_values(
-                None,
-                &[COLUMN_ID as u32, COLUMN_THREAD as u32],
-                &[&thread_id.to_value(), &thread],
-            );
+        // self.widget
+        //     .model()
+        //     .unwrap()
+        //     .downcast_ref::<gtk::ListStore>()
+        //     .unwrap()
+        //     .insert_with_values(
+        //         None,
+        //         &[COLUMN_ID as u32, COLUMN_THREAD as u32],
+        //         &[&thread_id.to_value(), &thread],
+        //     );
     }
 }
 
@@ -122,8 +120,8 @@ impl ThreadList {
 
 // use notmuch;
 
-// use enamel_core::database::Thread;
-// use crate::app::EnamelApp;
+// use inox_core::database::Thread;
+// use crate::app::InoxApp;
 
 // type Threads = notmuch::Threads<'static, 'static>;
 
@@ -185,7 +183,7 @@ impl ThreadList {
 
 // pub struct ThreadListModel {
 //     relm: Relm<ThreadList>,
-//     app: Rc<EnamelApp>,
+//     app: Rc<InoxApp>,
 
 //     idle_handle: Option<glib::SourceId>,
 //     thread_list: Option<Arc<Threads>>,
@@ -249,7 +247,7 @@ impl ThreadList {
 
 // impl Update for ThreadList {
 //     type Model = ThreadListModel;
-//     type ModelParam = Rc<EnamelApp>;
+//     type ModelParam = Rc<InoxApp>;
 //     type Msg = Msg;
 
 //     fn model(relm: &Relm<Self>, app: Self::ModelParam) -> Self::Model {

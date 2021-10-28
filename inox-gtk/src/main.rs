@@ -64,7 +64,7 @@ impl Default for Args {
 
 fn default_config_path() -> PathBuf {
     let mut default_config = dirs::config_dir().unwrap();
-    default_config.push("enamel");
+    default_config.push("inox");
     default_config.push("config");
     default_config.set_extension("toml");
     default_config
@@ -119,6 +119,8 @@ fn main() {
     // bindtextdomain(constants::PKGNAME, constants::LOCALEDIR);
     // textdomain(constants::PKGNAME);
 
+    let ctx = glib::MainContext::default();
+    let _guard = ctx.acquire().unwrap();
     // Run app itself
     InoxApplication::run(settings);
 }

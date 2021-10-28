@@ -7,7 +7,7 @@
 // use relm_derive::Msg;
 
 // use crate::app::Action;
-// use crate::app::EnamelApp;
+// use crate::app::InoxApp;
 
 // // use utils::{itunes_to_rss, refresh};
 
@@ -23,7 +23,7 @@
 
 
 // pub struct Model{
-//     app: Rc<EnamelApp>,
+//     app: Rc<InoxApp>,
 // }
 
 // struct Widgets{}
@@ -126,7 +126,7 @@
 
 // impl Update for HeaderBar{
 //     type Model = Model;
-//     type ModelParam = Rc<EnamelApp>;
+//     type ModelParam = Rc<InoxApp>;
 //     type Msg = Msg;
 
 

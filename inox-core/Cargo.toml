@@ -25,16 +25,15 @@ lazy_static = "1.0"
 vte = "0.3.2"
 chrono = { version = "0.4", features = ["serde"] }
 md5 = "0.3.7"
-supercow = "0.1.0"
 dirs = "1.0"
 
-gio = { git = "https://github.com/gtk-rs/gio" }
-glib = { git = "https://github.com/gtk-rs/glib" }
-glib-sys = { git = "https://github.com/gtk-rs/sys"}
-gio-sys = { git = "https://github.com/gtk-rs/sys"}
-gobject-sys = { git = "https://github.com/gtk-rs/sys"}
+gio = { git = "https://github.com/gtk-rs/gtk-rs-core" }
+glib = { git = "https://github.com/gtk-rs/gtk-rs-core" }
+glib-sys = { git = "https://github.com/gtk-rs/gtk-rs-core"}
+gio-sys = { git = "https://github.com/gtk-rs/gtk-rs-core"}
+gobject-sys = { git = "https://github.com/gtk-rs/gtk-rs-core"}
 
-notmuch = "*"
+notmuch = "0.7.0"
 gmime = { git = "https://github.com/vhdirk/gmime-rs"}
 
 # [patch.crates-io]

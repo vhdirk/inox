@@ -6,7 +6,7 @@ use std::io;
 use std::rc::Rc;
 
 use gio::prelude::*;
-use gio::{IOStreamExt, SocketExt};
+use gio::traits::{IOStreamExt, SocketExt};
 
 use log::*;
 
@@ -31,7 +31,7 @@ pub struct PageClient {
 
 impl PageClient {
     pub fn new(socket: gio::Socket) -> Self {
-        let connection = socket.connection_factory_create_connection().unwrap();
+        let connection = socket.connection_factory_create_connection();
         let stream = connection.into_async_read_write().unwrap();
         let (istream, ostream) = stream.split();
         let network = Box::new(VatNetwork::new(
@@ -45,18 +45,15 @@ impl PageClient {
         let client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
         let ctx = glib::MainContext::default();
-        ctx.push_thread_default();
-        ctx.spawn_local(rpc_system.then(move |result| {
-            debug!("rpc system result {:?}", result);
-            // TODO: do something with this result...
-            future::ready(())
-        }));
-        ctx.pop_thread_default();
+        ctx.with_thread_default(|| {
+            ctx.spawn_local(rpc_system.then(move |result| {
+                debug!("rpc system result {:?}", result);
+                // TODO: do something with this result...
+                future::ready(())
+            }))
+        });
 
-        Self {
-            socket,
-            client,
-        }
+        Self { socket, client }
     }
 
     pub async fn load(&mut self, theme: &ThreadViewTheme) -> () {
@@ -108,7 +105,7 @@ impl PageClient {
 
     pub async fn add_message(
         &mut self,
-        message: &notmuch::Message<'_, notmuch::Thread<'_, '_>>,
+        message: &notmuch::Message,
     ) -> () {
         // self.client.add_message(context::current(), self.serialize_message(message)).await.unwrap()
     }

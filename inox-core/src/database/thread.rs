@@ -32,7 +32,7 @@ impl Default for ThreadCache {
 #[gboxed(type_name = "inox_Thread")]
 pub struct Thread {
     #[serde(skip)]
-    thread: Option<Arc<notmuch::Thread<'static, 'static>>>,
+    thread: Option<notmuch::Thread>,
 
     cache: ThreadCache,
 }
@@ -42,9 +42,9 @@ const TAG_UNREAD: &str = "unread";
 const TAG_ATTACHMENT: &str = "attachment";
 
 impl Thread {
-    pub fn new(thread: notmuch::Thread<'static, 'static>) -> Self {
+    pub fn new(thread: notmuch::Thread) -> Self {
         Self {
-            thread: Some(Arc::new(thread)),
+            thread: Some(thread),
             cache: ThreadCache::default(),
         }
     }
@@ -72,51 +72,49 @@ impl Thread {
         self.has_tag(TAG_ATTACHMENT)
     }
 
-    pub fn id(self: &Self) -> &str {
+    pub fn id(&self) -> &str {
         self.thread.as_ref().unwrap().id()
     }
 
-    pub fn total_messages(self: &Self) -> i32 {
+    pub fn total_messages(&self) -> i32 {
         self.thread.as_ref().unwrap().total_messages()
     }
 
-    // pub fn total_files(self: &Self) -> i32 {
+    // pub fn total_files(&self) -> i32 {
     //     self.thread.as_ref().unwrap().total_files()
     // }
 
     pub fn toplevel_messages(
-        self: &Self,
-    ) -> notmuch::Messages<'_, notmuch::Thread<'static, 'static>> {
-        <notmuch::Thread<'static, 'static> as notmuch::ThreadExt<'static, 'static>>::toplevel_messages(self.thread.as_ref().unwrap().clone())
+        &self,
+    ) -> notmuch::Messages {
+        self.thread.as_ref().unwrap().toplevel_messages()
     }
 
-    pub fn matched_messages(self: &Self) -> i32 {
+    pub fn matched_messages(&self) -> i32 {
         self.thread.as_ref().unwrap().matched_messages()
     }
 
-    pub fn messages(self: &Self) -> Vec<Message> {
-        <notmuch::Thread<'static, 'static> as notmuch::ThreadExt<'static, 'static>>::messages(
-            self.thread.as_ref().unwrap().clone(),
-        )
+    pub fn messages(&self) -> Vec<Message> {
+        self.thread.as_ref().unwrap().messages()
         .map(Message::new)
         .collect()
     }
 
-    pub fn subject(self: &Self) -> Cow<'_, str> {
+    pub fn subject(&self) -> Cow<'_, str> {
         self.thread.as_ref().unwrap().subject()
     }
 
-    pub fn authors(self: &Self) -> Vec<String> {
+    pub fn authors(&self) -> Vec<String> {
         self.thread.as_ref().unwrap().authors()
     }
 
     /// Get the date of the oldest message in 'thread' as a time_t value.
-    pub fn oldest_date(self: &Self) -> i64 {
+    pub fn oldest_date(&self) -> i64 {
         self.thread.as_ref().unwrap().oldest_date()
     }
 
     /// Get the date of the newest message in 'thread' as a time_t value.
-    pub fn newest_date(self: &Self) -> i64 {
+    pub fn newest_date(&self) -> i64 {
         self.thread.as_ref().unwrap().newest_date()
     }
 }

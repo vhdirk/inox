@@ -1,30 +1,30 @@
-use std::rc::Rc;
-use std::cell::RefCell;
-use std::pin::Pin;
-use futures::Future;
-use futures::future::{self, TryFutureExt, FutureExt, Ready};
+use gio::prelude::IOStreamExtManual;
+use gio::prelude::SocketExt;
+use gio::Socket;
+use futures::channel::{oneshot, mpsc};
 use futures::future::BoxFuture;
+use futures::future::{self, FutureExt, Ready, TryFuture, TryFutureExt};
 use futures::io::AsyncReadExt;
 use futures::stream;
-use futures::channel::oneshot;
+use futures::Future;
+use std::cell::RefCell;
 use std::os::unix::io::{FromRawFd, RawFd};
 use std::os::unix::prelude::*;
+use std::pin::Pin;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use log::*;
-use pretty_env_logger;
 
 use glib::Cast;
 
-use gio;
-use gio::prelude::*;
 use glib::variant::Variant;
 
-use gtk::IconThemeExt;
-use webkit2gtk_webextension::{
-    web_extension_init_with_data, DOMDocument, DOMDocumentExt, DOMElementExt, DOMNodeExt,
-    WebExtension, WebExtensionExt, WebPage, WebPageExt,
+use gtk::traits::IconThemeExt;
+use webkit2gtk_webextension::traits::{
+    DOMDocumentExt, DOMElementExt, DOMNodeExt, WebExtensionExt, WebPageExt,
 };
+use webkit2gtk_webextension::{web_extension_init_with_data, DOMDocument, WebExtension, WebPage};
 
 use capnp::capability::Promise;
 use capnp::primitive_list;
@@ -33,9 +33,9 @@ use capnp::Error;
 use capnp_rpc::twoparty::VatNetwork;
 use capnp_rpc::{pry, rpc_twoparty_capnp, RpcSystem};
 
+// use crate::glib_receiver_future::GLibReceiverFuture;
 use crate::rpc::RawFdWrap;
 use crate::webext_capnp::page;
-use crate::glib_receiver_future::GLibReceiverFuture;
 
 web_extension_init_with_data!();
 
@@ -64,11 +64,11 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
 
     debug!("user data: {:?}", user_data);
     let socket_addr: RawFd = user_data.and_then(Variant::get::<RawFd>).unwrap();
-    let socket = unsafe { gio::Socket::new_from_fd(RawFdWrap::from_raw_fd(socket_addr)) }.unwrap();
+    let socket = unsafe { gio::Socket::from_fd(RawFdWrap::from_raw_fd(socket_addr)) }.unwrap();
 
     debug!("socket connected?: {:?}", socket.is_connected());
 
-    let connection = socket.connection_factory_create_connection().unwrap();
+    let connection = socket.connection_factory_create_connection();
     let stream = connection.into_async_read_write().unwrap();
     let (istream, ostream) = stream.split();
 
@@ -83,15 +83,14 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
     let page_srv = page::ToClient::new(webext).into_client::<capnp_rpc::Server>();
     let rpc_system = RpcSystem::new(network, Some(page_srv.clone().client));
 
-
     let ctx = glib::MainContext::default();
-    ctx.push_thread_default();
-    ctx.spawn_local(rpc_system.then(move |result| {
-        // TODO: do something with this result...
-        info!("rpc_system done? {:?}", result);
-        future::ready(())
-    }));
-    ctx.pop_thread_default();
+    ctx.with_thread_default(|| {
+        ctx.spawn_local(rpc_system.then(move |result| {
+            // TODO: do something with this result...
+            info!("rpc_system done? {:?}", result);
+            future::ready(())
+        }))
+    });
 }
 
 #[derive(Clone, Debug)]
@@ -103,25 +102,21 @@ pub struct ThreadViewWebExt {
     indent_messages: bool,
 }
 
+// fn page_loaded_future(
+//     extension: webkit2gtk_webextension::WebExtension,
+// ) -> Pin<Box<dyn Future<Output = webkit2gtk_webextension::WebPage> + 'static>> {
+//     let (sender, receiver) = mpsc::unbounded::<webkit2gtk_webextension::WebPage>();
 
-fn page_loaded_future(extension: webkit2gtk_webextension::WebExtension) -> Pin<Box<dyn Future<Output =webkit2gtk_webextension::WebPage>  + 'static>>
-{
-    let (gsender, greceiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+//     extension.connect_page_created(move |_, page| {
+//         info!("page created: {:?}", page.id());
+//         sender.unbounded_send(page.clone());
+//     });
 
-    extension.connect_page_created(move |_, page|{
-        info!("page created: {:?}", page.get_id());
-        gsender.send(page.clone());
-    });
-
-    Box::pin(GLibReceiverFuture::new(greceiver))
-}
+//     Box::pin(receiver.into_future())
+// }
 
 impl ThreadViewWebExt {
-    pub fn new(
-        socket: gio::Socket,
-        extension: webkit2gtk_webextension::WebExtension,
-    ) -> Self {
-
+    pub fn new(socket: gio::Socket, extension: webkit2gtk_webextension::WebExtension) -> Self {
         let mut webext = ThreadViewWebExt {
             socket,
             extension,
@@ -133,12 +128,11 @@ impl ThreadViewWebExt {
         webext
     }
 
-
     pub fn on_page_created(&mut self, page: &webkit2gtk_webextension::WebPage) {
         // debug!("on page created {:?}", self);
         // self.page = Some(page.clone());
         /* load attachment icon */
-        let theme = gtk::IconTheme::get_default().unwrap();
+        let theme = gtk::IconTheme::default().unwrap();
         let _attachment_icon = theme.load_icon(
             "mail-attachment-symbolic",
             ATTACHMENT_ICON_WIDTH,
@@ -186,38 +180,31 @@ impl ThreadViewWebExt {
         // });
     }
 
-    async fn _load(self,
+    async fn _load(
+        self,
         params: page::LoadParams,
         _results: page::LoadResults,
     ) -> Result<(), Error> {
-
-
-        page_loaded_future(self.extension.clone()).await;
+        // page_loaded_future(self.extension.clone()).await;
         // info!("page id: {}:?", page_id);
 
-
         Ok(())
-
     }
 
-    async fn _clear_messages(self,
+    async fn _clear_messages(
+        self,
         params: page::ClearMessagesParams,
         _results: page::ClearMessagesResults,
     ) -> Result<(), Error> {
-
-        page_loaded_future(self.extension.clone()).await;
-
+        // page_loaded_future(self.extension.clone()).await;
 
         // info!("page id: {}:?", page_id);
 
         debug!("clearing all messages");
 
         Ok(())
-
     }
-
 }
-
 
 impl page::Server for ThreadViewWebExt {
     fn allow_remote_images(
@@ -228,16 +215,10 @@ impl page::Server for ThreadViewWebExt {
         Promise::ok(())
     }
 
-    fn load(
-        &mut self,
-        params: page::LoadParams,
-        results: page::LoadResults,
-    ) -> Promise<(), Error> {
+    fn load(&mut self, params: page::LoadParams, results: page::LoadResults) -> Promise<(), Error> {
         // info!("loading page. page: {:?}", self.page);
 
         Promise::from_future(self.clone()._load(params, results))
-
-
 
         // let page = self.extension.get_page(0).unwrap();
         // let document: DOMDocument = page.get_dom_document().unwrap();
@@ -293,7 +274,6 @@ impl page::Server for ThreadViewWebExt {
         params: page::ClearMessagesParams,
         results: page::ClearMessagesResults,
     ) -> Promise<(), Error> {
-
         Promise::from_future(self.clone()._clear_messages(params, results))
 
         // debug!("clearing all messages. page: {:?}", self.page);
@@ -311,32 +291,31 @@ impl page::Server for ThreadViewWebExt {
         //   state = AstroidMessages::State();
         //   allow_remote_resources = false;
         //   indent_messages = false;
-
     }
 }
 
 fn scroll_by(page: &WebPage, pixels: i64) {
-    let document = page.get_dom_document().unwrap();
-    let body = document.get_body().unwrap();
-    body.set_scroll_top(body.get_scroll_top() + pixels);
+    let document = page.dom_document().unwrap();
+    let body = document.body().unwrap();
+    body.set_scroll_top(body.scroll_top() + pixels);
 }
 
 fn scroll_bottom(page: &WebPage) {
-    let document = page.get_dom_document().unwrap();
-    let body = document.get_body().unwrap();
-    body.set_scroll_top(body.get_scroll_height());
+    let document = page.dom_document().unwrap();
+    let body = document.body().unwrap();
+    body.set_scroll_top(body.scroll_height());
 }
 
 fn scroll_percentage(page: &WebPage) -> i64 {
-    let document = page.get_dom_document().unwrap();
-    let body = document.get_body().unwrap();
-    let document = document.get_document_element().unwrap();
-    let height = document.get_client_height();
-    (body.get_scroll_top() as f64 / (body.get_scroll_height() as f64 - height) * 100.0) as i64
+    let document = page.dom_document().unwrap();
+    let body = document.body().unwrap();
+    let document = document.document_element().unwrap();
+    let height = document.client_height();
+    (body.scroll_top() as f64 / (body.scroll_height() as f64 - height) * 100.0) as i64
 }
 
 fn scroll_top(page: &WebPage) {
-    let document = page.get_dom_document().unwrap();
-    let body = document.get_body().unwrap();
+    let document = page.dom_document().unwrap();
+    let body = document.body().unwrap();
     body.set_scroll_top(0);
 }

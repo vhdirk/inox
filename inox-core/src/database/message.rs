@@ -1,3 +1,4 @@
+use std::path::Path;
 use glib::subclass::boxed::BoxedType;
 use glib::GBoxed;
 use serde::{Deserialize, Serialize};
@@ -31,15 +32,15 @@ impl Default for MessageCache {
 #[gboxed(type_name = "inox_Message")]
 pub struct Message {
     #[serde(skip)]
-    message: Option<Arc<notmuch::Message<'static, notmuch::Thread<'static, 'static>>>>,
+    message: Option<notmuch::Message>,
 
     cache: MessageCache,
 }
 
 impl Message {
-    pub fn new(message: notmuch::Message<'static, notmuch::Thread<'static, 'static>>) -> Self {
+    pub fn new(message: notmuch::Message) -> Self {
         Self {
-            message: Some(Arc::new(message)),
+            message: Some(message),
             cache: MessageCache::default(),
         }
     }
@@ -49,15 +50,15 @@ impl Message {
         id.replace(",", "_")
     }
 
-    pub fn id(self: &Self) -> Cow<'_, str> {
+    pub fn id(&self) -> Cow<'_, str> {
         self.message.as_ref().unwrap().id()
     }
 
-    pub fn thread_id(self: &Self) -> Cow<'_, str> {
+    pub fn thread_id(&self) -> Cow<'_, str> {
         self.message.as_ref().unwrap().thread_id()
     }
 
-    //     pub fn replies(self: &Self) -> Messages<'o, O> {
+    //     pub fn replies(&self) -> Messages<'o, O> {
     //         Messages::<'o, O>::from_ptr(
     //             unsafe { ffi::notmuch_message_get_replies(self.ptr) },
     //             // will never panic since the borrow is released immediately
@@ -66,15 +67,15 @@ impl Message {
     //     }
 
     //     #[cfg(feature = "v0_26")]
-    //     pub fn count_files(self: &Self) -> i32 {
+    //     pub fn count_files(&self) -> i32 {
     //         unsafe { ffi::notmuch_message_count_files(self.ptr) }
     //     }
 
-    //     pub fn filenames(self: &Self) -> Filenames<Self> {
+    //     pub fn filenames(&self) -> Filenames<Self> {
     //         <Self as MessageExt<'o, O>>::filenames(self)
     //     }
 
-    pub fn filename(self: &Self) -> PathBuf {
+    pub fn filename(&self) -> &Path {
         self.message.as_ref().unwrap().filename()
     }
 
@@ -101,37 +102,37 @@ impl Message {
     //         <Self as MessageExt<'o, O>>::tags(self)
     //     }
 
-    //     pub fn add_tag(self: &Self, tag: &str) -> Result<()> {
+    //     pub fn add_tag(&self, tag: &str) -> Result<()> {
     //         let tag = CString::new(tag).unwrap();
     //         unsafe { ffi::notmuch_message_add_tag(self.ptr, tag.as_ptr()) }.as_result()
     //     }
 
-    //     pub fn remove_tag(self: &Self, tag: &str) -> Result<()> {
+    //     pub fn remove_tag(&self, tag: &str) -> Result<()> {
     //         let tag = CString::new(tag).unwrap();
     //         unsafe { ffi::notmuch_message_remove_tag(self.ptr, tag.as_ptr()) }.as_result()
     //     }
 
-    //     pub fn remove_all_tags(self: &Self) -> Result<()> {
+    //     pub fn remove_all_tags(&self) -> Result<()> {
     //         unsafe { ffi::notmuch_message_remove_all_tags(self.ptr) }.as_result()
     //     }
 
-    //     pub fn tags_to_maildir_flags(self: &Self) -> Result<()> {
+    //     pub fn tags_to_maildir_flags(&self) -> Result<()> {
     //         unsafe { ffi::notmuch_message_tags_to_maildir_flags(self.ptr) }.as_result()
     //     }
 
-    //     pub fn maildir_flags_to_tags(self: &Self) -> Result<()> {
+    //     pub fn maildir_flags_to_tags(&self) -> Result<()> {
     //         unsafe { ffi::notmuch_message_maildir_flags_to_tags(self.ptr) }.as_result()
     //     }
 
-    //     pub fn reindex<'d>(self: &Self, indexopts: IndexOpts<'d>) -> Result<()> {
+    //     pub fn reindex<'d>(&self, indexopts: IndexOpts<'d>) -> Result<()> {
     //         unsafe { ffi::notmuch_message_reindex(self.ptr, indexopts.ptr) }.as_result()
     //     }
 
-    //     pub fn freeze(self: &Self) -> Result<()> {
+    //     pub fn freeze(&self) -> Result<()> {
     //         unsafe { ffi::notmuch_message_freeze(self.ptr) }.as_result()
     //     }
 
-    //     pub fn thaw(self: &Self) -> Result<()> {
+    //     pub fn thaw(&self) -> Result<()> {
     //         unsafe { ffi::notmuch_message_thaw(self.ptr) }.as_result()
     //     }
 

@@ -17,7 +17,7 @@ use cursive::utils::markup::StyledString;
 
 use notmuch;
 
-use enamel_core::database::Manager as DBManager;
+use inox_core::database::Manager as DBManager;
 use crate::lazy_list_view::{LazyListView, LazyView, LazyViewWrapper};
 use crate::wrap_lazy_impl;
 
@@ -36,7 +36,7 @@ impl ThreadLineView {
         let view = LinearLayout::new(Horizontal)
             //.child(TextView::new(tags.join(" ")))
             //
-            
+
             .child(TextView::new(StyledString::styled(tags.join(" "), Color::Dark(BaseColor::Blue))))
             .child(TextView::new(thread.subject()));
 
@@ -52,7 +52,7 @@ impl ViewWrapper for ThreadLineView {
     cursive::wrap_impl!(self.view: LinearLayout);
 
     fn wrap_draw(&self, printer: &Printer<'_, '_>) {
-        
+
         let color = if printer.focused {
             ColorStyle::highlight()
         } else {
@@ -61,7 +61,7 @@ impl ViewWrapper for ThreadLineView {
 
         printer.with_color(color, |printer| {
             self.with_view(|v| v.draw(printer));
-        });        
+        });
     }
 
     // always focusable
@@ -104,7 +104,7 @@ impl ThreadListView {
 
         let o_threads = <notmuch::Query as notmuch::QueryExt>::search_threads(query).unwrap();
         self.threads = Some(Rc::new(RefCell::new(o_threads)));
-        
+
         let threads = self.threads.clone();
 
         // self.load_data();
@@ -170,7 +170,7 @@ impl ViewWrapper for ThreadListView {
 //         EventResult::Consumed(None)
 //         // self.view.set_on_load(move |siv, tlv|{
 //         //     let mut num = 0;
-//         //     
+//         //
 //         // });
 
 //     }

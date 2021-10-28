@@ -5,4 +5,4 @@ pub mod webext_capnp {
 
 pub mod rpc;
 pub mod thread_view_webext;
-pub mod glib_receiver_future;
+// pub mod glib_receiver_future;

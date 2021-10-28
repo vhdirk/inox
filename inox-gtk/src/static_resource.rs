@@ -2,7 +2,7 @@ use gio;
 use gio::Resource;
 use glib::{Bytes, Error};
 use gtk;
-use gtk::BuilderExt;
+use gtk::traits::BuilderExt;
 
 pub fn init() -> Result<(), Error> {
     // load the gresource binary at build time and include/link it into the final
@@ -11,7 +11,7 @@ pub fn init() -> Result<(), Error> {
 
     // Create Resource it will live as long the value lives.
     let gbytes = Bytes::from_static(res_bytes.as_ref());
-    let resource = Resource::new_from_data(&gbytes)?;
+    let resource = Resource::from_data(&gbytes)?;
 
     // Register the resource so It wont be dropped and will continue to live in
     // memory.

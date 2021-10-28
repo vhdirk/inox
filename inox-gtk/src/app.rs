@@ -1,20 +1,22 @@
 #![allow(new_without_default)]
+use gio::ApplicationFlags;
+use once_cell::unsync::OnceCell;
 use std;
 use std::cell::RefCell;
 use std::env;
 use std::rc::Rc;
 
 use std::path::PathBuf;
-use std::sync::Arc;
 
-use gio::subclass::prelude::ApplicationImpl;
-use gio::{self, prelude::*, ApplicationExt, ApplicationFlags};
-use glib::subclass::{self, prelude::*};
+use gio::Application;
+use glib::clone::Upgrade;
+use glib::prelude::*;
+use glib::subclass::prelude::*;
 use glib::translate::*;
-use glib::{glib_object_impl, glib_object_subclass, glib_object_wrapper, glib_wrapper};
 use glib::{Receiver, Sender};
 use gtk::prelude::*;
 use gtk::subclass::application::GtkApplicationImpl;
+use gtk::subclass::prelude::*;
 use log::*;
 
 use crate::constants;
@@ -36,7 +38,7 @@ use inox_core::settings::Settings;
 pub enum Action {
     SelectTag(Option<String>),
     Search(String),
-    Query(Arc<notmuch::Query<'static>>),
+    Query(notmuch::Query),
     SelectThread(Option<Thread>), // Reload,
                                   // ViewShowLibrary,
                                   // ViewShowPlayer,
@@ -55,107 +57,113 @@ pub enum Action {
                                   // SettingsKeyChanged(Key)
 }
 
-pub struct InoxApplicationPrivate {
-    sender: Sender<Action>,
-    receiver: RefCell<Option<Receiver<Action>>>,
+mod imp {
+    use super::*;
+    use gtk::glib::WeakRef;
+    use once_cell::sync::OnceCell;
 
-    window: RefCell<Option<MainWindow>>,
-    database: RefCell<Option<Arc<notmuch::Database>>>,
-    // pub player: Player,
-    // pub library: Library,
-    // pub storefront: StoreFront,
-    settings: RefCell<Option<Rc<Settings>>>,
-}
+    pub struct InoxApplication {
+        pub sender: Sender<Action>,
+        pub receiver: RefCell<Option<Receiver<Action>>>,
 
-impl ObjectSubclass for InoxApplicationPrivate {
-    const NAME: &'static str = "InoxApplication";
-    type ParentType = gtk::Application;
-    type Instance = subclass::simple::InstanceStruct<Self>;
-    type Class = subclass::simple::ClassStruct<Self>;
+        pub window: OnceCell<WeakRef<MainWindow>>,
+        pub database: RefCell<Option<notmuch::Database>>,
+        // pub player: Player,
+        // pub library: Library,
+        // pub storefront: StoreFront,
+        pub settings: RefCell<Option<Rc<Settings>>>,
+    }
 
-    glib_object_subclass!();
+    #[glib::object_subclass]
+    impl ObjectSubclass for InoxApplication {
+        const NAME: &'static str = "InoxApplication";
+        type ParentType = gtk::Application;
+        type Type = super::InoxApplication;
 
-    fn new() -> Self {
-        let (sender, recv) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-        let receiver = RefCell::new(Some(recv));
+        fn new() -> Self {
+            let (sender, recv) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+            let receiver = RefCell::new(Some(recv));
 
-        let window = RefCell::new(None);
-        // let player = Player::new(sender.clone());
-        // let library = Library::new(sender.clone());
-        // let storefront = StoreFront::new(sender.clone());
+            let window = OnceCell::new();
+            // let player = Player::new(sender.clone());
+            // let library = Library::new(sender.clone());
+            // let storefront = StoreFront::new(sender.clone());
 
-        Self {
-            sender,
-            receiver,
-            window,
-            database: RefCell::new(None),
-            settings: RefCell::new(None),
+            Self {
+                sender,
+                receiver,
+                window,
+                database: RefCell::new(None),
+                settings: RefCell::new(None),
+            }
+        }
+    }
+
+    // Implement GLib.Object for InoxApplication
+    impl ObjectImpl for InoxApplication {}
+
+    // Implement Gtk.Application for InoxApplication
+    impl GtkApplicationImpl for InoxApplication {}
+
+    // Implement Gio.Application for InoxApplication
+    impl ApplicationImpl for InoxApplication {
+        // fn startup(&self, app: &Self::Type) {
+        //     self.parent_startup(app);
+
+        //     let app = app.downcast_ref::<super::InoxApplication>().unwrap();
+        //     let imp = InoxApplication::from_instance(app);
+        //     let window = MainWindow::new(imp.sender.clone(), app.clone());
+        //     imp.window
+        //         .set(window)
+        //         .expect("Failed to initialize application window");
+        // }
+
+        fn activate(&self, app: &Self::Type) {
+            debug!("gio::Application -> activate()");
+            let app = app.downcast_ref::<super::InoxApplication>().unwrap();
+
+            // If the window already exists,
+            // present it instead creating a new one again.
+            if let Some(weak_window) = self.window.get() {
+                let window = weak_window.upgrade().unwrap();
+                window.present();
+                info!("Application window presented.");
+                return;
+            }
+
+            // No window available -> we have to create one
+            let window = app.create_window();
+            let _ = self.window.set(window.downgrade());
+            info!("Created application window.");
+
+            let db = app.init_database();
+            self.database.replace(Some(db.clone()));
+
+            // Setup action channel
+            let receiver = self.receiver.borrow_mut().take().unwrap();
+            // receiver.attach(None, move |action| app.process_action(action));
+
+            // Setup settings signal (we get notified when a key gets changed)
+            // self.settings.connect_changed(clone!(@strong self.sender as sender => move |_, key_str| {
+            //     let key: Key = Key::from_str(key_str).unwrap();
+            //     send!(sender, Action::SettingsKeyChanged(key));
+            // }));
+
+            // List all setting keys
+            // settings_manager::list_keys();
+
+            // Small workaround to update every view to the correct sorting/order.
+            // send!(self.sender, Action::SettingsKeyChanged(Key::ViewSorting));
         }
     }
 }
 
-// Implement GLib.Object for InoxApplication
-impl ObjectImpl for InoxApplicationPrivate {
-    glib_object_impl!();
-}
+// Wrap InoxApplicationImpl into a usable gtk-rs object
 
-// Implement Gtk.Application for InoxApplication
-impl GtkApplicationImpl for InoxApplicationPrivate {}
-
-// Implement Gio.Application for InoxApplication
-impl ApplicationImpl for InoxApplicationPrivate {
-    fn activate(&self, _app: &gio::Application) {
-        debug!("gio::Application -> activate()");
-
-        // If the window already exists,
-        // present it instead creating a new one again.
-        if let Some(ref window) = *self.window.borrow() {
-            window.present();
-            info!("Application window presented.");
-            return;
-        }
-
-        // No window available -> we have to create one
-        let app = ObjectSubclass::get_instance(self)
-            .downcast::<InoxApplication>()
-            .unwrap();
-        let window = app.create_window();
-        window.present();
-        self.window.replace(Some(window));
-        info!("Created application window.");
-
-        let db = app.init_database();
-        self.database.replace(Some(db.clone()));
-
-        // Setup action channel
-        let receiver = self.receiver.borrow_mut().take().unwrap();
-        receiver.attach(None, move |action| app.process_action(action));
-
-        // Setup settings signal (we get notified when a key gets changed)
-        // self.settings.connect_changed(clone!(@strong self.sender as sender => move |_, key_str| {
-        //     let key: Key = Key::from_str(key_str).unwrap();
-        //     send!(sender, Action::SettingsKeyChanged(key));
-        // }));
-
-        // List all setting keys
-        // settings_manager::list_keys();
-
-        // Small workaround to update every view to the correct sorting/order.
-        // send!(self.sender, Action::SettingsKeyChanged(Key::ViewSorting));
-    }
-}
-
-// Wrap InoxApplicationPrivate into a usable gtk-rs object
-glib_wrapper! {
-    pub struct InoxApplication(
-        Object<subclass::simple::InstanceStruct<InoxApplicationPrivate>,
-        subclass::simple::ClassStruct<InoxApplicationPrivate>,
-        InoxApplicationClass>)
-        @extends gio::Application, gtk::Application;
-
-    match fn {
-        get_type => || InoxApplicationPrivate::get_type().to_glib(),
-    }
+glib::wrapper! {
+    pub struct InoxApplication(ObjectSubclass<imp::InoxApplication>)
+        @extends gio::Application, gtk::Application,
+        @implements gio::ActionMap, gio::ActionGroup;
 }
 
 impl InoxApplication {
@@ -169,55 +177,49 @@ impl InoxApplication {
         // info!("Isahc version: {}", isahc::version());
 
         // Create new GObject and downcast it into InoxApplication
-        let app = glib::Object::new(
-            InoxApplication::static_type(),
-            &[
-                ("application-id", &Some(constants::APPLICATION_ID)),
-                ("flags", &ApplicationFlags::empty()),
-            ],
-        )
-        .unwrap()
-        .downcast::<InoxApplication>()
+        let app: Self = glib::Object::new(&[
+            ("application-id", &Some(constants::APPLICATION_ID)),
+            ("flags", &ApplicationFlags::empty()),
+            ("resource-base-path", &Some(constants::RESOURCE_BASE_PATH)),
+        ])
         .unwrap();
 
-        app.set_resource_base_path(Some("/com/github/vhdirk/Inox"));
-        let self_ = InoxApplicationPrivate::from_instance(&app);
+        let imp = imp::InoxApplication::from_instance(&app);
 
-        self_.settings.replace(Some(settings));
+        imp.settings.replace(Some(settings));
 
         // Start running gtk::Application
         let args: Vec<String> = env::args().collect();
-        ApplicationExtManual::run(&app, &args);
+        app.run_with_args(&args);
     }
 
     fn create_window(&self) -> MainWindow {
-        let self_ = InoxApplicationPrivate::from_instance(self);
-        let window = MainWindow::new(self_.sender.clone(), self.clone());
+        let imp = imp::InoxApplication::from_instance(self);
+        let window = MainWindow::new(imp.sender.clone(), self.clone());
 
         // // Load custom styling
         // let p = gtk::CssProvider::new();
         // gtk::CssProvider::load_from_resource(&p, "/de/haeckerfelix/Shortwave/gtk/style.css");
         // gtk::StyleContext::add_provider_for_screen(&gdk::Screen::get_default().unwrap(), &p, 500);
 
-        // // Set initial view
+        /// Set initial view
         // window.set_view(View::Library);
 
         // // Setup help overlay
         // let builder = gtk::Builder::new_from_resource("/de/haeckerfelix/Shortwave/gtk/shortcuts.ui");
         // get_widget!(builder, gtk::ShortcutsWindow, shortcuts);
         // window.set_help_overlay(Some(&shortcuts));
-
-        self_.sender.send(Action::Search("*".to_string())).unwrap();
+        imp.sender.send(Action::Search("*".to_string())).unwrap();
+        window.present();
 
         window
     }
 
-    fn init_database(&self) -> Arc<notmuch::Database> {
-        let self_ = InoxApplicationPrivate::from_instance(self);
+    fn init_database(&self) -> notmuch::Database {
+        let imp = imp::InoxApplication::from_instance(self);
 
         let db_path = PathBuf::from(
-            &self_
-                .settings
+            &imp.settings
                 .borrow()
                 .as_ref()
                 .unwrap()
@@ -226,82 +228,81 @@ impl InoxApplication {
                 .path
                 .clone(),
         );
-        let database =
-            Arc::new(notmuch::Database::open(&db_path, notmuch::DatabaseMode::ReadOnly).unwrap());
+        let database = notmuch::Database::open(&db_path, notmuch::DatabaseMode::ReadOnly).unwrap();
 
         database
     }
 
-    fn process_action(&self, action: Action) -> glib::Continue {
-        let self_ = InoxApplicationPrivate::from_instance(self);
+    // fn process_action(&self, action: Action) -> glib::Continue {
+    //     let imp = InoxApplicationImpl::from_instance(self);
 
-        debug!("processing action {:?}", action);
+    //     debug!("processing action {:?}", action);
 
-        match action {
-            Action::SelectTag(tag) => {
-                let search = match tag {
-                    Some(val) => format!("tag:\"{}\"", val),
-                    None => "".to_string(),
-                };
-                self_
-                    .sender
-                    .send(Action::Search(search.to_owned()))
-                    .unwrap()
-            }
-            Action::Search(search) => self_
-                .sender
-                .send(Action::Query(Arc::new(
-                    notmuch::Query::create(
-                        self_.database.borrow().as_ref().unwrap().clone(),
-                        &search,
-                    )
-                    .unwrap(),
-                )))
-                .unwrap(),
-            Action::Query(query) => self.perform_search(query),
-            Action::SelectThread(thread) => self.open_thread(thread),
-            // Action::ViewShowDiscover => self_.window.borrow().as_ref().unwrap().set_view(View::Discover),
-            // Action::ViewShowLibrary => self_.window.borrow().as_ref().unwrap().set_view(View::Library),
-            // Action::ViewShowPlayer => self_.window.borrow().as_ref().unwrap().set_view(View::Player),
-            // Action::ViewRaise => self_.window.borrow().as_ref().unwrap().present_with_time((glib::get_monotonic_time() / 1000) as u32),
-            // Action::ViewShowNotification(notification) => self_.window.borrow().as_ref().unwrap().show_notification(notification),
-            // Action::PlaybackConnectGCastDevice(device) => self_.player.connect_to_gcast_device(device),
-            // Action::PlaybackDisconnectGCastDevice => self_.player.disconnect_from_gcast_device(),
-            // Action::PlaybackSetStation(station) => {
-            //     self_.player.set_station(*station);
-            //     self_.window.borrow().as_ref().unwrap().show_player_widget(self_.player.widget.clone());
-            // }
-            // Action::PlaybackStart => self_.player.set_playback(PlaybackState::Playing),
-            // Action::PlaybackStop => self_.player.set_playback(PlaybackState::Stopped),
-            // Action::PlaybackSetVolume(volume) => self_.player.set_volume(volume),
-            // Action::PlaybackSaveSong(song) => self_.player.save_song(song),
-            // Action::LibraryAddStations(stations) => self_.library.add_stations(stations),
-            // Action::LibraryRemoveStations(stations) => self_.library.remove_stations(stations),
-            // Action::SearchFor(data) => self_.storefront.search_for(data),
-            // Action::SettingsKeyChanged(key) => {
-            //     debug!("Settings key changed: {:?}", &key);
-            //     match key {
-            //         Key::ViewSorting | Key::ViewOrder => {
-            //             let sorting: Sorting = Sorting::from_str(&settings_manager::get_string(Key::ViewSorting)).unwrap();
-            //             let order: Order = Order::from_str(&settings_manager::get_string(Key::ViewOrder)).unwrap();
-            //             self_.library.set_sorting(sorting, order);
-            //         }
-            //         _ => (),
-            //     }
-            //}
-        }
-        glib::Continue(true)
-    }
+    //     match action {
+    //         Action::SelectTag(tag) => {
+    //             let search = match tag {
+    //                 Some(val) => format!("tag:\"{}\"", val),
+    //                 None => "".to_string(),
+    //             };
+    //             imp
+    //                 .sender
+    //                 .send(Action::Search(search.to_owned()))
+    //                 .unwrap()
+    //         }
+    //         Action::Search(search) => imp
+    //             .sender
+    //             .send(Action::Query(
+    //                 notmuch::Query::create(
+    //                     imp.database.borrow().as_ref().unwrap().clone(),
+    //                     &search,
+    //                 )
+    //                 .unwrap(),
+    //             ))
+    //             .unwrap(),
+    //         Action::Query(query) => self.perform_search(&query),
+    //         Action::SelectThread(thread) => self.open_thread(thread),
+    //         // Action::ViewShowDiscover => imp.window.borrow().as_ref().unwrap().set_view(View::Discover),
+    //         // Action::ViewShowLibrary => imp.window.borrow().as_ref().unwrap().set_view(View::Library),
+    //         // Action::ViewShowPlayer => imp.window.borrow().as_ref().unwrap().set_view(View::Player),
+    //         // Action::ViewRaise => imp.window.borrow().as_ref().unwrap().present_with_time((glib::get_monotonic_time() / 1000) as u32),
+    //         // Action::ViewShowNotification(notification) => imp.window.borrow().as_ref().unwrap().show_notification(notification),
+    //         // Action::PlaybackConnectGCastDevice(device) => imp.player.connect_to_gcast_device(device),
+    //         // Action::PlaybackDisconnectGCastDevice => imp.player.disconnect_from_gcast_device(),
+    //         // Action::PlaybackSetStation(station) => {
+    //         //     imp.player.set_station(*station);
+    //         //     imp.window.borrow().as_ref().unwrap().show_player_widget(imp.player.widget.clone());
+    //         // }
+    //         // Action::PlaybackStart => imp.player.set_playback(PlaybackState::Playing),
+    //         // Action::PlaybackStop => imp.player.set_playback(PlaybackState::Stopped),
+    //         // Action::PlaybackSetVolume(volume) => imp.player.set_volume(volume),
+    //         // Action::PlaybackSaveSong(song) => imp.player.save_song(song),
+    //         // Action::LibraryAddStations(stations) => imp.library.add_stations(stations),
+    //         // Action::LibraryRemoveStations(stations) => imp.library.remove_stations(stations),
+    //         // Action::SearchFor(data) => imp.storefront.search_for(data),
+    //         // Action::SettingsKeyChanged(key) => {
+    //         //     debug!("Settings key changed: {:?}", &key);
+    //         //     match key {
+    //         //         Key::ViewSorting | Key::ViewOrder => {
+    //         //             let sorting: Sorting = Sorting::from_str(&settings_manager::get_string(Key::ViewSorting)).unwrap();
+    //         //             let order: Order = Order::from_str(&settings_manager::get_string(Key::ViewOrder)).unwrap();
+    //         //             imp.library.set_sorting(sorting, order);
+    //         //         }
+    //         //         _ => (),
+    //         //     }
+    //         //}
+    //     }
+    //     glib::Continue(true)
+    // }
 
-    fn perform_search(&self, query: Arc<notmuch::Query<'static>>) {
-        let self_ = InoxApplicationPrivate::from_instance(self);
-        self_.window.borrow().as_ref().unwrap().set_query(query);
-    }
+    // fn perform_search(&self, query: &notmuch::Query) {
+    //     let imp = InoxApplicationImpl::from_instance(self);
+    //     imp.window.borrow().as_ref().unwrap().set_query(query);
+    // }
 
-    fn open_thread(&self, thread: Option<Thread>) {
-        let self_ = InoxApplicationPrivate::from_instance(self);
-        self_.window.borrow().as_ref().unwrap().open_thread(thread);
-    }
+    // fn open_thread(&self, thread: Option<Thread>) {
+    //     let imp = InoxApplicationImpl::from_instance(self);
+    //     imp.window.borrow().as_ref().unwrap().open_thread(thread);
+    // }
 }
 
 // #[derive(Debug, Clone)]

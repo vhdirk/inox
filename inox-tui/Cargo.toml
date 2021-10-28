@@ -23,7 +23,6 @@ serde_derive = "*"
 serde_ini = "*"
 lazy_static = "1.0"
 vte = "0.3.2"
-supercow = "0.1.0"
 dirs = "1.0.4"
 unicode-width = "0.1.5"
 
@@ -40,7 +39,7 @@ cursive = "*"
 
 inox-core = { path = "../inox-core" }
 
-notmuch = "*"
+notmuch = "0.7.0"
 gmime = { git = "https://github.com/vhdirk/gmime-rs"}
 
 # [patch.crates-io]

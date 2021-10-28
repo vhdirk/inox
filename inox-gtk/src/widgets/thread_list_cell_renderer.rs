@@ -23,8 +23,6 @@ use glib::subclass;
 use glib::subclass::prelude::*;
 use gtk::subclass::cell_renderer::CellRendererImpl;
 
-use glib::{glib_object_impl, glib_object_subclass, glib_object_wrapper, glib_wrapper};
-
 use super::util::*;
 
 use inox_core::database::Thread;
@@ -161,43 +159,18 @@ mod imp {
 
     // The actual data structure that stores our values. This is not accessible
     // directly from the outside.
+    #[derive(Default)]
     pub struct CellRendererThread {
         thread: RefCell<Option<Thread>>,
         settings: RefCell<CellRendererThreadSettings>,
         cache: RefCell<CellRendererThreadCache>,
     }
 
-    // GObject property definitions for our two values
-    static PROPERTIES: [subclass::Property; 1] = [subclass::Property("thread", |thread| {
-        glib::ParamSpec::boxed(
-            thread,
-            "Thread to display",
-            "Handle of notmuch::Thread to display",
-            Thread::static_type(),
-            glib::ParamFlags::READWRITE,
-        )
-    })];
-
-    // Basic declaration of our type for the GObject type system
+    #[glib::object_subclass]
     impl ObjectSubclass for CellRendererThread {
         const NAME: &'static str = "inox_CellRendererThread";
+        type Type = super::CellRendererThread;
         type ParentType = gtk::CellRenderer;
-        type Instance = subclass::simple::InstanceStruct<Self>;
-        type Class = subclass::simple::ClassStruct<Self>;
-
-        glib_object_subclass!();
-
-        fn class_init(klass: &mut Self::Class) {
-            klass.install_properties(&PROPERTIES);
-        }
-
-        fn new() -> Self {
-            Self {
-                thread: RefCell::new(None),
-                settings: RefCell::new(CellRendererThreadSettings::default()),
-                cache: RefCell::new(CellRendererThreadCache::default()),
-            }
-        }
     }
 
     // The ObjectImpl trait provides the setters/getters for GObject properties.
@@ -207,27 +180,42 @@ mod imp {
     // This maps between the GObject properties and our internal storage of the
     // corresponding values of the properties.
     impl ObjectImpl for CellRendererThread {
-        glib_object_impl!();
+        fn properties() -> &'static [glib::ParamSpec] {
+            use once_cell::sync::Lazy;
+            static PROPERTIES: Lazy<Vec<glib::ParamSpec>> = Lazy::new(|| {
+                vec![glib::ParamSpec::new_boxed(
+                    "thread",
+                    "Thread to display",
+                    "Handle of notmuch::Thread to display",
+                    Thread::static_type(),
+                    glib::ParamFlags::READWRITE,
+                )]
+            });
 
-        fn set_property(&self, _obj: &glib::Object, id: usize, value: &glib::Value) {
-            let prop = &PROPERTIES[id];
+            PROPERTIES.as_ref()
+        }
 
-            match *prop {
-                subclass::Property("thread", ..) => {
+        fn set_property(
+            &self,
+            _obj: &Self::Type,
+            _id: usize,
+            value: &glib::Value,
+            pspec: &glib::ParamSpec,
+        ) {
+            match pspec.name() {
+                "thread" => {
                     let thread = value
                         .get::<&Thread>()
                         .expect("Value did not actually contain an AnyValue");
-                    *(self.thread.borrow_mut()) = Some(thread.unwrap().clone());
+                    *(self.thread.borrow_mut()) = Some(thread.clone());
                 }
                 _ => unimplemented!(),
             }
         }
 
-        fn get_property(&self, _obj: &glib::Object, id: usize) -> Result<glib::Value, ()> {
-            let prop = &PROPERTIES[id];
-
-            match *prop {
-                subclass::Property("thread", ..) => Ok("1".to_value()),
+        fn property(&self, _obj: &Self::Type, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
+            match pspec.name() {
+                "thread" => "1".to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -236,7 +224,7 @@ mod imp {
     impl CellRendererImpl for CellRendererThread {
         fn render<P: IsA<gtk::Widget>>(
             &self,
-            renderer: &gtk::CellRenderer,
+            renderer: &Self::Type,
             cr: &cairo::Context,
             widget: &P,
             background_area: &gtk::Rectangle,
@@ -270,7 +258,7 @@ mod imp {
             }
 
             self.render_background(
-                &renderer,
+                renderer,
                 &cr,
                 widget.as_ref(),
                 &background_area,
@@ -278,7 +266,7 @@ mod imp {
                 flags,
             );
             self.render_date(
-                &renderer,
+                renderer,
                 &cr,
                 widget.as_ref(),
                 &background_area,
@@ -289,7 +277,7 @@ mod imp {
             if thread.total_messages() > 1 {
                 //render_message_count (cr, widget, cell_area);
                 self.render_authors(
-                    &renderer,
+                    renderer,
                     &cr,
                     widget.as_ref(),
                     &background_area,
@@ -299,7 +287,7 @@ mod imp {
             }
 
             self.render_authors(
-                &renderer,
+                renderer,
                 &cr,
                 widget.as_ref(),
                 &background_area,
@@ -308,7 +296,7 @@ mod imp {
             );
 
             let tags_width = self.render_tags(
-                &renderer,
+                renderer,
                 &cr,
                 widget.as_ref(),
                 &background_area,
@@ -326,7 +314,7 @@ mod imp {
             }
             //
             self.render_subject(
-                &renderer,
+                renderer,
                 &cr,
                 widget.as_ref(),
                 &background_area,
@@ -339,7 +327,7 @@ mod imp {
             //
             if thread.has_attachment() {
                 self.render_attachment(
-                    &renderer,
+                    renderer,
                     &cr,
                     widget.as_ref(),
                     &background_area,
@@ -359,29 +347,24 @@ mod imp {
             let settings = self.settings.borrow();
             let mut cache = self.cache.borrow_mut();
 
-            let pango_cr = widget.create_pango_context().unwrap();
+            let pango_cr = widget.create_pango_context();
             let font_metrics = pango_cr
-                .get_metrics(Some(&settings.font_description), Some(&settings.language))
+                .metrics(Some(&settings.font_description), Some(&settings.language))
                 .unwrap();
 
-            let mut char_width = font_metrics.get_approximate_char_width() / pango::SCALE;
+            let mut char_width = font_metrics.approximate_char_width() / pango::SCALE;
             if char_width == 0 {
                 char_width = 10;
             }
-            debug!(
-                "char width: {:?}",
-                font_metrics.get_approximate_char_width()
-            );
+            debug!("char width: {:?}", font_metrics.approximate_char_width());
             cache.padding = char_width;
 
             /* figure out font height */
-            let pango_layout = widget
-                .create_pango_layout(Some("TEST HEIGHT STRING"))
-                .unwrap();
+            let pango_layout = widget.create_pango_layout(Some("TEST HEIGHT STRING"));
 
             pango_layout.set_font_description(Some(&settings.font_description));
 
-            let (_, h) = pango_layout.get_pixel_size();
+            let (_, h) = pango_layout.pixel_size();
 
             cache.content_height = h;
 
@@ -410,7 +393,7 @@ mod imp {
 
         fn render_background(
             &self,
-            _renderer: &gtk::CellRenderer,
+            renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             _widget: &gtk::Widget,
             background_area: &gtk::Rectangle,
@@ -453,13 +436,13 @@ mod imp {
             }
 
             if set {
-                cr.set_source_rgba(bg.red, bg.green, bg.blue, bg.alpha);
+                cr.set_source_rgba(bg.red(), bg.green(), bg.blue(), bg.alpha());
 
                 cr.rectangle(
-                    background_area.x.into(),
-                    background_area.y.into(),
-                    background_area.width.into(),
-                    background_area.height.into(),
+                    background_area.x().into(),
+                    background_area.y().into(),
+                    background_area.width().into(),
+                    background_area.height().into(),
                 );
                 cr.fill();
             }
@@ -467,7 +450,7 @@ mod imp {
 
         fn render_subject(
             &self,
-            _renderer: &gtk::CellRenderer,
+            renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             widget: &gtk::Widget,
             _background_area: &gtk::Rectangle,
@@ -477,15 +460,15 @@ mod imp {
             let settings = &self.settings.borrow();
             let cache = &self.cache.borrow();
 
-            let pango_layout = widget.create_pango_layout(None).unwrap();
+            let pango_layout = widget.create_pango_layout(None);
 
             pango_layout.set_font_description(Some(&settings.font_description));
 
             /* set color */
-            let stylecontext = widget.get_style_context();
-            let color = stylecontext.get_color(gtk::StateFlags::NORMAL);
+            let stylecontext = widget.style_context();
+            let color = stylecontext.color(gtk::StateFlags::NORMAL);
 
-            cr.set_source_rgba(color.red, color.green, color.blue, color.alpha);
+            cr.set_source_rgba(color.red(), color.green(), color.blue(), color.alpha());
 
             let color_str = if flags.contains(gtk::CellRendererState::SELECTED) {
                 settings.subject_color_selected.as_ref().unwrap().clone()
@@ -505,19 +488,19 @@ mod imp {
             );
 
             /* align in the middle */
-            let (_, h) = pango_layout.get_size();
+            let (_, h) = pango_layout.size();
             let y = max(0, (cache.line_height / 2) - ((h / pango::SCALE) / 2));
 
             cr.move_to(
-                f64::from(cell_area.x + cache.subject_start),
-                f64::from(cell_area.y + y),
+                f64::from(cell_area.x() + cache.subject_start),
+                f64::from(cell_area.y() + y),
             );
             pangocairo::functions::show_layout(&cr, &pango_layout);
         }
 
         fn render_icon(
             &self,
-            _renderer: &gtk::CellRenderer,
+            renderer: &super::CellRendererThread,
             _settings: &CellRendererThreadSettings,
             _cache: &CellRendererThreadCache,
             _cr: &cairo::Context,
@@ -554,7 +537,7 @@ mod imp {
 
         fn render_flagged(
             &self,
-            _renderer: &gtk::CellRenderer,
+            renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             _widget: &gtk::Widget,
             _background_area: &gtk::Rectangle,
@@ -568,7 +551,7 @@ mod imp {
             let icon_offset = 0;
 
             if cache.flagged_icon.is_none() {
-                let theme = gtk::IconTheme::get_default().unwrap();
+                let theme = gtk::IconTheme::default().unwrap();
                 let pixbuf = theme
                     .load_icon(
                         icon_name,
@@ -585,9 +568,9 @@ mod imp {
                 );
             }
 
-            let y = cell_area.y + settings.left_icons_padding + settings.line_spacing / 2;
-            let x =
-                cell_area.x + icon_offset * (cache.left_icons_width + settings.left_icons_padding);
+            let y = cell_area.y() + settings.left_icons_padding + settings.line_spacing / 2;
+            let x = cell_area.x()
+                + icon_offset * (cache.left_icons_width + settings.left_icons_padding);
 
             cr.set_source_pixbuf(cache.flagged_icon.as_ref().unwrap(), x as f64, y as f64);
 
@@ -602,7 +585,7 @@ mod imp {
 
         fn render_attachment(
             &self,
-            _renderer: &gtk::CellRenderer,
+            renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             _widget: &gtk::Widget,
             _background_area: &gtk::Rectangle,
@@ -616,7 +599,7 @@ mod imp {
             let icon_offset = 1;
 
             if cache.attachment_icon.is_none() {
-                let theme = gtk::IconTheme::get_default().unwrap();
+                let theme = gtk::IconTheme::default().unwrap();
                 let pixbuf = theme
                     .load_icon(
                         icon_name,
@@ -633,9 +616,9 @@ mod imp {
                 );
             }
 
-            let y = cell_area.y + settings.left_icons_padding + settings.line_spacing / 2;
-            let x =
-                cell_area.x + icon_offset * (cache.left_icons_width + settings.left_icons_padding);
+            let y = cell_area.y() + settings.left_icons_padding + settings.line_spacing / 2;
+            let x = cell_area.x()
+                + icon_offset * (cache.left_icons_width + settings.left_icons_padding);
 
             cr.set_source_pixbuf(
                 cache.attachment_icon.as_ref().unwrap(),
@@ -654,7 +637,7 @@ mod imp {
 
         fn render_delimiter(
             &self,
-            _renderer: &gtk::CellRenderer,
+            renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             _widget: &gtk::Widget,
             _background_area: &gtk::Rectangle,
@@ -667,19 +650,19 @@ mod imp {
             cr.set_line_width(0.5);
             cr.set_source_rgb(0.1, 0.1, 0.1);
             cr.move_to(
-                cell_area.x as f64,
-                cell_area.y as f64 + cell_area.height as f64,
+                cell_area.x() as f64,
+                cell_area.y() as f64 + cell_area.height() as f64,
             );
             cr.line_to(
-                (cell_area.x + cell_area.width) as f64,
-                (cell_area.y + cell_area.height) as f64,
+                (cell_area.x() + cell_area.width()) as f64,
+                (cell_area.y() + cell_area.height()) as f64,
             );
             cr.stroke();
         }
 
         fn render_date(
             &self,
-            _renderer: &gtk::CellRenderer,
+            renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             widget: &gtk::Widget,
             _background_area: &gtk::Rectangle,
@@ -698,25 +681,25 @@ mod imp {
 
             let datestr = format!("{}", datetime.format("%Y-%m-%d %H:%M:%S"));
 
-            let pango_layout = widget.create_pango_layout(Some(datestr.as_str())).unwrap();
+            let pango_layout = widget.create_pango_layout(Some(datestr.as_str()));
 
             pango_layout.set_font_description(Some(&settings.font_description));
 
             /* set color */
-            let stylecontext = widget.get_style_context();
-            let color = stylecontext.get_color(gtk::StateFlags::NORMAL);
-            cr.set_source_rgb(color.red, color.green, color.blue);
+            let stylecontext = widget.style_context();
+            let color = stylecontext.color(gtk::StateFlags::NORMAL);
+            cr.set_source_rgb(color.red(), color.green(), color.blue());
 
             /* align in the middle */
-            let (_w, h) = pango_layout.get_size();
+            let (_w, h) = pango_layout.size();
             let y = max(0, (cache.line_height / 2) - ((h / pango::SCALE) / 2));
 
             /* update subject start */
             //subject_start = date_start + (w / Pango::SCALE) + padding;
 
             cr.move_to(
-                f64::from(cell_area.x + cache.date_start),
-                f64::from(cell_area.y + y),
+                f64::from(cell_area.x() + cache.date_start),
+                f64::from(cell_area.y() + y),
             );
             pangocairo::functions::show_layout(&cr, &pango_layout);
 
@@ -725,7 +708,7 @@ mod imp {
 
         fn render_authors(
             &self,
-            _renderer: &gtk::CellRenderer,
+            renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             widget: &gtk::Widget,
             _background_area: &gtk::Rectangle,
@@ -807,7 +790,7 @@ mod imp {
                 }
             }
 
-            let pango_layout = widget.create_pango_layout(None).unwrap();
+            let pango_layout = widget.create_pango_layout(None);
 
             pango_layout.set_markup(&authors);
 
@@ -824,17 +807,17 @@ mod imp {
             }
 
             /* set color */
-            let stylecontext = widget.get_style_context();
-            let color = stylecontext.get_color(gtk::StateFlags::NORMAL);
-            cr.set_source_rgb(color.red, color.green, color.blue);
+            let stylecontext = widget.style_context();
+            let color = stylecontext.color(gtk::StateFlags::NORMAL);
+            cr.set_source_rgb(color.red(), color.green(), color.blue());
 
             /* align in the middle */
-            let (_, h) = pango_layout.get_size();
+            let (_, h) = pango_layout.size();
             let y = max(0, (cache.line_height / 2) - ((h / pango::SCALE) / 2));
 
             cr.move_to(
-                f64::from(cell_area.x + cache.authors_start),
-                f64::from(cell_area.y + y),
+                f64::from(cell_area.x() + cache.authors_start),
+                f64::from(cell_area.y() + y),
             );
             pangocairo::functions::show_layout(&cr, &pango_layout);
 
@@ -843,7 +826,7 @@ mod imp {
 
         fn render_tags(
             &self,
-            _renderer: &gtk::CellRenderer,
+            renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             widget: &gtk::Widget,
             _background_area: &gtk::Rectangle,
@@ -856,13 +839,13 @@ mod imp {
             let settings = self.settings.borrow();
             let cache = self.cache.borrow_mut();
 
-            let pango_layout = widget.create_pango_layout(None).unwrap();
+            let pango_layout = widget.create_pango_layout(None);
             pango_layout.set_font_description(Some(&settings.font_description));
 
             /* set color */
-            let stylecontext = widget.get_style_context();
-            let color = stylecontext.get_color(gtk::StateFlags::NORMAL);
-            cr.set_source_rgb(color.red, color.green, color.blue);
+            let stylecontext = widget.style_context();
+            let color = stylecontext.color(gtk::StateFlags::NORMAL);
+            cr.set_source_rgb(color.red(), color.green(), color.blue());
 
             /* subtract hidden tags */
             // vector<ustring> tags;
@@ -885,7 +868,7 @@ mod imp {
                         .as_str(),
                 )
                 .unwrap();
-                cr.set_source_rgb(bg.red, bg.green, bg.blue);
+                cr.set_source_rgb(bg.red(), bg.green(), bg.blue());
             }
 
             /* first try plugin */
@@ -902,12 +885,12 @@ mod imp {
             pango_layout.set_markup(&tag_string);
 
             /* align in the middle */
-            let (w, h) = pango_layout.get_size();
+            let (w, h) = pango_layout.size();
             let y = max(0, (cache.line_height / 2) - ((h / pango::SCALE) / 2));
 
             cr.move_to(
-                f64::from(cell_area.x + cache.tags_start),
-                f64::from(cell_area.y + y),
+                f64::from(cell_area.x() + cache.tags_start),
+                f64::from(cell_area.y() + y),
             );
             pangocairo::functions::show_layout(&cr, &pango_layout);
 
@@ -916,21 +899,12 @@ mod imp {
     }
 }
 
-glib_wrapper! {
-    pub struct CellRendererThread(Object<subclass::simple::InstanceStruct<imp::CellRendererThread>,
-                                  subclass::simple::ClassStruct<imp::CellRendererThread>,
-                                  CellRendererThreadClass>) @extends gtk::CellRenderer;
-
-    match fn {
-        get_type => || imp::CellRendererThread::get_type().to_glib(),
-    }
+glib::wrapper! {
+    pub struct CellRendererThread(ObjectSubclass<imp::CellRendererThread>) @extends gtk::CellRenderer;
 }
 
 impl CellRendererThread {
-    pub fn new() -> CellRendererThread {
-        glib::Object::new(Self::static_type(), &[])
-            .expect("Failed to create renderer")
-            .downcast()
-            .expect("Created renderer is of wrong type")
+    pub fn new() -> Self {
+        glib::Object::new(&[]).expect("Failed to create renderer")
     }
 }

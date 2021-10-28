@@ -40,13 +40,13 @@ mod tests {
         )
         .unwrap();
 
-        let local_socket = unsafe { gio::Socket::new_from_fd(RawFdWrap::from_raw_fd(local)) }.unwrap();
-        let local_connection = local_socket.connection_factory_create_connection().unwrap();
+        let local_socket = unsafe { gio::Socket::from_fd(RawFdWrap::from_raw_fd(local)) }.unwrap();
+        let local_connection = local_socket.connection_factory_create_connection();
         let local_stream = local_connection.into_async_read_write().unwrap();
         let (mut local_istream, mut local_ostream) = local_stream.split();
 
-        let remote_socket = unsafe { gio::Socket::new_from_fd(RawFdWrap::from_raw_fd(remote)) }.unwrap();
-        let remote_connection = remote_socket.connection_factory_create_connection().unwrap();
+        let remote_socket = unsafe { gio::Socket::from_fd(RawFdWrap::from_raw_fd(remote)) }.unwrap();
+        let remote_connection = remote_socket.connection_factory_create_connection();
         let remote_stream = remote_connection.into_async_read_write().unwrap();
         let (mut remote_istream, mut remote_ostream) = remote_stream.split();
 

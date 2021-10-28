@@ -21,14 +21,14 @@ use structopt::clap::{App, Arg};
 use cursive::Cursive;
 use cursive::views::{Dialog, TextView, ListView};
 
-use enamel_core::settings::Settings;
+use inox_core::settings::Settings;
 
 mod app;
 mod list_view;
 mod lazy_list_view;
 mod thread_list;
 
-use app::EnamelApp;
+use app::InoxApp;
 
 
 
@@ -46,7 +46,7 @@ fn init() {
 
         let logfile = FileAppender::builder()
             .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
-            .build("enamel.log").unwrap();
+            .build("inox.log").unwrap();
 
         let config = Config::builder()
             .appender(Appender::builder().build("logfile", Box::new(logfile)))
@@ -79,7 +79,7 @@ impl Default for Args{
 
 fn default_config_path() -> PathBuf{
     let mut default_config = dirs::config_dir().unwrap();
-    default_config.push("enamel");
+    default_config.push("inox");
     default_config.push("config");
     default_config.set_extension("toml");
     return default_config;
@@ -107,14 +107,14 @@ fn main() -> Result<(), io::Error> {
     init();
 
     let mut default_config = dirs::config_dir().unwrap();
-    default_config.push("enamel");
+    default_config.push("inox");
 
     DirBuilder::new()
         .recursive(true)
         .create(default_config.to_str().unwrap()).unwrap();
 
     // let args = Args::from_args();
-    let args = App::new("Enamel")
+    let args = App::new("Inox")
         .version("0.0.1")
         .author("Dirk Van Haerenborgh <vhdirk@gmail.com>")
         .about("An email client with notmuch rust.")
@@ -146,7 +146,7 @@ fn main() -> Result<(), io::Error> {
 
 
     // Create the app
-    let mut app = EnamelApp::new(&mut siv, settings);
+    let mut app = InoxApp::new(&mut siv, settings);
 
     // Starts the event loop.
     siv.run();
