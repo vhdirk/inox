@@ -1,4 +1,4 @@
-use glib::subclass::boxed::BoxedType;
+use glib::subclass::prelude::*;
 use glib::GBoxed;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
@@ -6,6 +6,7 @@ use std::iter::Iterator;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
+use once_cell::unsync::OnceCell;
 
 use notmuch;
 
@@ -28,25 +29,57 @@ impl Default for ThreadCache {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, GBoxed)]
-#[gboxed(type_name = "inox_Thread")]
-pub struct Thread {
-    #[serde(skip)]
-    thread: Option<notmuch::Thread>,
 
-    cache: ThreadCache,
+mod imp {
+    use glib::subclass::prelude::*;
+    use serde::{Deserialize, Serialize};
+    use once_cell::unsync::OnceCell;
+    use super::ThreadCache;
+
+    #[derive(Clone, Debug, Serialize, Deserialize)]
+    pub struct Thread {
+        #[serde(skip)]
+        thread: OnceCell<notmuch::Thread>,
+        cache: ThreadCache,
+    }
+
+    impl Default for Thread {
+        fn default() -> Self {
+            Thread {
+                thread: OnceCell::new(),
+                cache: ThreadCache::default(),
+            }
+        }
+    }
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for Thread {
+        const NAME: &'static str = "InoxThread";
+
+        type Type = super::Thread;
+        type ParentType = glib::Object;
+    }
+
+    impl ObjectImpl for Thread {}
 }
+
+
+glib::wrapper! {
+    pub struct Thread(ObjectSubclass<imp::Thread>);
+}
+
 
 // TODO: get from settings
 const TAG_UNREAD: &str = "unread";
 const TAG_ATTACHMENT: &str = "attachment";
 
+
 impl Thread {
     pub fn new(thread: notmuch::Thread) -> Self {
-        Self {
-            thread: Some(thread),
-            cache: ThreadCache::default(),
-        }
+        let t = glib::Object::new(&[]).unwrap();
+        let imp = Self::from_instance(&t);
+        imp.thread.set(thread);
+        t
     }
 
     pub fn tags(&self) -> &Vec<String> {

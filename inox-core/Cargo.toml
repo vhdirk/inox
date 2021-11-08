@@ -22,6 +22,7 @@ serde = "*"
 serde_derive = "*"
 serde_ini = "*"
 lazy_static = "1.0"
+once_cell = "*"
 # vte = "0.3.2"
 chrono = { version = "0.4", features = ["serde"] }
 md5 = "0.3.7"
