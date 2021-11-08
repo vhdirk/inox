@@ -22,7 +22,7 @@ serde = "*"
 serde_derive = "*"
 serde_ini = "*"
 lazy_static = "1.0"
-vte = "0.3.2"
+# vte = "0.3.2"
 dirs = "1.0.4"
 unicode-width = "0.1.5"
 

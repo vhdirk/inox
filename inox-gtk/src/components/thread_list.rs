@@ -27,6 +27,20 @@ fn create_liststore() -> gtk::ListStore {
     gtk::ListStore::new(&[String::static_type(), Thread::static_type()])
 }
 
+
+
+mod imp {
+
+
+
+
+}
+
+
+
+
+
+
 pub struct ThreadList {
     pub widget: gtk::TreeView,
 

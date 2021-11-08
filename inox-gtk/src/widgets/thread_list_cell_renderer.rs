@@ -5,9 +5,8 @@ use std::ops::AddAssign;
 use std::str::FromStr;
 
 use cairo;
-use gdk;
 use gdk_pixbuf;
-use gtk;
+use gtk as gtk;
 use log::*;
 use pango;
 use pangocairo;
@@ -222,124 +221,124 @@ mod imp {
     }
 
     impl CellRendererImpl for CellRendererThread {
-        fn render<P: IsA<gtk::Widget>>(
-            &self,
-            renderer: &Self::Type,
-            cr: &cairo::Context,
-            widget: &P,
-            background_area: &gtk::Rectangle,
-            cell_area: &gtk::Rectangle,
-            flags: gtk::CellRendererState,
-        ) {
-            // calculate text width, we don't need to do this every time,
-            // but we need access to the context.
-            if !self.cache.borrow().height_set {
-                self.calculate_height(widget.as_ref());
-            }
+        // fn render<P: IsA<gtk::Widget>>(
+        //     &self,
+        //     renderer: &Self::Type,
+        //     cr: &cairo::Context,
+        //     widget: &P,
+        //     background_area: &gdk::Rectangle,
+        //     cell_area: &gdk::Rectangle,
+        //     flags: gtk::CellRendererState,
+        // ) {
+        //     // calculate text width, we don't need to do this every time,
+        //     // but we need access to the context.
+        //     if !self.cache.borrow().height_set {
+        //         self.calculate_height(widget.as_ref());
+        //     }
 
-            if self.thread.borrow().is_none() {
-                info!("No thread");
-                return;
-            }
+        //     if self.thread.borrow().is_none() {
+        //         info!("No thread");
+        //         return;
+        //     }
 
-            let rthread = self.thread.borrow();
-            let thread = rthread.as_ref().unwrap();
+        //     let rthread = self.thread.borrow();
+        //     let thread = rthread.as_ref().unwrap();
 
-            if thread.is_unread() {
-                self.settings
-                    .borrow_mut()
-                    .font_description
-                    .set_weight(pango::Weight::Bold);
-            } else {
-                self.settings
-                    .borrow_mut()
-                    .font_description
-                    .set_weight(pango::Weight::Normal);
-            }
+        //     if thread.is_unread() {
+        //         self.settings
+        //             .borrow_mut()
+        //             .font_description
+        //             .set_weight(pango::Weight::Bold);
+        //     } else {
+        //         self.settings
+        //             .borrow_mut()
+        //             .font_description
+        //             .set_weight(pango::Weight::Normal);
+        //     }
 
-            self.render_background(
-                renderer,
-                &cr,
-                widget.as_ref(),
-                &background_area,
-                &cell_area,
-                flags,
-            );
-            self.render_date(
-                renderer,
-                &cr,
-                widget.as_ref(),
-                &background_area,
-                &cell_area,
-                flags,
-            ); // returns height
+        //     self.render_background(
+        //         renderer,
+        //         &cr,
+        //         widget.as_ref(),
+        //         &background_area,
+        //         &cell_area,
+        //         flags,
+        //     );
+        //     self.render_date(
+        //         renderer,
+        //         &cr,
+        //         widget.as_ref(),
+        //         &background_area,
+        //         &cell_area,
+        //         flags,
+        //     ); // returns height
 
-            if thread.total_messages() > 1 {
-                //render_message_count (cr, widget, cell_area);
-                self.render_authors(
-                    renderer,
-                    &cr,
-                    widget.as_ref(),
-                    &background_area,
-                    &cell_area,
-                    flags,
-                );
-            }
+        //     if thread.total_messages() > 1 {
+        //         //render_message_count (cr, widget, cell_area);
+        //         self.render_authors(
+        //             renderer,
+        //             &cr,
+        //             widget.as_ref(),
+        //             &background_area,
+        //             &cell_area,
+        //             flags,
+        //         );
+        //     }
 
-            self.render_authors(
-                renderer,
-                &cr,
-                widget.as_ref(),
-                &background_area,
-                &cell_area,
-                flags,
-            );
+        //     self.render_authors(
+        //         renderer,
+        //         &cr,
+        //         widget.as_ref(),
+        //         &background_area,
+        //         &cell_area,
+        //         flags,
+        //     );
 
-            let tags_width = self.render_tags(
-                renderer,
-                &cr,
-                widget.as_ref(),
-                &background_area,
-                &cell_area,
-                flags,
-            ); // returns width
-            {
-                let mut cache = self.cache.borrow_mut();
-                cache.tags_width = tags_width;
-                let mut t = 0;
-                if cache.tags_width > 0 {
-                    t = cache.padding
-                }
-                cache.subject_start = cache.tags_start + cache.tags_width / pango::SCALE + (t);
-            }
-            //
-            self.render_subject(
-                renderer,
-                &cr,
-                widget.as_ref(),
-                &background_area,
-                &cell_area,
-                flags,
-            );
+        //     let tags_width = self.render_tags(
+        //         renderer,
+        //         &cr,
+        //         widget.as_ref(),
+        //         &background_area,
+        //         &cell_area,
+        //         flags,
+        //     ); // returns width
+        //     {
+        //         let mut cache = self.cache.borrow_mut();
+        //         cache.tags_width = tags_width;
+        //         let mut t = 0;
+        //         if cache.tags_width > 0 {
+        //             t = cache.padding
+        //         }
+        //         cache.subject_start = cache.tags_start + cache.tags_width / pango::SCALE + (t);
+        //     }
+        //     //
+        //     self.render_subject(
+        //         renderer,
+        //         &cr,
+        //         widget.as_ref(),
+        //         &background_area,
+        //         &cell_area,
+        //         flags,
+        //     );
 
-            // if (thread->flagged)
-            //   render_flagged (cr, widget, cell_area);
-            //
-            if thread.has_attachment() {
-                self.render_attachment(
-                    renderer,
-                    &cr,
-                    widget.as_ref(),
-                    &background_area,
-                    &cell_area,
-                    flags,
-                );
-            }
-            // /*
-            // if (marked)
-            //   render_marked (cr, widget, cell_area);
-            // */
-        }
+        //     // if (thread->flagged)
+        //     //   render_flagged (cr, widget, cell_area);
+        //     //
+        //     if thread.has_attachment() {
+        //         self.render_attachment(
+        //             renderer,
+        //             &cr,
+        //             widget.as_ref(),
+        //             &background_area,
+        //             &cell_area,
+        //             flags,
+        //         );
+        //     }
+        //     // /*
+        //     // if (marked)
+        //     //   render_marked (cr, widget, cell_area);
+        //     // */
+        // }
     }
 
     impl CellRendererThread {
@@ -396,8 +395,8 @@ mod imp {
             renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             _widget: &gtk::Widget,
-            background_area: &gtk::Rectangle,
-            _cell_area: &gtk::Rectangle,
+            background_area: &gdk::Rectangle,
+            _cell_area: &gdk::Rectangle,
             flags: gtk::CellRendererState,
         ) {
             let settings = &self.settings.borrow();
@@ -436,7 +435,7 @@ mod imp {
             }
 
             if set {
-                cr.set_source_rgba(bg.red(), bg.green(), bg.blue(), bg.alpha());
+                cr.set_source_rgba(bg.red().into(), bg.green().into(), bg.blue().into(), bg.alpha().into());
 
                 cr.rectangle(
                     background_area.x().into(),
@@ -453,8 +452,8 @@ mod imp {
             renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             widget: &gtk::Widget,
-            _background_area: &gtk::Rectangle,
-            cell_area: &gtk::Rectangle,
+            _background_area: &gdk::Rectangle,
+            cell_area: &gdk::Rectangle,
             flags: gtk::CellRendererState,
         ) {
             let settings = &self.settings.borrow();
@@ -466,9 +465,9 @@ mod imp {
 
             /* set color */
             let stylecontext = widget.style_context();
-            let color = stylecontext.color(gtk::StateFlags::NORMAL);
+            let color = stylecontext.color();
 
-            cr.set_source_rgba(color.red(), color.green(), color.blue(), color.alpha());
+            cr.set_source_rgba(color.red().into(), color.green().into(), color.blue().into(), color.alpha().into());
 
             let color_str = if flags.contains(gtk::CellRendererState::SELECTED) {
                 settings.subject_color_selected.as_ref().unwrap().clone()
@@ -505,8 +504,8 @@ mod imp {
             _cache: &CellRendererThreadCache,
             _cr: &cairo::Context,
             _widget: &gtk::Widget,
-            _background_area: &gtk::Rectangle,
-            _cell_area: &gtk::Rectangle,
+            _background_area: &gdk::Rectangle,
+            _cell_area: &gdk::Rectangle,
             _flags: gtk::CellRendererState,
             _icon_name: &str,
             _icon_cache: &mut Option<gdk_pixbuf::Pixbuf>,
@@ -515,7 +514,7 @@ mod imp {
             //
             // if icon_cache.is_none() {
             //     let theme = gtk::IconTheme::get_default().unwrap();
-            //     let pixbuf = theme.load_icon(icon_name,
+            //     let pixbuf = theme.lookup_icon(icon_name,
             //                     cache.left_icons_size,
             //                     gtk::IconLookupFlags::USE_BUILTIN | gtk::IconLookupFlags::FORCE_SIZE)
             //                     .unwrap()
@@ -540,8 +539,8 @@ mod imp {
             renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             _widget: &gtk::Widget,
-            _background_area: &gtk::Rectangle,
-            cell_area: &gtk::Rectangle,
+            _background_area: &gdk::Rectangle,
+            cell_area: &gdk::Rectangle,
             _flags: gtk::CellRendererState,
         ) {
             let settings = self.settings.borrow();
@@ -551,21 +550,14 @@ mod imp {
             let icon_offset = 0;
 
             if cache.flagged_icon.is_none() {
-                let theme = gtk::IconTheme::default().unwrap();
-                let pixbuf = theme
-                    .load_icon(
-                        icon_name,
-                        cache.left_icons_size,
-                        gtk::IconLookupFlags::USE_BUILTIN | gtk::IconLookupFlags::FORCE_SIZE,
-                    )
-                    .unwrap()
-                    .unwrap();
-
-                cache.flagged_icon = pixbuf.scale_simple(
-                    cache.left_icons_size,
-                    cache.left_icons_size,
-                    gdk_pixbuf::InterpType::Bilinear,
-                );
+                let theme = gtk::IconTheme::default();
+                // cache.flagged_icon = theme
+                //     .lookup_icon(
+                //         icon_name,
+                //         cache.left_icons_size,
+                //         1,
+                //         gtk::IconLookupFlags.empty(),
+                //     );
             }
 
             let y = cell_area.y() + settings.left_icons_padding + settings.line_spacing / 2;
@@ -588,8 +580,8 @@ mod imp {
             renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             _widget: &gtk::Widget,
-            _background_area: &gtk::Rectangle,
-            cell_area: &gtk::Rectangle,
+            _background_area: &gdk::Rectangle,
+            cell_area: &gdk::Rectangle,
             _flags: gtk::CellRendererState,
         ) {
             let settings = self.settings.borrow();
@@ -599,21 +591,21 @@ mod imp {
             let icon_offset = 1;
 
             if cache.attachment_icon.is_none() {
-                let theme = gtk::IconTheme::default().unwrap();
-                let pixbuf = theme
-                    .load_icon(
-                        icon_name,
-                        cache.left_icons_size,
-                        gtk::IconLookupFlags::USE_BUILTIN | gtk::IconLookupFlags::FORCE_SIZE,
-                    )
-                    .unwrap()
-                    .unwrap();
+                let theme = gtk::IconTheme::default();
+                // let pixbuf = theme
+                //     .lookup_icon(
+                //         icon_name,
+                //         cache.left_icons_size,
+                //         gtk::IconLookupFlags::USE_BUILTIN | gtk::IconLookupFlags::FORCE_SIZE,
+                //     )
+                //     .unwrap()
+                //     .unwrap();
 
-                cache.attachment_icon = pixbuf.scale_simple(
-                    cache.left_icons_size,
-                    cache.left_icons_size,
-                    gdk_pixbuf::InterpType::Bilinear,
-                );
+                // cache.attachment_icon = pixbuf.scale_simple(
+                //     cache.left_icons_size,
+                //     cache.left_icons_size,
+                //     gdk_pixbuf::InterpType::Bilinear,
+                // );
             }
 
             let y = cell_area.y() + settings.left_icons_padding + settings.line_spacing / 2;
@@ -640,8 +632,8 @@ mod imp {
             renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             _widget: &gtk::Widget,
-            _background_area: &gtk::Rectangle,
-            cell_area: &gtk::Rectangle,
+            _background_area: &gdk::Rectangle,
+            cell_area: &gdk::Rectangle,
             _flags: gtk::CellRendererState,
         ) {
             let _settings = self.settings.borrow();
@@ -665,8 +657,8 @@ mod imp {
             renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             widget: &gtk::Widget,
-            _background_area: &gtk::Rectangle,
-            cell_area: &gtk::Rectangle,
+            _background_area: &gdk::Rectangle,
+            cell_area: &gdk::Rectangle,
             _flags: gtk::CellRendererState,
         ) -> i32 {
             use chrono::{DateTime, Local, NaiveDateTime, Utc};
@@ -687,8 +679,8 @@ mod imp {
 
             /* set color */
             let stylecontext = widget.style_context();
-            let color = stylecontext.color(gtk::StateFlags::NORMAL);
-            cr.set_source_rgb(color.red(), color.green(), color.blue());
+            let color = stylecontext.color();
+            cr.set_source_rgb(color.red().into(), color.green().into(), color.blue().into());
 
             /* align in the middle */
             let (_w, h) = pango_layout.size();
@@ -711,8 +703,8 @@ mod imp {
             renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             widget: &gtk::Widget,
-            _background_area: &gtk::Rectangle,
-            cell_area: &gtk::Rectangle,
+            _background_area: &gdk::Rectangle,
+            cell_area: &gdk::Rectangle,
             _flags: gtk::CellRendererState,
         ) -> i32 {
             let rthread = self.thread.borrow();
@@ -808,8 +800,8 @@ mod imp {
 
             /* set color */
             let stylecontext = widget.style_context();
-            let color = stylecontext.color(gtk::StateFlags::NORMAL);
-            cr.set_source_rgb(color.red(), color.green(), color.blue());
+            let color = stylecontext.color();
+            cr.set_source_rgb(color.red().into(), color.green().into(), color.blue().into());
 
             /* align in the middle */
             let (_, h) = pango_layout.size();
@@ -829,8 +821,8 @@ mod imp {
             renderer: &super::CellRendererThread,
             cr: &cairo::Context,
             widget: &gtk::Widget,
-            _background_area: &gtk::Rectangle,
-            cell_area: &gtk::Rectangle,
+            _background_area: &gdk::Rectangle,
+            cell_area: &gdk::Rectangle,
             flags: gtk::CellRendererState,
         ) -> i32 {
             let rthread = self.thread.borrow();
@@ -844,8 +836,8 @@ mod imp {
 
             /* set color */
             let stylecontext = widget.style_context();
-            let color = stylecontext.color(gtk::StateFlags::NORMAL);
-            cr.set_source_rgb(color.red(), color.green(), color.blue());
+            let color = stylecontext.color();
+            cr.set_source_rgb(color.red().into(), color.green().into(), color.blue().into());
 
             /* subtract hidden tags */
             // vector<ustring> tags;
@@ -868,7 +860,7 @@ mod imp {
                         .as_str(),
                 )
                 .unwrap();
-                cr.set_source_rgb(bg.red(), bg.green(), bg.blue());
+                cr.set_source_rgb(bg.red().into(), bg.green().into(), bg.blue().into());
             }
 
             /* first try plugin */

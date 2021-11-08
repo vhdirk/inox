@@ -20,7 +20,6 @@ use glib::Cast;
 
 use glib::variant::Variant;
 
-use gtk::traits::IconThemeExt;
 use webkit2gtk_webextension::traits::{
     DOMDocumentExt, DOMElementExt, DOMNodeExt, WebExtensionExt, WebPageExt,
 };
@@ -117,34 +116,32 @@ pub struct ThreadViewWebExt {
 
 impl ThreadViewWebExt {
     pub fn new(socket: gio::Socket, extension: webkit2gtk_webextension::WebExtension) -> Self {
-        let mut webext = ThreadViewWebExt {
+        ThreadViewWebExt {
             socket,
             extension,
             part_css: None,
             indent_messages: true,
             allowed_uris: vec![],
-        };
-
-        webext
+        }
     }
 
     pub fn on_page_created(&mut self, page: &webkit2gtk_webextension::WebPage) {
         // debug!("on page created {:?}", self);
         // self.page = Some(page.clone());
         /* load attachment icon */
-        let theme = gtk::IconTheme::default().unwrap();
-        let _attachment_icon = theme.load_icon(
-            "mail-attachment-symbolic",
-            ATTACHMENT_ICON_WIDTH,
-            gtk::IconLookupFlags::USE_BUILTIN,
-        );
+        let theme = gtk::IconTheme::default();
+        // let _attachment_icon = theme.load_icon(
+        //     "mail-attachment-symbolic",
+        //     ATTACHMENT_ICON_WIDTH,
+        //     gtk::IconLookupFlags::USE_BUILTIN,
+        // );
 
-        /* load marked icon */
-        let _marked_icon = theme.load_icon(
-            "object-select-symbolic",
-            ATTACHMENT_ICON_WIDTH,
-            gtk::IconLookupFlags::USE_BUILTIN,
-        );
+        // /* load marked icon */
+        // let _marked_icon = theme.load_icon(
+        //     "object-select-symbolic",
+        //     ATTACHMENT_ICON_WIDTH,
+        //     gtk::IconLookupFlags::USE_BUILTIN,
+        // );
 
         // race condition with rpc system here
         // info!("WEEEEEE {:?}{:?}{:?}", self, page, page.get_id());

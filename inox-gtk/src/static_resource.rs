@@ -1,8 +1,6 @@
 use gio;
 use gio::Resource;
 use glib::{Bytes, Error};
-use gtk;
-use gtk::traits::BuilderExt;
 
 pub fn init() -> Result<(), Error> {
     // load the gresource binary at build time and include/link it into the final

@@ -1,4 +1,3 @@
-use gdk;
 use glib;
 use md5;
 use std::ops::AddAssign;
@@ -50,11 +49,11 @@ pub fn get_tag_color_rgba(tag: &str, canvascolor: &gdk::RGBA) -> (gdk::RGBA, gdk
      */
 
     let bg = gdk::RGBA::new(
-        f64::from(tc[0]) * (tags_upper_color.red() - tags_lower_color.red())
+        f32::from(tc[0]) * (tags_upper_color.red() - tags_lower_color.red())
             + tags_lower_color.red(),
-        f64::from(tc[1]) * (tags_upper_color.green() - tags_lower_color.green())
+        f32::from(tc[1]) * (tags_upper_color.green() - tags_lower_color.green())
             + tags_lower_color.green(),
-        f64::from(tc[2]) * (tags_upper_color.blue() - tags_lower_color.blue())
+        f32::from(tc[2]) * (tags_upper_color.blue() - tags_lower_color.blue())
             + tags_lower_color.blue(),
         0.0,
     );
@@ -66,7 +65,7 @@ pub fn get_tag_color_rgba(tag: &str, canvascolor: &gdk::RGBA) -> (gdk::RGBA, gdk
         tags_alpha * (65535.0),
     );
 
-    let lum: f64 = ((bg.red() * tags_alpha + (1.0 - tags_alpha) * canvascolor.red()) * 0.2126
+    let lum = ((bg.red() * tags_alpha + (1.0 - tags_alpha) * canvascolor.red()) * 0.2126
         + (bg.green() * tags_alpha + (1.0 - tags_alpha) * canvascolor.green()) * 0.7152
         + (bg.blue() * tags_alpha + (1.0 - tags_alpha) * canvascolor.blue()) * 0.0722)
         / 255.0;

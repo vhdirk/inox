@@ -1,4 +1,3 @@
-use gtk;
 use gtk::prelude::*;
 
 // Totally copied it from fractal.
@@ -12,13 +11,13 @@ pub fn about_dialog(window: &gtk::ApplicationWindow) {
     // Waiting for a logo.
     dialog.set_logo_icon_name(Some("email"));
     dialog.set_comments(Some("Email with Notmuch Rust."));
-    dialog.set_copyright(Some("© 2018 Dirk Van Haerenborgh"));
+    dialog.set_copyright(Some("© 2021 Dirk Van Haerenborgh"));
     dialog.set_license_type(gtk::License::Gpl30);
     dialog.set_modal(true);
     // TODO: make it show it fetches the commit hash from which it was built
     // and the version number is kept in sync automaticly
     dialog.set_version(Some("0.0.1"));
-    dialog.set_program_name("Inox");
+    dialog.set_program_name(Some("Inox"));
     // TODO: Need a wiki page first.
     dialog.set_website(Some("https://github.com/vhdirk/inox"));
     // dialog.set_website_label("Learn more about Inox");
@@ -27,7 +26,7 @@ pub fn about_dialog(window: &gtk::ApplicationWindow) {
     // dialog.set_artists(&["Dirk Van Haerenborgh"]);
     dialog.set_authors(authors);
 
-    dialog.connect_response(|dlg, _| dlg.close());
+    // dialog.connect_response(|dlg, _| dlg.close());
 
     dialog.show();
 }

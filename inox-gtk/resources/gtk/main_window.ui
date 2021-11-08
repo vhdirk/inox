@@ -1,232 +1,387 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.2 -->
 <interface>
-  <requires lib="gtk+" version="3.20"/>
-  <object class="GtkPaned" id="main_header">
-    <property name="visible">True</property>
-    <property name="can_focus">True</property>
-    <property name="position">400</property>
-    <property name="position_set">True</property>
+  <requires lib="gtk" version="4.0" />
+  <requires lib="libadwaita" version="1.0" />
+  <template class="InoxMainWindow" parent="AdwApplicationWindow">
+    <property name="visible">1</property>
+    <property name="default-width">830</property>
+    <property name="default-height">700</property>
     <child>
-      <object class="GtkHeaderBar" id="threadlist_header">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
+      <object class="GtkBox" id="main_box">
+        <property name="orientation">vertical</property>
+        <property name="homogeneous">1</property>
         <child>
-          <placeholder/>
-        </child>
-        <child>
-          <object class="GtkToggleButton" id="search_conversations_button">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
+          <object class="AdwLeaflet" id="outer_leaflet">
+            <property name="can-swipe-back">True</property>
+            <property name="can-swipe-forward">True</property>
             <child>
-              <object class="GtkImage" id="search_conversations_image">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="icon_name">preferences-system-search-symbolic</property>
+              <object class="AdwLeaflet" id="inner_leaflet">
+                <property name="can-swipe-back">True</property>
+                <property name="can-swipe-forward">True</property>
+                <child>
+                  <object class="GtkWindowHandle" id="nbgrid">
+                    <property name="hexpand">0</property>
+                    <property name="vexpand">1</property>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="hexpand">0</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="AdwHeaderBar" id="nbtitlebar">
+                            <property name="show-end-title-buttons" bind-source="inner_leaflet" bind-property="folded" bind-flags="sync-create" />
+                            <property name="valign">center</property>
+                            <property name="hexpand">0</property>
+                            <property name="width-request">200</property>
+                            <style>
+                              <class name="inox-stitle" />
+                            </style>
+                            <child type="title">
+                              <object class="GtkBox">
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="label">Inox</property>
+                                    <style>
+                                      <class name="title" />
+                                    </style>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                            <child type="end">
+                              <object class="GtkMenuButton" id="menu_button">
+                                <property name="icon-name">open-menu-symbolic</property>
+                              </object>
+                            </child>
+                            <!-- <child>
+                          <object class="GtkButton" id="en_button">
+                            <property name="action-name">win.action_edit_notebooks</property>
+                            <property name="icon-name">notebook-config-symbolic</property>
+                            <property name="tooltip-text" translatable="yes">Manage Notebooks…</property>
+                          </object>
+                        </child> -->
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="btn_all_mail">
+                            <property name="action-name">win.action_all_mail</property>
+                            <property name="margin-bottom">12</property>
+                            <property name="margin-start">6</property>
+                            <property name="child">
+                              <object class="GtkLabel">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">All Mail</property>
+                              </object>
+                            </property>
+                            <style>
+                              <class name="content-sidebar-notebooks-button" />
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="btn_bin">
+                            <property name="action-name">win.action_bin</property>
+                            <property name="margin-bottom">12</property>
+                            <property name="margin-start">6</property>
+                            <property name="child">
+                              <object class="GtkLabel">
+                                <property name="halign">start</property>
+                                <property name="label" translatable="yes">Bin</property>
+                              </object>
+                            </property>
+                            <style>
+                              <class name="content-sidebar-notebooks-button" />
+                            </style>
+                          </object>
+                        </child>
+                        <!-- <child>
+                      <object class="GtkLabel" id="nb_label">
+                        <property name="label" translatable="yes">Notebooks</property>
+                        <property name="halign">start</property>
+                        <property name="margin-start">12</property>
+                        <style>
+                          <class name="heading" />
+                          <class name="dim-label" />
+                        </style>
+                      </object>
+                    </child> -->
+                    <child>
+                      <object class="GtkScrolledWindow" id="tag_box">
+                        <property name="margin-bottom">6</property>
+                        <child>
+                          <!-- <object class="GtkListBox" id="nbview">
+                            <property name="vexpand">1</property>
+                            <property name="hexpand">0</property>
+                            <property name="margin-start">6</property>
+                            <property name="selection_mode">single</property>
+                            <style>
+                              <class name="content" />
+                              <class name="content-sidebar-notebooks" />
+                            </style>
+                            <child type="placeholder">
+                              <object class="GtkLabel">
+                                <property name="valign">center</property>
+                                <property name="hexpand">0</property>
+                                <property name="vexpand">1</property>
+                                <property name="label" translatable="yes">No Notebooks</property>
+                                <style>
+                                  <class name="compact" />
+                                </style>
+                              </object>
+                            </child>
+                          </object> -->
+                        </child>
+                      </object>
+                    </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+
+                <child>
+                  <object class="AdwLeafletPage">
+                    <property name="navigatable">False</property>
+                    <property name="child">
+                      <object class="GtkSeparator" id="tag_separator">
+                        <style>
+                          <class name="no-sep" />
+                        </style>
+                      </object>
+                    </property>
+                  </object>
+                </child>
+
+
+                <child>
+                  <object class="GtkBox" id="sgrid">
+                    <property name="hexpand">0</property>
+                    <property name="orientation">vertical</property>
+                    <child>
+                      <object class="AdwHeaderBar" id="stitlebar">
+                        <property name="show-end-title-buttons" bind-source="inner_leaflet" bind-property="folded" bind-flags="sync-create" />
+                        <property name="valign">center</property>
+                        <property name="hexpand">0</property>
+                        <property name="width-request">200</property>
+                        <style>
+                          <class name="inox-stitle" />
+                        </style>
+                        <child>
+                          <object class="GtkButton" id="back_button2">
+                            <property name="visible" bind-source="inner_leaflet" bind-property="folded" bind-flags="sync-create" />
+                            <property name="receives-default">1</property>
+                            <property name="icon-name">go-previous-symbolic</property>
+                          </object>
+                        </child>
+                        <child type="title">
+                          <object class="GtkBox">
+                            <child>
+                              <object class="GtkSearchEntry" id="mail_search">
+                                <property name="hexpand">1</property>
+                                <property name="placeholder-text" translatable="yes">Search for mail</property>
+                                <style>
+                                  <class name="inox-searchbar" />
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkStack" id="sidebar_stack">
+                        <property name="vexpand">1</property>
+                        <property name="hexpand">0</property>
+                        <property name="margin-bottom">6</property>
+                        <property name="transition-type">crossfade</property>
+                        <child>
+                          <object class="GtkStackPage">
+                            <property name="name">page0</property>
+                            <property name="title">page0</property>
+                            <property name="child">
+                              <object class="GtkOverlay" id="list_scroller">
+                                <child>
+                                  <object class="GtkBox" id="thread_list_box">
+                                    <property name="vexpand">1</property>
+                                    <property name="hexpand">0</property>
+                                    <property name="orientation">vertical</property>
+                                  </object>
+                                </child>
+                                <child type="overlay">
+                                  <object class="GtkButton" id="new_button">
+                                    <property name="tooltip-text" translatable="yes">Write mail</property>
+                                    <property name="icon-name">add-note-symbolic</property>
+                                    <property name="action-name">win.action_new_mail</property>
+                                    <property name="valign">end</property>
+                                    <property name="halign">end</property>
+                                    <property name="margin-end">18</property>
+                                    <property name="margin-bottom">12</property>
+                                    <style>
+                                      <class name="list-action-button" />
+                                      <class name="accent-button" />
+                                      <class name="opaque" />
+                                    </style>
+                                  </object>
+                                </child>
+                              </object>
+                            </property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkStackPage">
+                            <property name="name">page1</property>
+                            <property name="title">page1</property>
+                            <property name="child">
+                              <object class="GtkOverlay" id="overlay_mail_bin">
+                                <child>
+                                  <object class="GtkBox">
+                                    <property name="vexpand">1</property>
+                                    <property name="hexpand">0</property>
+                                    <property name="orientation">vertical</property>
+                                    <child>
+                                      <object class="GtkScrolledWindow" id="scroller_mail_bin">
+                                        <child>
+                                          <object class="GtkListBox" id="listbox_mail_bin">
+                                            <property name="vexpand">1</property>
+                                            <property name="selection_mode">single</property>
+                                            <style>
+                                              <class name="content" />
+                                              <class name="content-sidebar" />
+                                            </style>
+                                            <child type="placeholder">
+                                              <object class="AdwStatusPage">
+                                                <property name="valign">center</property>
+                                                <property name="vexpand">1</property>
+                                                <property name="icon-name">user-trash-symbolic</property>
+                                                <property name="title" translatable="yes">No deleted mail</property>
+                                                <property name="description" translatable="yes">Deleted mail will appear here.</property>
+                                                <style>
+                                                  <class name="compact" />
+                                                </style>
+                                              </object>
+                                            </child>
+                                          </object>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                                <child type="overlay">
+                                  <object class="GtkButton" id="trash_button">
+                                    <property name="tooltip-text" translatable="yes">Empty Trash</property>
+                                    <property name="icon-name">user-trash-symbolic</property>
+                                    <property name="action-name">win.action_trash_notes</property>
+                                    <property name="valign">end</property>
+                                    <property name="halign">end</property>
+                                    <property name="margin-end">18</property>
+                                    <property name="margin-bottom">12</property>
+                                    <style>
+                                      <class name="list-action-button" />
+                                      <class name="destructive-action" />
+                                    </style>
+                                  </object>
+                                </child>
+                              </object>
+                            </property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+
+              </object>
+            </child>
+
+            <child>
+              <object class="AdwLeafletPage">
+                <property name="navigatable">False</property>
+                <property name="child">
+                  <object class="GtkSeparator" id="threads_separator">
+                    <style>
+                      <class name="no-sep" />
+                    </style>
+                  </object>
+                </property>
+              </object>
+            </child>
+
+
+            <child>
+              <object class="GtkBox" id="grid">
+                <property name="hexpand">1</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="AdwHeaderBar" id="titlebar">
+                    <property name="show-start-title-buttons" bind-source="outer_leaflet" bind-property="folded" bind-flags="sync-create" />
+                    <property name="hexpand">1</property>
+                    <child type="title">
+                      <object class="GtkBox"></object>
+                    </child>
+                    <style>
+                      <class name="inox-titlebar" />
+                    </style>
+                    <child>
+                      <object class="GtkButton" id="back_button">
+                        <property name="visible" bind-source="outer_leaflet" bind-property="folded" bind-flags="sync-create" />
+                        <property name="receives-default">1</property>
+                        <property name="icon-name">go-previous-symbolic</property>
+                      </object>
+                    </child>
+                    <child type="end">
+                      <object class="GtkMenuButton" id="settingmenu">
+                        <property name="visible">1</property>
+                        <property name="receives-default">1</property>
+                        <property name="icon-name">view-more-symbolic</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox" id="thread_view_box">
+
+                  </object>
+                </child>
               </object>
             </child>
           </object>
-          <packing>
-            <property name="pack_type">end</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <style>
-          <class name="inox-titlebar"/>
-          <class name="inox-titlebar-left"/>
-        </style>
-      </object>
-      <packing>
-        <property name="resize">False</property>
-        <property name="shrink">True</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkHeaderBar" id="conversation_header">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="show_close_button">True</property>
-        <child>
-          <object class="GtkBox" id="reply_forward_buttons">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <child>
-              <object class="GtkButton" id="reply_sender_button">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <child>
-                  <object class="GtkImage" id="reply_sender_image">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="icon_name">mail-reply-sender-symbolic</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="reply_all_button">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <child>
-                  <object class="GtkImage" id="reply_all_image">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="icon_name">mail-reply-all-symbolic</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="forward_button">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <child>
-                  <object class="GtkImage" id="forward_image">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="icon_name">mail-forward-symbolic</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </object>
+
         </child>
       </object>
-      <packing>
-        <property name="resize">True</property>
-        <property name="shrink">True</property>
-      </packing>
     </child>
+  </template>
+  <object class="GtkSizeGroup">
+    <widgets>
+      <widget name="inner_leaflet" />
+      <widget name="thread_view_box" />
+    </widgets>
   </object>
-  <object class="GtkBox" id="main_layout">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="orientation">vertical</property>
-    <child>
-      <object class="GtkPaned" id="main_paned">
-        <property name="visible">True</property>
-        <property name="can_focus">True</property>
-        <property name="position">400</property>
-        <property name="position_set">True</property>
-        <child>
-          <object class="GtkBox" id="thread_list_box">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="orientation">vertical</property>
-            <child>
-              <object class="GtkScrolledWindow" id="thread_list_scrolled">
-                <property name="width_request">250</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="resize">True</property>
-            <property name="shrink">False</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkBox" id="thread_box">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="orientation">vertical</property>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-          </object>
-          <packing>
-            <property name="resize">True</property>
-            <property name="shrink">True</property>
-          </packing>
-        </child>
-      </object>
-      <packing>
-        <property name="expand">True</property>
-        <property name="fill">True</property>
-        <property name="pack_type">end</property>
-        <property name="position">0</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkFrame" id="info_bar_frame">
-        <property name="can_focus">False</property>
-        <property name="no_show_all">True</property>
-        <property name="label_xalign">0</property>
-        <property name="shadow_type">in</property>
-        <child>
-          <object class="GtkGrid" id="info_bar_container">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="orientation">vertical</property>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-          </object>
-        </child>
-        <child type="label_item">
-          <placeholder/>
-        </child>
-        <style>
-          <class name="geary-info-bar-frame"/>
-        </style>
-      </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">1</property>
-      </packing>
-    </child>
+  <object class="GtkSizeGroup" id="tag_size_group">
+    <property name="mode">horizontal</property>
+    <widgets>
+      <widget name="tag_box" />
+    </widgets>
+  </object>
+  <object class="GtkSizeGroup" id="folder_separator_size_group">
+    <property name="mode">horizontal</property>
+    <widgets>
+      <widget name="tag_separator" />
+    </widgets>
+  </object>
+  <object class="GtkSizeGroup" id="threads_size_group">
+    <property name="mode">horizontal</property>
+    <widgets>
+      <widget name="thread_list_box" />
+    </widgets>
+  </object>
+  <object class="GtkSizeGroup" id="threads_separator_size_group">
+    <property name="mode">horizontal</property>
+    <widgets>
+      <widget name="threads_separator" />
+    </widgets>
+  </object>
+  <object class="GtkSizeGroup" id="thread_size_group">
+    <property name="mode">horizontal</property>
+    <widgets>
+      <widget name="thread_view_box" />
+    </widgets>
   </object>
 </interface>

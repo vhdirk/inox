@@ -1,73 +1,9 @@
 use gtk::prelude::GtkWindowExt;
 use gio::{Settings, traits::SettingsExt};
-use gtk;
 
 use chrono::prelude::*;
 use chrono::Duration;
 
-pub struct WindowGeometry {
-    left: i32,
-    top: i32,
-    width: i32,
-    height: i32,
-    is_maximized: bool,
-}
-
-impl WindowGeometry {
-    pub fn from_window(window: &gtk::ApplicationWindow) -> WindowGeometry {
-        let position = window.position();
-        let size = window.size();
-        let left = position.0;
-        let top = position.1;
-        let width = size.0;
-        let height = size.1;
-        let is_maximized = window.is_maximized();
-
-        WindowGeometry {
-            left,
-            top,
-            width,
-            height,
-            is_maximized,
-        }
-    }
-
-    pub fn from_settings(settings: &gio::Settings) -> WindowGeometry {
-        let top = settings.int("persist-window-geometry-top");
-        let left = settings.int("persist-window-geometry-left");
-        let width = settings.int("persist-window-geometry-width");
-        let height = settings.int("persist-window-geometry-height");
-        let is_maximized = settings.boolean("persist-window-geometry-maximized");
-
-        WindowGeometry {
-            left,
-            top,
-            width,
-            height,
-            is_maximized,
-        }
-    }
-
-    pub fn apply(&self, window: &gtk::ApplicationWindow) {
-        if self.width > 0 && self.height > 0 {
-            window.resize(self.width, self.height);
-        }
-
-        if self.is_maximized {
-            window.maximize();
-        } else if self.top > 0 && self.left > 0 {
-            window.move_(self.left, self.top);
-        }
-    }
-
-    pub fn write(&self, settings: &gio::Settings) {
-        settings.set_int("persist-window-geometry-left", self.left);
-        settings.set_int("persist-window-geometry-top", self.top);
-        settings.set_int("persist-window-geometry-width", self.width);
-        settings.set_int("persist-window-geometry-height", self.height);
-        settings.set_boolean("persist-window-geometry-maximized", self.is_maximized);
-    }
-}
 
 pub fn get_refresh_interval(settings: &Settings) -> Duration {
     let time = i64::from(settings.int("refresh-interval-time"));

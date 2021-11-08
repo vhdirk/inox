@@ -6,8 +6,6 @@ use dirs;
 use log::*;
 use pretty_env_logger;
 
-use gtk;
-
 use structopt::clap::{App, Arg};
 use structopt::StructOpt;
 mod app;
@@ -20,6 +18,7 @@ mod widgets;
 
 mod components;
 mod main_window;
+mod main_header;
 mod webextension;
 
 use inox_core::settings::Settings;

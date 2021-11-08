@@ -57,7 +57,7 @@ impl ThreadView {
             .web_context(&webcontext)
             .user_content_manager(&webkit2gtk::UserContentManager::new()).build();
 
-        widget.pack_start(&webview, true, true, 0);
+        widget.append(&webview);
 
         let settings = WebViewExt::settings(&webview).unwrap();
 

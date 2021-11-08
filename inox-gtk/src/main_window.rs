@@ -3,56 +3,78 @@ use std::sync::Arc;
 
 use futures::future::FutureExt;
 use gio::prelude::*;
-use glib;
 use glib::subclass;
+use glib::subclass::prelude::*;
 use glib::subclass::prelude::*;
 use glib::translate::*;
 use glib::Sender;
-use gtk;
 use gtk::prelude::*;
-use gtk::subclass::prelude::*;
-use gtk::traits::GtkWindowExt;
+use gtk::traits::{GtkWindowExt, WidgetExt};
 use gtk::{prelude::*, CompositeTemplate};
-
+use adw;
+use adw::prelude::*;
 use log::*;
 
 use crate::app::{Action, InoxApplication};
 use crate::get_widget;
+use crate::main_header::MainHeader;
 
 // use crate::headerbar::HeaderBar;
 use inox_core::database::Thread;
 
-use crate::components::thread_list::ThreadList;
 use crate::components::thread_view::ThreadView;
+use crate::widgets::thread_list::ThreadList;
 
 mod imp {
     use gtk::subclass::prelude::*;
     use gtk::{prelude::*, subclass::prelude::*, CompositeTemplate};
+    use once_cell::unsync::OnceCell;
+    use std::cell::RefCell;
+    use adw::subclass::prelude::{*, AdwApplicationWindowImpl};
 
+    use crate::widgets::thread_list::ThreadList;
+    use crate::main_header::MainHeader;
 
-    #[derive(Debug, Default, CompositeTemplate)]
+    #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/com/github/vhdirk/Inox/gtk/main_window.ui")]
     pub struct MainWindow {
-        window_builder: gtk::Builder,
+        // #[template_child]
+        // pub main_header: TemplateChild<gtk::HeaderBar>,
+
+        // #[template_child]
+        // pub main_layout: TemplateChild<gtk::Box>,
+
+        // #[template_child]
+        // pub main_paned: TemplateChild<gtk::Paned>,
 
         #[template_child]
-        pub main_header: TemplateChild<gtk::Paned>,
+        pub thread_list_box: TemplateChild<gtk::Box>,
 
-        #[template_child]
-        pub main_layout: TemplateChild<gtk::Box>,
 
-        #[template_child]
-        pub main_paned: TemplateChild<gtk::Paned>,
-        // // menu_builder: gtk::Builder,
-        // thread_list: RefCell<Option<ThreadList>>,
+
+
+        // menu_builder: gtk::Builder,
+        pub thread_list: OnceCell<ThreadList>,
         // thread_view: RefCell<Option<ThreadView>>, // current_notification: RefCell<Option<Rc<Notification>>>,
+    }
+
+    impl Default for MainWindow {
+        fn default() -> Self {
+            MainWindow {
+                // main_header: TemplateChild::default(),
+                // main_layout: TemplateChild::default(),
+                // main_paned: TemplateChild::default(),
+                thread_list_box: TemplateChild::default(),
+                thread_list: OnceCell::new(),
+            }
+        }
     }
 
     #[glib::object_subclass]
     impl ObjectSubclass for MainWindow {
-        const NAME: &'static str = "inox_MainWindow";
+        const NAME: &'static str = "InoxMainWindow";
         type Type = super::MainWindow;
-        type ParentType = gtk::ApplicationWindow;
+        type ParentType = adw::ApplicationWindow;
 
         // Within class_init() you must set the template.
         // The CompositeTemplate derive macro provides a convenience function
@@ -70,31 +92,24 @@ mod imp {
     // Implement GLib.Object for MainWindow
     impl ObjectImpl for MainWindow {
         fn constructed(&self, obj: &Self::Type) {
-            obj.setup_all();
             self.parent_constructed(obj);
+            obj.setup_all();
         }
     }
 
-    // Implement Gtk.Widget for MainWindow
     impl WidgetImpl for MainWindow {}
-
-    // Implement Gtk.Container for MainWindow
-    impl ContainerImpl for MainWindow {}
-
-    // Implement Gtk.Bin for MainWindow
-    impl BinImpl for MainWindow {}
-
-    // Implement Gtk.Window for MainWindow
     impl WindowImpl for MainWindow {}
-
-    // Implement Gtk.ApplicationWindow for MainWindow
     impl ApplicationWindowImpl for MainWindow {}
+    impl AdwApplicationWindowImpl for MainWindow {}
+
 }
 
 // Wrap imp::MainWindow into a usable gtk-rs object
 glib::wrapper! {
     pub struct MainWindow(ObjectSubclass<imp::MainWindow>)
-        @extends gtk::Widget, gtk::Container, gtk::Bin, gtk::Window, gtk::ApplicationWindow;
+        @extends adw::ApplicationWindow, gtk::ApplicationWindow, gtk::Window, gtk::Widget,
+        @implements gio::ActionGroup, gio::ActionMap, gtk::Accessible, gtk::Buildable,
+                    gtk::ConstraintTarget, gtk::Native, gtk::Root, gtk::ShortcutManager;
 }
 
 // MainWindow implementation itself
@@ -116,7 +131,7 @@ impl MainWindow {
     }
 
     pub fn setup_widgets(&self, sender: Sender<Action>) {
-        let imp = imp::MainWindow::from_instance(self);
+        let mut imp = imp::MainWindow::from_instance(self);
         let app: InoxApplication = self
             .application()
             .unwrap()
@@ -124,22 +139,26 @@ impl MainWindow {
             .unwrap();
 
         // Add headerbar/content to the window itself
-        self.set_titlebar(Some(&imp.main_header.get()));
+        //self.set_titlebar(Some(&imp.main_header.get()));
 
         // get_widget!(imp.window_builder, gtk::Box, main_layout);
-        self.add(&imp.main_layout.get());
+        // self.set_child(Some(&imp.main_layout.get()));
 
-        // get_widget!(
-        //     imp.window_builder,
-        //     gtk::ScrolledWindow,
-        //     thread_list_scrolled
-        // );
-        // let thread_list = ThreadList::new(sender.clone());
-        // thread_list.setup_signals();
+        // // get_widget!(
+        // //     imp.window_builder,
+        // //     gtk::ScrolledWindow,
+        // //     thread_list_scrolled
+        // // );
+        let thread_list = ThreadList::new(sender.clone());
+        // // thread_list.setup_signals();
 
-        // thread_list_scrolled.add(&thread_list.widget);
-        // thread_list.widget.show_all();
-        // imp.thread_list.replace(Some(thread_list));
+        imp.thread_list_box.get().append(&thread_list.clone());
+        imp.thread_list.set(thread_list).expect("Thread list box was nog empty");
+
+
+
+
+
 
         // get_widget!(imp.window_builder, gtk::Box, thread_box);
         // let thread_view = ThreadView::new(sender.clone());
@@ -149,70 +168,67 @@ impl MainWindow {
         // thread_view.widget.show_all();
         // imp.thread_view.replace(Some(thread_view));
 
-        self.resize(800, 480);
+        // self.resize(800, 480);
     }
 
-    fn setup_signals(&self) {
+    // fn setup_signals(&self) {
+    //     let imp = imp::MainWindow::from_instance(self);
+
+    //     // get_widget!(imp.window_builder, gtk::Paned, main_header);
+    //     // get_widget!(imp.window_builder, gtk::Paned, main_paned);
+
+    //     let _width_bind = imp
+    //         .main_paned
+    //         .get()
+    //         .bind_property("position", &imp.main_header.get(), "position")
+    //         .flags(glib::BindingFlags::SYNC_CREATE | glib::BindingFlags::BIDIRECTIONAL)
+    //         .transform_to(move |_binding, value| {
+    //             let _offset = 0; //TODO: this offset was trial and error.
+    //                              // we should calculate it somehow.
+    //             Some((value.get::<i32>().unwrap_or(0)).to_value())
+    //         })
+    //         .build();
+
+    //     // // window gets closed
+    //     // self.connect_delete_event(move |window, _| {
+    //     //     debug!("Saving window geometry.");
+    //     //     // let _width = window.size().0;
+    //     //     // let _height = window.size().1;
+
+    //     //     // settings_manager::set_integer(Key::WindowWidth, width);
+    //     //     // settings_manager::set_integer(Key::WindowHeight, height);
+    //     //     gtk::Inhibit(false)
+    //     // });
+    // }
+
+    // // fn setup_gactions(&self, _sender: Sender<Action>) {
+    // //     // We need to upcast from MainWindow to gtk::ApplicationWindow, because MainWindow
+    // //     // currently doesn't implement GLib.ActionMap, since it's not supported in gtk-rs for subclassing (13-01-2020)
+    // //     let window = self.clone().upcast::<gtk::ApplicationWindow>();
+    // //     let _app = window.application().unwrap();
+    // // }
+
+    pub fn set_query(&self, query: &notmuch::Query) {
+        let imp = imp::MainWindow::from_instance(self);
+        let threads = query.search_threads().unwrap();
+        imp.thread_list.get().unwrap().set_threads(threads);
+    }
+
+    pub fn open_thread(&self, thread: Option<Thread>) {
         let imp = imp::MainWindow::from_instance(self);
 
-        // get_widget!(imp.window_builder, gtk::Paned, main_header);
-        // get_widget!(imp.window_builder, gtk::Paned, main_paned);
+        // match thread {
+        //     Some(thread) => {
+        //         self.update_titlebar(Some(&thread.subject()));
 
-        let _width_bind = imp.main_paned.get()
-            .bind_property("position", &imp.main_header.get(), "position")
-            .flags(glib::BindingFlags::SYNC_CREATE | glib::BindingFlags::BIDIRECTIONAL)
-            .transform_to(move |_binding, value| {
-                let _offset = 0; //TODO: this offset was trial and error.
-                                 // we should calculate it somehow.
-                Some((value.get::<i32>().unwrap_or(0)).to_value())
-            })
-            .build();
-
-        // window gets closed
-        self.connect_delete_event(move |window, _| {
-            debug!("Saving window geometry.");
-            // let _width = window.size().0;
-            // let _height = window.size().1;
-
-            // settings_manager::set_integer(Key::WindowWidth, width);
-            // settings_manager::set_integer(Key::WindowHeight, height);
-            Inhibit(false)
-        });
+        //         let thread_view = imp.thread_view.borrow().as_ref().unwrap().clone();
+        //         thread_view.load_thread(thread);
+        //     }
+        //     None => {
+        //         self.update_titlebar(None);
+        //     }
+        // }
     }
-
-    // fn setup_gactions(&self, _sender: Sender<Action>) {
-    //     // We need to upcast from MainWindow to gtk::ApplicationWindow, because MainWindow
-    //     // currently doesn't implement GLib.ActionMap, since it's not supported in gtk-rs for subclassing (13-01-2020)
-    //     let window = self.clone().upcast::<gtk::ApplicationWindow>();
-    //     let _app = window.application().unwrap();
-    // }
-
-    // pub fn set_query(&self, query: &notmuch::Query) {
-    //     let imp = imp::MainWindow::from_instance(self);
-    //     let threads = query.search_threads().unwrap();
-    //     imp
-    //         .thread_list
-    //         .borrow()
-    //         .as_ref()
-    //         .unwrap()
-    //         .set_threads(threads);
-    // }
-
-    // pub fn open_thread(&self, thread: Option<Thread>) {
-    //     let imp = imp::MainWindow::from_instance(self);
-
-    //     match thread {
-    //         Some(thread) => {
-    //             self.update_titlebar(Some(&thread.subject()));
-
-    //             let thread_view = imp.thread_view.borrow().as_ref().unwrap().clone();
-    //             thread_view.load_thread(thread);
-    //         }
-    //         None => {
-    //             self.update_titlebar(None);
-    //         }
-    //     }
-    // }
 
     // pub fn update_titlebar(&self, title: Option<&str>) {
     //     let imp = imp::MainWindow::from_instance(self);
