@@ -16,13 +16,12 @@ use adw::prelude::*;
 use log::*;
 
 use crate::app::{Action, InoxApplication};
-use crate::get_widget;
 use crate::main_header::MainHeader;
 
 // use crate::headerbar::HeaderBar;
 use inox_core::database::Thread;
 
-use crate::components::thread_view::ThreadView;
+use crate::widgets::thread_view::ThreadView;
 use crate::widgets::thread_list::ThreadList;
 
 mod imp {
@@ -153,8 +152,10 @@ impl MainWindow {
         // // thread_list.setup_signals();
 
         imp.thread_list_box.get().append(&thread_list.clone());
-        imp.thread_list.set(thread_list).expect("Thread list box was nog empty");
-
+        thread_list.set_parent(&imp.thread_list_box.get());
+        thread_list.show();
+        imp.thread_list_box.show();
+        imp.thread_list.set(thread_list).expect("Thread list box was not empty");
 
 
 

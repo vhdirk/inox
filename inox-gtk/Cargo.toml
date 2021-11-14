@@ -45,6 +45,7 @@ once_cell = "1.2.0"
 chrono = { version = "0.4", features = ["serde"] }
 
 gtk = { git = "https://github.com/gtk-rs/gtk4-rs", package = "gtk4"}
+gtk-macros = { git = "https://github.com/gtk-rs/gtk4-rs", package = "gtk4-macros"}
 gtk-sys = { git = "https://github.com/gtk-rs/gtk4-rs", package = "gtk4-sys"}
 gdk = { git = "https://github.com/gtk-rs/gtk4-rs", package = "gdk4" }
 gdk-sys = { git = "https://github.com/gtk-rs/gtk4-rs", package = "gdk4-sys"}
@@ -59,8 +60,8 @@ pango = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 pangocairo = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 gdk-pixbuf = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 gdk-pixbuf-sys = { git = "https://github.com/gtk-rs/gtk-rs-core" }
-webkit2gtk = { git = "https://github.com/vhdirk/webkit2gtk5-rs", features=["v2_18"], package = "webkit2gtk5" }
-webkit2gtk-webextension = { git = "https://github.com/vhdirk/webkit2gtk5-rs", features=["v2_18"], package = "webkit2gtk5-webextension" }
+webkit2gtk = { git = "https://gitlab.gnome.org/World/Rust/webkit2gtk5-rs", features=["v2_18"], package = "webkit2gtk5" }
+webkit2gtk-webextension = { git = "https://gitlab.gnome.org/World/Rust/webkit2gtk5-rs", features=["v2_18"], package = "webkit2gtk5-webextension" }
 adw = { path = "../../libadwaita-rs/libadwaita", package = "libadwaita" }
 
 capnp = "0.12"
@@ -76,7 +77,7 @@ failure_derive = "0.1.1"
 md5 = "0.3.7"
 
 notmuch = "0.7.0"
-gmime = { git = "https://github.com/vhdirk/gmime-rs"}
+gmime = { git = "https://gitlab.gnome.org/World/Rust/gmime-rs"}
 
 inox-core = { path = "../inox-core" }
 

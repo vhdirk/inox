@@ -16,7 +16,6 @@ mod static_resource;
 // mod headerbar;
 mod widgets;
 
-mod components;
 mod main_window;
 mod main_header;
 mod webextension;

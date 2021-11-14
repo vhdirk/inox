@@ -39,29 +39,30 @@ pub enum Action {
     SelectTag(Option<String>),
     Search(String),
     Query(notmuch::Query),
-    SelectThread(Option<Thread>), // Reload,
-                                  // ViewShowLibrary,
-                                  // ViewShowPlayer,
-                                  // ViewRaise,
-                                  // ViewShowNotification(Rc<Notification>),
-                                  // PlaybackConnectGCastDevice(GCastDevice),
-                                  // PlaybackDisconnectGCastDevice,
-                                  // PlaybackSetStation(Box<Station>),
-                                  // PlaybackStart,
-                                  // PlaybackStop,
-                                  // PlaybackSetVolume(f64),
-                                  // PlaybackSaveSong(Song),
-                                  // LibraryAddStations(Vec<Station>),
-                                  // LibraryRemoveStations(Vec<Station>),
-                                  // SearchFor(StationRequest), // TODO: is this neccessary?,
-                                  // SettingsKeyChanged(Key)
+    SelectThread(Option<Thread>),
+    // Reload,
+    // ViewShowLibrary,
+    // ViewShowPlayer,
+    // ViewRaise,
+    // ViewShowNotification(Rc<Notification>),
+    // PlaybackConnectGCastDevice(GCastDevice),
+    // PlaybackDisconnectGCastDevice,
+    // PlaybackSetStation(Box<Station>),
+    // PlaybackStart,
+    // PlaybackStop,
+    // PlaybackSetVolume(f64),
+    // PlaybackSaveSong(Song),
+    // LibraryAddStations(Vec<Station>),
+    // LibraryRemoveStations(Vec<Station>),
+    // SearchFor(StationRequest), // TODO: is this neccessary?,
+    // SettingsKeyChanged(Key)
 }
 
 mod imp {
-    use std::cell::Cell;
     use super::*;
     use gtk::glib::WeakRef;
     use once_cell::sync::OnceCell;
+    use std::cell::Cell;
 
     pub struct InoxApplication {
         pub sender: Sender<Action>,
@@ -90,7 +91,7 @@ mod imp {
 
             Self {
                 sender,
-                receiver:  RefCell::new(Some(recv)),
+                receiver: RefCell::new(Some(recv)),
                 window,
                 database: RefCell::new(None),
                 settings: RefCell::new(None),
@@ -240,10 +241,7 @@ impl InoxApplication {
                     Some(val) => format!("tag:\"{}\"", val),
                     None => "".to_string(),
                 };
-                imp
-                    .sender
-                    .send(Action::Search(search.to_owned()))
-                    .unwrap()
+                imp.sender.send(Action::Search(search.to_owned())).unwrap()
             }
             Action::Search(search) => imp
                 .sender
@@ -292,12 +290,22 @@ impl InoxApplication {
 
     fn perform_search(&self, query: &notmuch::Query) {
         let imp = imp::InoxApplication::from_instance(self);
-        imp.window.get().unwrap().upgrade().unwrap().set_query(query);
+        imp.window
+            .get()
+            .unwrap()
+            .upgrade()
+            .unwrap()
+            .set_query(query);
     }
 
     fn open_thread(&self, thread: Option<Thread>) {
         let imp = imp::InoxApplication::from_instance(self);
-        imp.window.get().unwrap().upgrade().unwrap().open_thread(thread);
+        imp.window
+            .get()
+            .unwrap()
+            .upgrade()
+            .unwrap()
+            .open_thread(thread);
     }
 }
 

@@ -1,22 +1,3 @@
-// http://gtk-rs.org/tuto/closures
-#[macro_export]
-macro_rules! clone {
-    (@param _) => ( _ );
-    (@param $x:ident) => ( $x );
-    ($($n:ident),+ => move || $body:expr) => (
-        {
-            $( let $n = $n.clone(); )+
-            move || $body
-        }
-    );
-    ($($n:ident),+ => move |$($p:tt),+| $body:expr) => (
-        {
-            $( let $n = $n.clone(); )+
-            move |$(clone!(@param $p),)+| $body
-        }
-    );
-}
-
 /// Creates an action named $called in the action map $on with the handler $handle
 #[macro_export]
 macro_rules! action {
@@ -31,21 +12,6 @@ macro_rules! action {
         // Return the action
         act
     }};
-}
-
-#[macro_export]
-macro_rules! get_widget {
-    ($builder:expr, $wtype:ty, @$name:ident) => {{
-        let $name: $wtype = $builder
-            .get_object(stringify!($name))
-            .expect(&format!("Could not find widget \"{}\"", stringify!($name)));
-        $name
-    }};
-    ($builder:expr, $wtype:ty, $name:ident) => {
-        let $name: $wtype = $builder
-            .object(stringify!($name))
-            .expect(&format!("Could not find widget \"{}\"", stringify!($name)));
-    };
 }
 
 #[macro_export]
