@@ -1,4 +1,5 @@
 use async_std::os::unix::net::UnixStream;
+use glib::subclass::prelude::ObjectSubclassExt;
 use std::cell::RefCell;
 use std::os::unix::io::FromRawFd;
 use std::os::unix::prelude::*;
@@ -31,110 +32,27 @@ use page_client::PageClient;
 mod theme;
 use theme::ThreadViewTheme;
 
-#[derive(Clone)]
-pub struct ThreadView {
-    pub widget: gtk::Box,
-    sender: Sender<Action>,
-    webview: webkit2gtk::WebView,
-
-    webcontext: webkit2gtk::WebContext,
-    page_client: PageClient,
-    theme: ThreadViewTheme,
-    thread: RefCell<Option<Thread>>,
-}
-
-impl ThreadView {
-    pub fn new(sender: Sender<Action>) -> Self {
-        let widget = gtk::Box::new(gtk::Orientation::Vertical, 0);
-
-        let webcontext = webkit2gtk::WebContext::default().unwrap();
-        webcontext.set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
-
-        let stream = ThreadView::initialize_web_extensions(&webcontext);
-        let page_client = PageClient::new(stream);
-
-        let webview = webkit2gtk::WebViewBuilder::new()
-            .web_context(&webcontext)
-            .user_content_manager(&webkit2gtk::UserContentManager::new()).build();
-
-        widget.append(&webview);
-
-        let settings = WebViewExt::settings(&webview).unwrap();
-
-        // settings.set_enable_scripts(true);
-        // settings.set_enable_java_applet(false);
-        settings.set_enable_plugins(false);
-        settings.set_auto_load_images(true);
-        settings.set_enable_dns_prefetching(false);
-        settings.set_enable_fullscreen(false);
-        settings.set_enable_html5_database(false);
-        settings.set_enable_html5_local_storage(false);
-        //settings.set_enable_mediastream(false);
-        // settings.set_enable_mediasource(false);
-        settings.set_enable_offline_web_application_cache(false);
-        // settings.set_enable_private_browsing(true);
-        // settings.set_enable_running_of_insecure_content(false);
-        // settings.set_enable_display_of_insecure_content(false);
-        settings.set_enable_xss_auditor(true);
-        settings.set_media_playback_requires_user_gesture(true);
-        settings.set_enable_developer_extras(true); // TODO: should only enabled conditionally
-
-        ThreadView {
-            widget,
-            sender,
-            webview,
-            webcontext,
-            page_client: page_client,
-            theme: ThreadViewTheme::load(),
-            thread: RefCell::new(None),
-        }
-    }
-
-    pub fn setup_signals(&self) {
-        let self_ = self.clone();
-        self.webview.connect_load_changed(move |_, event| {
-            let mut mself = self_.clone();
-
-            mself.load_changed(event);
-        });
-
-        //     // add_events (Gdk::KEY_PRESS_MASK);
-        let self_ = self.clone();
-        self.webview
-            .connect_decide_policy(move |_, decision, decision_type| {
-                let mut mself = self_.clone();
-                mself.decide_policy(decision, decision_type);
-                false
-            });
-
-        self.load_html();
-
-        //     // register_keys ();
-    }
-
-    fn load_changed(&mut self, event: webkit2gtk::LoadEvent) {
-        info!("ThreadView: load changed: {:?}", event);
-
-        match event {
-            webkit2gtk::LoadEvent::Finished => {
-                if self.page_client.is_ready() {
-                    self.ready_to_render();
-                }
-            }
-            _ => (),
-        }
-    }
-
-    async fn ready_to_render(&mut self) {
-        info!("ready_to_render");
-
-        self.page_client.load(&self.theme).await;
-
-        /* render messages in case we were not ready when first requested */
-        self.page_client.clear_messages().await;
-
-        // self.render_messages().await;
-    }
+mod imp {
+    use crate::app::Action;
+    use crate::webextension::rpc::RawFdWrap;
+    use crate::widgets::thread_view::theme::ThreadViewTheme;
+    use crate::widgets::thread_view::PageClient;
+    use gio::subclass::prelude::ObjectImplExt;
+    use glib::subclass::prelude::ObjectImpl;
+    use glib::subclass::prelude::ObjectSubclass;
+    use glib::Sender;
+    use gtk::prelude::WidgetExt;
+    use gtk::prelude::*;
+    use gtk::subclass::prelude::WidgetImpl;
+    use gtk::subclass::widget::WidgetClassSubclassExt;
+    use inox_core::database::Thread;
+    use log::*;
+    use nix::sys::socket::{socketpair, AddressFamily, SockFlag, SockType};
+    use once_cell::unsync::OnceCell;
+    use std::cell::RefCell;
+    use std::os::unix::io::FromRawFd;
+    use webkit2gtk;
+    use webkit2gtk::traits::WebContextExt;
 
     fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> gio::Socket {
         info!("initialize_web_extensions");
@@ -158,17 +76,177 @@ impl ThreadView {
         unsafe { gio::Socket::from_fd(RawFdWrap::from_raw_fd(local)) }.unwrap()
     }
 
+    #[derive(Clone, Debug)]
+    pub struct ThreadView {
+        pub sender: OnceCell<Sender<Action>>,
+        pub webview: webkit2gtk::WebView,
+        pub webcontext: webkit2gtk::WebContext,
+        pub page_client: PageClient,
+        pub theme: ThreadViewTheme,
+        pub thread: RefCell<Option<Thread>>,
+    }
+
+    // impl Default for ThreadView {
+    //     fn default() -> Self {
+    //         Self {
+    //             sender: OnceCell::new(),
+    //             webview: webkit2gtk::WebView::new(),
+    //             webcontext: webkit2gtk::WebContext::default().unwrap(),
+    //             page_client: OnceCell::new(),
+    //             theme: ThreadViewTheme::default(),
+    //             thread: RefCell::new(None),
+    //         }
+    //     }
+    // }
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for ThreadView {
+        const NAME: &'static str = "InoxThreadView";
+        type Type = super::ThreadView;
+        type ParentType = gtk::Widget;
+
+        fn new() -> Self {
+            let webcontext = webkit2gtk::WebContext::default().unwrap();
+            let webview = webkit2gtk::WebViewBuilder::new()
+                .web_context(&webcontext)
+                .user_content_manager(&webkit2gtk::UserContentManager::new())
+                .build();
+            let stream = initialize_web_extensions(&webcontext);
+            let page_client = PageClient::new(&stream);
+
+            ThreadView {
+                sender: OnceCell::new(),
+                webview,
+                webcontext,
+                page_client,
+                theme: ThreadViewTheme::default(),
+                thread: RefCell::new(None),
+            }
+        }
+
+        fn class_init(klass: &mut Self::Class) {
+            klass.set_layout_manager_type::<gtk::BinLayout>();
+        }
+    }
+
+    impl ObjectImpl for ThreadView {
+        fn constructed(&self, obj: &Self::Type) {
+            self.webview.set_parent(obj);
+            // Setup
+            // obj.setup_model();
+            // obj.setup_callbacks();
+            // obj.setup_columns();
+
+            // imp.column_view.set_parent(&imp.window);
+            self.parent_constructed(obj);
+        }
+
+        fn dispose(&self, _obj: &Self::Type) {
+            self.webview.unparent();
+        }
+    }
+    impl WidgetImpl for ThreadView {}
+}
+
+// Wrap imp::ThreadList into a usable gtk-rs object
+glib::wrapper! {
+    pub struct ThreadView(ObjectSubclass<imp::ThreadView>)
+        @extends gtk::Widget;
+}
+
+// ThreadView implementation itself
+impl ThreadView {
+    pub fn new(sender: Sender<Action>) -> Self {
+        let thread_view: Self = glib::Object::new(&[]).expect("Failed to create ThreadView");
+        let imp = imp::ThreadView::from_instance(&thread_view);
+        imp.webcontext
+            .set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
+
+        let settings = WebViewExt::settings(&imp.webview).unwrap();
+
+        // settings.set_enable_scripts(true);
+        // settings.set_enable_java_applet(false);
+        settings.set_enable_plugins(false);
+        settings.set_auto_load_images(true);
+        settings.set_enable_dns_prefetching(false);
+        settings.set_enable_fullscreen(false);
+        settings.set_enable_html5_database(false);
+        settings.set_enable_html5_local_storage(false);
+        //settings.set_enable_mediastream(false);
+        // settings.set_enable_mediasource(false);
+        settings.set_enable_offline_web_application_cache(false);
+        // settings.set_enable_private_browsing(true);
+        // settings.set_enable_running_of_insecure_content(false);
+        // settings.set_enable_display_of_insecure_content(false);
+        settings.set_enable_xss_auditor(true);
+        settings.set_media_playback_requires_user_gesture(true);
+        settings.set_enable_developer_extras(true); // TODO: should only enabled conditionally
+
+        thread_view
+    }
+
+    pub fn setup_signals(&self) {
+        let imp = imp::ThreadView::from_instance(self);
+        let self_ = self.clone();
+        imp.webview.connect_load_changed(move |_, event| {
+            let mut mself = self_.clone();
+
+            mself.load_changed(event);
+        });
+
+        //     // add_events (Gdk::KEY_PRESS_MASK);
+        let self_ = self.clone();
+        imp.webview
+            .connect_decide_policy(move |_, decision, decision_type| {
+                let mut mself = self_.clone();
+                mself.decide_policy(decision, decision_type);
+                false
+            });
+
+        self.load_html();
+
+        //     // register_keys ();
+    }
+
+    fn load_changed(&mut self, event: webkit2gtk::LoadEvent) {
+        info!("ThreadView: load changed: {:?}", event);
+        let imp = imp::ThreadView::from_instance(self);
+
+        match event {
+            webkit2gtk::LoadEvent::Finished => {
+                if imp.page_client.is_ready() {
+                    self.ready_to_render();
+                }
+            }
+            _ => (),
+        }
+    }
+
+    async fn ready_to_render(&mut self) {
+        info!("ready_to_render");
+        let imp = imp::ThreadView::from_instance(self);
+
+        imp.page_client.load(&imp.theme).await;
+
+        /* render messages in case we were not ready when first requested */
+        imp.page_client.clear_messages().await;
+
+        // self.render_messages().await;
+    }
+
     // general message adding and rendering
     fn load_html(&self) {
         info!("render: loading html..");
+        let imp = imp::ThreadView::from_instance(self);
 
-        self.webview.load_html(&self.theme.html, None);
+        imp.webview.load_html(&imp.theme.html, None);
     }
 
     pub fn load_thread(&self, thread: Thread) {
         info!("load_thread: {:?}", thread);
+        let imp = imp::ThreadView::from_instance(self);
 
-        let mut client = self.page_client.clone();
+        let mut client = imp.page_client.clone();
         let mut self_ = self.clone();
 
         let future = async move {
@@ -218,7 +296,9 @@ impl ThreadView {
     }
 
     async fn add_message(&mut self, message: &notmuch::Message) {
-        let mut client = self.page_client.clone();
+        let imp = imp::ThreadView::from_instance(self);
+
+        let mut client = imp.page_client.clone();
 
         client.add_message(message);
     }

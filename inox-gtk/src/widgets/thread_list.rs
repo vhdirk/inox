@@ -97,7 +97,6 @@ mod imp {
             self.scrolled_window.set_parent(obj);
             // Setup
             obj.setup_model();
-            obj.setup_callbacks();
             obj.setup_columns();
 
             // imp.column_view.set_parent(&imp.window);
@@ -128,6 +127,9 @@ impl ThreadList {
             .expect("Failed to set sender on ThreadList");
         thread_list.set_vexpand(true);
         thread_list.set_vexpand_set(true);
+
+        thread_list.setup_callbacks();
+
         thread_list
     }
 

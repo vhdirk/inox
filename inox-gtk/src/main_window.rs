@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 use std::sync::Arc;
 
+use adw;
+use adw::prelude::*;
 use futures::future::FutureExt;
 use gio::prelude::*;
 use glib::subclass;
@@ -11,8 +13,6 @@ use glib::Sender;
 use gtk::prelude::*;
 use gtk::traits::{GtkWindowExt, WidgetExt};
 use gtk::{prelude::*, CompositeTemplate};
-use adw;
-use adw::prelude::*;
 use log::*;
 
 use crate::app::{Action, InoxApplication};
@@ -21,18 +21,19 @@ use crate::main_header::MainHeader;
 // use crate::headerbar::HeaderBar;
 use inox_core::database::Thread;
 
-use crate::widgets::thread_view::ThreadView;
 use crate::widgets::thread_list::ThreadList;
+use crate::widgets::thread_view::ThreadView;
 
 mod imp {
+    use adw::subclass::prelude::{AdwApplicationWindowImpl, *};
     use gtk::subclass::prelude::*;
     use gtk::{prelude::*, subclass::prelude::*, CompositeTemplate};
     use once_cell::unsync::OnceCell;
     use std::cell::RefCell;
-    use adw::subclass::prelude::{*, AdwApplicationWindowImpl};
 
-    use crate::widgets::thread_list::ThreadList;
     use crate::main_header::MainHeader;
+    use crate::widgets::thread_list::ThreadList;
+    use crate::widgets::thread_view::ThreadView;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/com/github/vhdirk/Inox/gtk/main_window.ui")]
@@ -45,15 +46,16 @@ mod imp {
 
         // #[template_child]
         // pub main_paned: TemplateChild<gtk::Paned>,
-
         #[template_child]
         pub thread_list_box: TemplateChild<gtk::Box>,
 
-
-
-
         // menu_builder: gtk::Builder,
         pub thread_list: OnceCell<ThreadList>,
+
+        #[template_child]
+        pub thread_view_box: TemplateChild<gtk::Box>,
+
+        pub thread_view: OnceCell<ThreadView>,
         // thread_view: RefCell<Option<ThreadView>>, // current_notification: RefCell<Option<Rc<Notification>>>,
     }
 
@@ -65,6 +67,9 @@ mod imp {
                 // main_paned: TemplateChild::default(),
                 thread_list_box: TemplateChild::default(),
                 thread_list: OnceCell::new(),
+
+                thread_view_box: TemplateChild::default(),
+                thread_view: OnceCell::new(),
             }
         }
     }
@@ -100,7 +105,6 @@ mod imp {
     impl WindowImpl for MainWindow {}
     impl ApplicationWindowImpl for MainWindow {}
     impl AdwApplicationWindowImpl for MainWindow {}
-
 }
 
 // Wrap imp::MainWindow into a usable gtk-rs object
@@ -143,26 +147,23 @@ impl MainWindow {
         // get_widget!(imp.window_builder, gtk::Box, main_layout);
         // self.set_child(Some(&imp.main_layout.get()));
 
-        // // get_widget!(
-        // //     imp.window_builder,
-        // //     gtk::ScrolledWindow,
-        // //     thread_list_scrolled
-        // // );
         let thread_list = ThreadList::new(sender.clone());
-        // // thread_list.setup_signals();
-
-        imp.thread_list_box.get().append(&thread_list.clone());
         thread_list.set_parent(&imp.thread_list_box.get());
         thread_list.show();
         imp.thread_list_box.show();
-        imp.thread_list.set(thread_list).expect("Thread list box was not empty");
+        imp.thread_list
+        .set(thread_list)
+        .expect("Thread list box was not empty");
+        // // thread_list.setup_signals();
 
+        let thread_view = ThreadView::new(sender.clone());
+        thread_view.set_parent(&imp.thread_view_box.get());
+        thread_view.show();
+        imp.thread_view_box.show();
+        imp.thread_view
+            .set(thread_view)
+            .expect("Thread view box was not empty");
 
-
-
-
-        // get_widget!(imp.window_builder, gtk::Box, thread_box);
-        // let thread_view = ThreadView::new(sender.clone());
         // thread_view.setup_signals();
 
         // thread_box.add(&thread_view.widget);
@@ -218,17 +219,17 @@ impl MainWindow {
     pub fn open_thread(&self, thread: Option<Thread>) {
         let imp = imp::MainWindow::from_instance(self);
 
-        // match thread {
-        //     Some(thread) => {
-        //         self.update_titlebar(Some(&thread.subject()));
+        match thread {
+            Some(thread) => {
+                // self.update_titlebar(Some(&thread.subject()));
 
-        //         let thread_view = imp.thread_view.borrow().as_ref().unwrap().clone();
-        //         thread_view.load_thread(thread);
-        //     }
-        //     None => {
-        //         self.update_titlebar(None);
-        //     }
-        // }
+                let thread_view = imp.thread_view.get().unwrap();
+                thread_view.load_thread(thread);
+            }
+            None => {
+                // self.update_titlebar(None);
+            }
+        }
     }
 
     // pub fn update_titlebar(&self, title: Option<&str>) {

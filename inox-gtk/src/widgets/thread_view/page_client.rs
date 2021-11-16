@@ -1,3 +1,4 @@
+use std::fmt;
 use async_std::os::unix::net::UnixStream;
 use futures::future::{self, FutureExt, Ready, TryFutureExt};
 use futures::io::AsyncReadExt;
@@ -29,8 +30,15 @@ pub struct PageClient {
     client: page::Client,
 }
 
+impl fmt::Debug for PageClient {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        self.socket.fmt(f);
+        Ok(())
+    }
+}
+
 impl PageClient {
-    pub fn new(socket: gio::Socket) -> Self {
+    pub fn new(socket: &gio::Socket) -> Self {
         let connection = socket.connection_factory_create_connection();
         let stream = connection.into_async_read_write().unwrap();
         let (istream, ostream) = stream.split();
@@ -53,10 +61,10 @@ impl PageClient {
             }))
         });
 
-        Self { socket, client }
+        Self { socket: socket.clone(), client }
     }
 
-    pub async fn load(&mut self, theme: &ThreadViewTheme) -> () {
+    pub async fn load(&self, theme: &ThreadViewTheme) -> () {
         /* load style sheet */
         debug!("pc: sending page..");
 
@@ -88,7 +96,7 @@ impl PageClient {
         return true;
     }
 
-    pub async fn clear_messages(&mut self) -> () {
+    pub async fn clear_messages(&self) -> () {
         debug!("pc: clear messages..");
 
         let mut request = self.client.clear_messages_request();
