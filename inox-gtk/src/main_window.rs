@@ -20,8 +20,8 @@ use crate::app::{Action, InoxApplication};
 // use crate::headerbar::HeaderBar;
 use inox_core::database::Thread;
 
-use crate::widgets::threads_list::ThreadsList;
 use crate::widgets::thread_view::ThreadView;
+use crate::widgets::threads_list::ThreadsList;
 
 mod imp {
     use adw::subclass::prelude::{AdwApplicationWindowImpl, *};
@@ -30,8 +30,8 @@ mod imp {
     use once_cell::unsync::OnceCell;
     use std::cell::RefCell;
 
-    use crate::widgets::threads_list::ThreadsList;
     use crate::widgets::thread_view::ThreadView;
+    use crate::widgets::threads_list::ThreadsList;
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/com/github/vhdirk/Inox/gtk/main_window.ui")]
@@ -97,6 +97,15 @@ mod imp {
             self.parent_constructed(obj);
             obj.setup_all();
         }
+
+        fn dispose(&self, _obj: &Self::Type) {
+            if let Some(tv) = self.thread_view.get() {
+                tv.unparent()
+            }
+            if let Some(tl) = self.threads_list.get() {
+                tl.unparent()
+            }
+        }
     }
 
     impl WidgetImpl for MainWindow {}
@@ -132,26 +141,15 @@ impl MainWindow {
     }
 
     pub fn setup_widgets(&self, sender: Sender<Action>) {
-        let mut imp = imp::MainWindow::from_instance(self);
-        let app: InoxApplication = self
-            .application()
-            .unwrap()
-            .downcast::<InoxApplication>()
-            .unwrap();
-
-        // Add headerbar/content to the window itself
-        //self.set_titlebar(Some(&imp.main_header.get()));
-
-        // get_widget!(imp.window_builder, gtk::Box, main_layout);
-        // self.set_child(Some(&imp.main_layout.get()));
+        let imp = imp::MainWindow::from_instance(self);
 
         let threads_list = ThreadsList::new(sender.clone());
         threads_list.set_parent(&imp.threads_list_box.get());
         threads_list.show();
         imp.threads_list_box.show();
         imp.threads_list
-        .set(threads_list)
-        .expect("Thread list box was not empty");
+            .set(threads_list)
+            .expect("Threads list box was not empty");
         // // threads_list.setup_signals();
 
         let thread_view = ThreadView::new(sender.clone());
@@ -222,7 +220,7 @@ impl MainWindow {
                 // self.update_titlebar(Some(&thread.subject()));
 
                 let thread_view = imp.thread_view.get().unwrap();
-                // thread_view.load_thread(thread);
+                thread_view.load_thread(&thread);
             }
             None => {
                 // self.update_titlebar(None);
