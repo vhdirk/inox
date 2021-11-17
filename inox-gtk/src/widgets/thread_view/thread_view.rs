@@ -8,6 +8,7 @@ use gtk::prelude::*;
 use notmuch;
 
 use crate::app::Action;
+use super::thread_messages_view::ThreadMessagesView;
 
 mod imp {
     use crate::app::Action;
@@ -18,6 +19,8 @@ mod imp {
     use glib::Sender;
     use gtk::{self, prelude::*, subclass::prelude::*, CompositeTemplate};
     use once_cell::unsync::OnceCell;
+    use super::ThreadMessagesView;
+
 
     #[derive(Debug, Default, CompositeTemplate)]
     #[template(resource = "/com/github/vhdirk/Inox/gtk/thread_view.ui")]
@@ -51,7 +54,7 @@ mod imp {
         pub thread_find_prev: TemplateChild<gtk::Button>,
 
         // pub messages_view: RefCell<Option<ThreadMessagesView>>,
-        // pub thread_scroller: gtk::ScrolledWindow,
+        pub thread_scroller: gtk::ScrolledWindow,
         //pub composer:
         pub sender: OnceCell<Sender<Action>>,
     }
@@ -75,8 +78,28 @@ mod imp {
             self.stack.get().set_visible_child(widget);
         }
 
+        //add_new_list
+        pub fn set_messages_view(&self, list: &ThreadMessagesView) {
+
+            // this.current_list = list;
+            list.show();
+
+            // // Manually create a Viewport rather than letting
+            // // ScrolledWindow do it so Container.set_focus_{h,v}adjustment
+            // // are not set on the list - it makes changing focus jumpy
+            // // when a row or its web_view are larger than the viewport.
+            // Gtk.Viewport viewport = new Gtk.Viewport(null, null);
+            // viewport.show();
+            // viewport.add(list);
+
+            // self.thread_scroller.add(viewport);
+            list.set_parent(&self.thread_scroller);
+        }
+
+
         // Remove any existing thread list, cancelling its loading
-        pub fn remove_current_list(&self) {
+        // remove_current_list
+        pub fn remove_messages_view(&self) {
             // if (self.find_cancellable != null) {
             //     self.find_cancellable.cancel();
             //     self.find_cancellable = null;
@@ -104,11 +127,11 @@ mod imp {
 
         fn new() -> Self {
             // let model = gio::ListStore::new(Thread::static_type());
-            // let thread_scroller = gtk::ScrolledWindow::builder()
-            //     .vexpand(true)
-            //     .hexpand(true)
-            //     .hscrollbar_policy(gtk::PolicyType::Never)
-            //     .build();
+            let thread_scroller = gtk::ScrolledWindow::builder()
+                .vexpand(true)
+                .hexpand(true)
+                .hscrollbar_policy(gtk::PolicyType::Never)
+                .build();
 
             // thread_scroller.show();
 
@@ -129,7 +152,7 @@ mod imp {
                 thread_find_prev: TemplateChild::default(),
 
                 // messages_view: RefCell::new(None),
-                // thread_scroller,
+                thread_scroller,
                 sender: OnceCell::new(),
             }
         }
@@ -175,6 +198,7 @@ mod imp {
             );
             empty_search.set_parent(&self.empty_search_page.get());
 
+            self.thread_scroller.set_parent(obj);
             self.parent_constructed(obj);
         }
 
@@ -224,7 +248,15 @@ impl ThreadView {
 
     pub fn load_thread(&self, thread: &Thread) {
         let imp = imp::ThreadView::from_instance(self);
-        self.show_loading();
+        // self.show_loading();
+
+        let messages_view = ThreadMessagesView::new(thread, imp.sender.get().unwrap().clone());
+
+
+        imp.set_messages_view(&messages_view);
+        imp.set_visible_child(&imp.thread_page.get());
+
+
         // let model = imp::create_liststore();
         // let selection_model = SingleSelection::new(Some(&model));
 
