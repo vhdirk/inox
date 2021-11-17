@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+    <requires lib="gtk" version="4.0" />
+    <requires lib="libadwaita" version="1.0" />
+    <template class="InoxThreadList" parent="GtkWidget">
+        <child>
+            <object class="GtkScrolledWindow" id="scroller_mail">
+                <property name="vexpand">1</property>
+                <child>
+                    <object class="GtkListBox" id="thread_list">
+                        <property name="vexpand">1</property>
+                        <property name="hexpand">0</property>
+                        <property name="selection_mode">single</property>
+                        <style>
+                            <class name="content" />
+                            <class name="content-sidebar" />
+                        </style>
+                        <child type="placeholder">
+                            <object class="AdwStatusPage">
+                                <property name="valign">center</property>
+                                <property name="hexpand">0</property>
+                                <property name="vexpand">1</property>
+                                <property name="icon-name">document-new-symbolic</property>
+                                <property name="title" translatable="yes">No Mail</property>
+                                <property name="description" translatable="yes">Nothing to see here.</property>
+                                <style>
+                                    <class name="compact" />
+                                </style>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+    </template>
+</interface>

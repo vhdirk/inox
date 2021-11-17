@@ -187,7 +187,7 @@
                           </object>
                         </child>
                         <child>
-                          <object class="GtkBox" id="thread_list_box">
+                          <object class="GtkBox" id="threads_list_box">
                             <property name="vexpand">1</property>
                             <property name="hexpand">0</property>
                             <property name="orientation">vertical</property>
@@ -278,7 +278,7 @@
   <object class="GtkSizeGroup" id="threads_size_group">
     <property name="mode">horizontal</property>
     <widgets>
-      <widget name="thread_list_box" />
+      <widget name="threads_list_box" />
     </widgets>
   </object>
   <object class="GtkSizeGroup" id="threads_separator_size_group">

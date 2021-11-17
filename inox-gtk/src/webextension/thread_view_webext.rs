@@ -126,7 +126,13 @@ impl ThreadViewWebExt {
     }
 
     pub fn on_page_created(&mut self, page: &webkit2gtk_webextension::WebPage) {
-        // debug!("on page created {:?}", self);
+        debug!("on page created {:?}", self);
+
+
+        // page.console_message_sent.connect(on_console_message);
+        // page.send_request.connect(on_send_request);
+        // page.user_message_received.connect(on_page_message_received);
+
         // self.page = Some(page.clone());
         /* load attachment icon */
         let theme = gtk::IconTheme::default();

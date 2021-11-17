@@ -11,6 +11,17 @@ use std::sync::Arc;
 
 use notmuch;
 
+
+pub trait MessageExt {
+    fn safe_id(&self) -> String;
+
+    fn id(&self) -> String;
+
+    fn thread_id(&self) -> String;
+
+    fn filename(&self) -> &Path;
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct MessageCache {
     is_unread: bool,
@@ -37,25 +48,32 @@ pub struct Message {
     cache: MessageCache,
 }
 
+impl MessageExt for notmuch::Message {
+
+    fn id(&self) -> String {
+        self.id().to_string()
+    }
+
+    fn safe_id(&self) -> String {
+        let id = glib::markup_escape_text(&self.id());
+        id.replace(",", "_")
+    }
+
+    fn thread_id(&self) -> String {
+        self.thread_id().to_string()
+    }
+
+    fn filename(&self) -> &Path {
+        self.filename()
+    }
+}
+
 impl Message {
     pub fn new(message: notmuch::Message) -> Self {
         Self {
             message: Some(message),
             cache: MessageCache::default(),
         }
-    }
-
-    fn safe_id(&self) -> String {
-        let id = glib::markup_escape_text(&self.message.as_ref().unwrap().id());
-        id.replace(",", "_")
-    }
-
-    pub fn id(&self) -> Cow<'_, str> {
-        self.message.as_ref().unwrap().id()
-    }
-
-    pub fn thread_id(&self) -> Cow<'_, str> {
-        self.message.as_ref().unwrap().thread_id()
     }
 
     //     pub fn replies(&self) -> Messages<'o, O> {

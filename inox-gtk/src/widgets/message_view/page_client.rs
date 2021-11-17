@@ -1,3 +1,4 @@
+use inox_core::database::message::MessageExt;
 use std::fmt;
 use async_std::os::unix::net::UnixStream;
 use futures::future::{self, FutureExt, Ready, TryFutureExt};
@@ -22,7 +23,7 @@ use notmuch;
 
 use crate::webext_capnp::page;
 
-use super::theme::ThreadViewTheme;
+use super::theme::MessageViewTheme;
 
 #[derive(Clone)]
 pub struct PageClient {
@@ -64,7 +65,7 @@ impl PageClient {
         Self { socket: socket.clone(), client }
     }
 
-    pub async fn load(&self, theme: &ThreadViewTheme) -> () {
+    pub async fn load(&self, theme: &MessageViewTheme) -> () {
         /* load style sheet */
         debug!("pc: sending page..");
 
@@ -111,10 +112,11 @@ impl PageClient {
             .await
     }
 
-    pub async fn add_message(
-        &mut self,
-        message: &notmuch::Message,
-    ) -> () {
+    pub async fn add_message<T: MessageExt>(&mut self, message: &T) {
+
+        let mut request = self.client.add_messages_request();
+
+
         // self.client.add_message(context::current(), self.serialize_message(message)).await.unwrap()
     }
 

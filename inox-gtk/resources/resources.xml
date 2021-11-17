@@ -2,7 +2,8 @@
 <gresources>
   <gresource prefix="/com/github/vhdirk/Inox/">
     <file compressed="true" preprocess="xml-stripblanks">gtk/main_window.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">gtk/thread_row.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">gtk/placeholder_pane.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">gtk/thread_view.ui</file>
     <file compressed="true" preprocess="xml-stripblanks">gtk/menus.ui</file>
 
     <file compressed="true">html/thread_view.html</file>

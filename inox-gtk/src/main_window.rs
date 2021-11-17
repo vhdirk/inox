@@ -16,12 +16,11 @@ use gtk::{prelude::*, CompositeTemplate};
 use log::*;
 
 use crate::app::{Action, InoxApplication};
-use crate::main_header::MainHeader;
 
 // use crate::headerbar::HeaderBar;
 use inox_core::database::Thread;
 
-use crate::widgets::thread_list::ThreadList;
+use crate::widgets::threads_list::ThreadsList;
 use crate::widgets::thread_view::ThreadView;
 
 mod imp {
@@ -31,8 +30,7 @@ mod imp {
     use once_cell::unsync::OnceCell;
     use std::cell::RefCell;
 
-    use crate::main_header::MainHeader;
-    use crate::widgets::thread_list::ThreadList;
+    use crate::widgets::threads_list::ThreadsList;
     use crate::widgets::thread_view::ThreadView;
 
     #[derive(Debug, CompositeTemplate)]
@@ -47,10 +45,10 @@ mod imp {
         // #[template_child]
         // pub main_paned: TemplateChild<gtk::Paned>,
         #[template_child]
-        pub thread_list_box: TemplateChild<gtk::Box>,
+        pub threads_list_box: TemplateChild<gtk::Box>,
 
         // menu_builder: gtk::Builder,
-        pub thread_list: OnceCell<ThreadList>,
+        pub threads_list: OnceCell<ThreadsList>,
 
         #[template_child]
         pub thread_view_box: TemplateChild<gtk::Box>,
@@ -65,8 +63,8 @@ mod imp {
                 // main_header: TemplateChild::default(),
                 // main_layout: TemplateChild::default(),
                 // main_paned: TemplateChild::default(),
-                thread_list_box: TemplateChild::default(),
-                thread_list: OnceCell::new(),
+                threads_list_box: TemplateChild::default(),
+                threads_list: OnceCell::new(),
 
                 thread_view_box: TemplateChild::default(),
                 thread_view: OnceCell::new(),
@@ -147,14 +145,14 @@ impl MainWindow {
         // get_widget!(imp.window_builder, gtk::Box, main_layout);
         // self.set_child(Some(&imp.main_layout.get()));
 
-        let thread_list = ThreadList::new(sender.clone());
-        thread_list.set_parent(&imp.thread_list_box.get());
-        thread_list.show();
-        imp.thread_list_box.show();
-        imp.thread_list
-        .set(thread_list)
+        let threads_list = ThreadsList::new(sender.clone());
+        threads_list.set_parent(&imp.threads_list_box.get());
+        threads_list.show();
+        imp.threads_list_box.show();
+        imp.threads_list
+        .set(threads_list)
         .expect("Thread list box was not empty");
-        // // thread_list.setup_signals();
+        // // threads_list.setup_signals();
 
         let thread_view = ThreadView::new(sender.clone());
         thread_view.set_parent(&imp.thread_view_box.get());
@@ -213,7 +211,7 @@ impl MainWindow {
     pub fn set_query(&self, query: &notmuch::Query) {
         let imp = imp::MainWindow::from_instance(self);
         let threads = query.search_threads().unwrap();
-        imp.thread_list.get().unwrap().set_threads(threads);
+        imp.threads_list.get().unwrap().set_threads(threads);
     }
 
     pub fn open_thread(&self, thread: Option<Thread>) {
@@ -224,7 +222,7 @@ impl MainWindow {
                 // self.update_titlebar(Some(&thread.subject()));
 
                 let thread_view = imp.thread_view.get().unwrap();
-                thread_view.load_thread(thread);
+                // thread_view.load_thread(thread);
             }
             None => {
                 // self.update_titlebar(None);
@@ -257,7 +255,7 @@ impl MainWindow {
 // struct Widgets {
 //     headerbar: Component<HeaderBar>,
 //     taglist: Component<TagList>,
-//     threadlist: Component<ThreadList>,
+//     threadlist: Component<ThreadsList>,
 //     threadview: Component<ThreadView>
 // }
 
@@ -286,7 +284,7 @@ impl MainWindow {
 //         let query = <notmuch::Database as notmuch::DatabaseExt>::create_query(db, &qs).unwrap();
 //         let threads = <notmuch::Query<'_> as notmuch::QueryExt>::search_threads(query).unwrap();
 
-//         self.widgets.threadlist.emit(ThreadListMsg::Update(Some(threads)));
+//         self.widgets.threadlist.emit(ThreadsListMsg::Update(Some(threads)));
 //     }
 
 //     fn on_thread_selected(self: &mut Self, thread: Thread){
@@ -339,15 +337,15 @@ impl MainWindow {
 
 //         let headerbar = relm_init::<HeaderBar>(model.app.clone()).unwrap();
 //         let taglist = relm_init::<TagList>(model.app.clone()).unwrap();
-//         let threadlist = relm_init::<ThreadList>(model.app.clone()).unwrap();
+//         let threadlist = relm_init::<ThreadsList>(model.app.clone()).unwrap();
 //         let threadview = relm_init::<ThreadView>(model.app.clone()).unwrap();
 
 //         // TODO: what would be the best place to connect all UI signals?
 //         use self::TagListMsg::ItemSelect as TagList_ItemSelect;
 //         connect!(taglist@TagList_ItemSelect(ref tag), relm, Msg::TagSelect(tag.clone()));
 
-//         use self::ThreadListMsg::ThreadSelect as ThreadList_ThreadSelect;
-//         connect!(threadlist@ThreadList_ThreadSelect(ref thread), relm, Msg::ThreadSelect(thread.as_ref().unwrap().clone()));
+//         use self::ThreadsListMsg::ThreadSelect as ThreadsList_ThreadSelect;
+//         connect!(threadlist@ThreadsList_ThreadSelect(ref thread), relm, Msg::ThreadSelect(thread.as_ref().unwrap().clone()));
 
 //         MainWindow {
 //             model,

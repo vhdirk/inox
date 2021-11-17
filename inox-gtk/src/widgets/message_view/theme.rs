@@ -1,13 +1,13 @@
 use log::*;
 
 #[derive(Clone, Debug, Default)]
-pub struct ThreadViewTheme {
+pub struct MessageViewTheme {
     pub html: String,
     pub css: String,
     pub part_css: Option<String>,
 }
 
-impl ThreadViewTheme {
+impl MessageViewTheme {
     pub fn load() -> Self {
         // load html and css (from scss)
 

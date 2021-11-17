@@ -20,6 +20,24 @@ impl ToHex for gdk::RGBA {
     }
 }
 
+pub trait EmptyOrWhitespace {
+    fn is_empty_or_whitespace(&self) -> bool;
+}
+
+impl EmptyOrWhitespace for String {
+    fn is_empty_or_whitespace(&self) -> bool {
+        self.trim().is_empty()
+    }
+}
+
+impl EmptyOrWhitespace for glib::GString {
+    fn is_empty_or_whitespace(&self) -> bool {
+        self.trim().is_empty()
+    }
+}
+
+
+
 pub fn get_tag_color_rgba(tag: &str, canvascolor: &gdk::RGBA) -> (gdk::RGBA, gdk::RGBA) {
     //TODO: get from settings
     let tags_upper_color = gdk::RGBA::from_str(&"#e5e5e5".to_string()).unwrap();

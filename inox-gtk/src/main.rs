@@ -17,7 +17,6 @@ mod static_resource;
 mod widgets;
 
 mod main_window;
-mod main_header;
 mod webextension;
 
 use inox_core::settings::Settings;

@@ -41,7 +41,7 @@ mod imp {
     }
 
     #[derive(Debug)]
-    pub struct ThreadList {
+    pub struct ThreadsList {
         pub scrolled_window: gtk::ScrolledWindow,
         pub column_view: gtk::ColumnView,
         pub model: gio::ListStore,
@@ -54,8 +54,19 @@ mod imp {
         pub sender: OnceCell<Sender<Action>>,
     }
 
-    impl Default for ThreadList {
-        fn default() -> Self {
+    // impl Default for ThreadsList {
+    //     fn default() -> Self {
+
+    //     }
+    // }
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for ThreadsList {
+        const NAME: &'static str = "InoxThreadsList";
+        type Type = super::ThreadsList;
+        type ParentType = gtk::Widget;
+
+        fn new() -> Self {
             let model = gio::ListStore::new(Thread::static_type());
             let selection_model = gtk::SingleSelection::new(Some(&model));
             let column_view = gtk::ColumnView::new(Some(&selection_model));
@@ -75,24 +86,13 @@ mod imp {
                 sender: OnceCell::new(),
             }
         }
-    }
-
-    #[glib::object_subclass]
-    impl ObjectSubclass for ThreadList {
-        const NAME: &'static str = "InoxThreadList";
-        type Type = super::ThreadList;
-        type ParentType = gtk::Widget;
-
-        fn new() -> Self {
-            Self::default()
-        }
 
         fn class_init(klass: &mut Self::Class) {
             klass.set_layout_manager_type::<gtk::BinLayout>();
         }
     }
 
-    impl ObjectImpl for ThreadList {
+    impl ObjectImpl for ThreadsList {
         fn constructed(&self, obj: &Self::Type) {
             self.scrolled_window.set_parent(obj);
             // Setup
@@ -107,24 +107,24 @@ mod imp {
             self.scrolled_window.unparent();
         }
     }
-    impl WidgetImpl for ThreadList {}
+    impl WidgetImpl for ThreadsList {}
 }
 
-// Wrap imp::ThreadList into a usable gtk-rs object
+// Wrap imp::ThreadsList into a usable gtk-rs object
 glib::wrapper! {
-    pub struct ThreadList(ObjectSubclass<imp::ThreadList>)
+    pub struct ThreadsList(ObjectSubclass<imp::ThreadsList>)
         @extends gtk::Widget;
 }
 
-// ThreadList implementation itself
-impl ThreadList {
+// ThreadsList implementation itself
+impl ThreadsList {
     pub fn new(sender: Sender<Action>) -> Self {
-        let thread_list: Self = glib::Object::new(&[]).expect("Failed to create ThreadList");
-        let imp = imp::ThreadList::from_instance(&thread_list);
+        let thread_list: Self = glib::Object::new(&[]).expect("Failed to create ThreadsList");
+        let imp = imp::ThreadsList::from_instance(&thread_list);
 
         imp.sender
             .set(sender)
-            .expect("Failed to set sender on ThreadList");
+            .expect("Failed to set sender on ThreadsList");
         thread_list.set_vexpand(true);
         thread_list.set_vexpand_set(true);
 
@@ -140,7 +140,7 @@ impl ThreadList {
     // ANCHOR: setup_callbacks
     fn setup_callbacks(&self) {
         // Get state
-        let imp = imp::ThreadList::from_instance(self);
+        let imp = imp::ThreadsList::from_instance(self);
 
         let sender = imp.sender.clone();
         imp.column_view.connect_activate(move |column_view, position| {
@@ -159,7 +159,7 @@ impl ThreadList {
     // ANCHOR: setup_factory
 
     fn setup_columns(&self) {
-        let imp = imp::ThreadList::from_instance(self);
+        let imp = imp::ThreadsList::from_instance(self);
 
         imp.column_view.append_column(&self.setup_authors_column());
         imp.column_view.append_column(&self.setup_subject_column());
@@ -167,7 +167,7 @@ impl ThreadList {
     }
 
     fn setup_authors_column(&self) -> gtk::ColumnViewColumn {
-        let imp = imp::ThreadList::from_instance(self);
+        let imp = imp::ThreadsList::from_instance(self);
 
         let factory = SignalListItemFactory::new();
         factory.connect_setup(move |_, entry| {
@@ -279,7 +279,7 @@ impl ThreadList {
     }
 
     pub fn set_threads(&self, threads: notmuch::Threads) {
-        let imp = imp::ThreadList::from_instance(self);
+        let imp = imp::ThreadsList::from_instance(self);
         let model = imp::create_liststore();
         let selection_model = SingleSelection::new(Some(&model));
 
