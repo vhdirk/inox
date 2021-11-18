@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <template class="InoxMessageView" parent="GtkWidget">
+    <property name="hexpand">1</property>
+    <property name="orientation">vertical</property>
+    <child>
+      <placeholder/>
+    </child>
+    <style>
+      <class name="inox_message"/>
+    </style>
+  </template>
+  <object class="GtkGrid" id="actions">
+    <property name="halign">end</property>
+    <property name="valign">start</property>
+    <child>
+      <object class="GtkButton" id="attachments_button">
+        <property name="visible">0</property>
+        <property name="sensitive">0</property>
+        <property name="receives_default">1</property>
+        <property name="tooltip_text" translatable="yes">Save all attachments</property>
+        <property name="valign">start</property>
+        <property name="action_name">eml.save-all-attachments</property>
+        <property name="relief">none</property>
+        <child>
+          <object class="GtkImage">
+            <property name="icon_name">mail-attachment-symbolic</property>
+          </object>
+        </child>
+        <layout>
+          <property name="column">0</property>
+          <property name="row">0</property>
+        </layout>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="star_button">
+        <property name="sensitive">0</property>
+        <property name="receives_default">1</property>
+        <property name="tooltip_text" translatable="yes" comments="Note: The application will never show this button at the same time as unstar_button, one will always be hidden.">Mark this message as starred</property>
+        <property name="valign">start</property>
+        <property name="action_name">eml.mark-starred</property>
+        <property name="relief">none</property>
+        <child>
+          <object class="GtkImage">
+            <property name="icon_name">non-starred-symbolic</property>
+          </object>
+        </child>
+        <layout>
+          <property name="column">1</property>
+          <property name="row">0</property>
+        </layout>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="unstar_button">
+        <property name="visible">0</property>
+        <property name="sensitive">0</property>
+        <property name="receives_default">1</property>
+        <property name="tooltip_text" translatable="yes" comments="Note: The application will never show this button at the same time as star_button, one will always be hidden.">Mark this message as not starred</property>
+        <property name="valign">start</property>
+        <property name="action_name">eml.mark-unstarred</property>
+        <property name="relief">none</property>
+        <child>
+          <object class="GtkImage">
+            <property name="icon_name">starred-symbolic</property>
+          </object>
+        </child>
+        <layout>
+          <property name="column">2</property>
+          <property name="row">0</property>
+        </layout>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuButton" id="email_menubutton">
+        <property name="sensitive">0</property>
+        <property name="receives_default">1</property>
+        <property name="valign">start</property>
+        <property name="relief">none</property>
+        <signal name="toggled" handler="on_email_menu" swapped="no"/>
+        <child>
+          <object class="GtkImage">
+            <property name="icon_name">view-more-symbolic</property>
+          </object>
+        </child>
+        <layout>
+          <property name="column">3</property>
+          <property name="row">0</property>
+        </layout>
+      </object>
+    </child>
+  </object>
+  <object class="GtkGrid" id="sub_messages">
+    <property name="hexpand">1</property>
+    <property name="orientation">vertical</property>
+    <child>
+      <placeholder/>
+    </child>
+    <child>
+      <placeholder/>
+    </child>
+    <child>
+      <placeholder/>
+    </child>
+    <child>
+      <placeholder/>
+    </child>
+    <child>
+      <placeholder/>
+    </child>
+    <child>
+      <placeholder/>
+    </child>
+    <child>
+      <placeholder/>
+    </child>
+    <child>
+      <placeholder/>
+    </child>
+    <child>
+      <placeholder/>
+    </child>
+    <style>
+      <class name="inox-submessages"/>
+    </style>
+  </object>
+</interface>

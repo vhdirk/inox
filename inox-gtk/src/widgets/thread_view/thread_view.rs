@@ -1,26 +1,26 @@
-use inox_core::database::Thread;
 use gio::prelude::*;
 use glib::clone;
 use glib::subclass::prelude::*;
 use glib::Sender;
 use gtk::prelude::*;
+use inox_core::database::Thread;
 
 use notmuch;
 
+use super::messages_view::MessagesView;
 use crate::app::Action;
-use super::thread_messages_view::ThreadMessagesView;
 
 mod imp {
     use crate::app::Action;
     use crate::widgets::placeholder_pane::PlaceholderPane;
-    // use crate::widgets::thread_view::thread_messages_view::ThreadMessagesView;
+    // use crate::widgets::thread_view::messages_view::MessagesView;
+    use super::MessagesView;
     use glib::prelude::*;
     use glib::subclass::prelude::*;
     use glib::Sender;
     use gtk::{self, prelude::*, subclass::prelude::*, CompositeTemplate};
     use once_cell::unsync::OnceCell;
-    use super::ThreadMessagesView;
-
+    use std::cell::RefCell;
 
     #[derive(Debug, Default, CompositeTemplate)]
     #[template(resource = "/com/github/vhdirk/Inox/gtk/thread_view.ui")]
@@ -53,7 +53,12 @@ mod imp {
         #[template_child]
         pub thread_find_prev: TemplateChild<gtk::Button>,
 
-        // pub messages_view: RefCell<Option<ThreadMessagesView>>,
+        pub no_threads_placeholder: PlaceholderPane,
+        pub multi_threads_placeholder: PlaceholderPane,
+        pub empty_tag_placeholder: PlaceholderPane,
+        pub empty_search_placeholder: PlaceholderPane,
+
+        pub messages_view: RefCell<Option<MessagesView>>,
         pub thread_scroller: gtk::ScrolledWindow,
         //pub composer:
         pub sender: OnceCell<Sender<Action>>,
@@ -79,9 +84,8 @@ mod imp {
         }
 
         //add_new_list
-        pub fn set_messages_view(&self, list: &ThreadMessagesView) {
-
-            // this.current_list = list;
+        pub fn set_messages_view(&self, list: &MessagesView) {
+            self.messages_view.replace(Some(list.clone()));
             list.show();
 
             // // Manually create a Viewport rather than letting
@@ -95,7 +99,6 @@ mod imp {
             // self.thread_scroller.add(viewport);
             list.set_parent(&self.thread_scroller);
         }
-
 
         // Remove any existing thread list, cancelling its loading
         // remove_current_list
@@ -133,8 +136,6 @@ mod imp {
                 .hscrollbar_policy(gtk::PolicyType::Never)
                 .build();
 
-            // thread_scroller.show();
-
             Self {
                 stack: TemplateChild::default(),
 
@@ -151,7 +152,28 @@ mod imp {
                 thread_find_next: TemplateChild::default(),
                 thread_find_prev: TemplateChild::default(),
 
-                // messages_view: RefCell::new(None),
+                no_threads_placeholder: PlaceholderPane::new(
+                    "folder-symbolic",
+                    "No threads selected",
+                    "Selecting a thread from the list will display it here",
+                ),
+                multi_threads_placeholder: PlaceholderPane::new(
+                    "folder-symbolic",
+                    "Multiple threads selected",
+                    "Choosing an action will apply to all selected threads",
+                ),
+                empty_tag_placeholder: PlaceholderPane::new(
+                    "folder-symbolic",
+                    "No threads found",
+                    "This tag has not been applied to any threads",
+                ),
+                empty_search_placeholder: PlaceholderPane::new(
+                    "folder-symbolic",
+                    "No threads found",
+                    "Your search returned no results, try refining your search terms",
+                ),
+
+                messages_view: RefCell::new(None),
                 thread_scroller,
                 sender: OnceCell::new(),
             }
@@ -170,40 +192,32 @@ mod imp {
 
     impl ObjectImpl for ThreadView {
         fn constructed(&self, obj: &Self::Type) {
-            let no_threads = PlaceholderPane::new(
-                "folder-symbolic",
-                "No threads selected",
-                "Selecting a thread from the list will display it here",
-            );
-            no_threads.set_parent(&self.no_threads_page.get());
-
-            let multi_threads = PlaceholderPane::new(
-                "folder-symbolic",
-                "Multiple threads selected",
-                "Choosing an action will apply to all selected threads",
-            );
-            multi_threads.set_parent(&self.multiple_threads_page.get());
-
-            let empty_tag = PlaceholderPane::new(
-                "folder-symbolic",
-                "No threads found",
-                "This tag has not been applied to any threads",
-            );
-            empty_tag.set_parent(&self.empty_tag_page.get());
-
-            let empty_search = PlaceholderPane::new(
-                "folder-symbolic",
-                "No threads found",
-                "Your search returned no results, try refining your search terms",
-            );
-            empty_search.set_parent(&self.empty_search_page.get());
+            self.no_threads_placeholder
+                .set_parent(&self.no_threads_page.get());
+            self.multi_threads_placeholder
+                .set_parent(&self.multiple_threads_page.get());
+            self.empty_tag_placeholder
+                .set_parent(&self.empty_tag_page.get());
+            self.empty_search_placeholder
+                .set_parent(&self.empty_search_page.get());
 
             self.thread_scroller.set_parent(obj);
             self.parent_constructed(obj);
+
+            self.thread_scroller.show();
         }
 
         fn dispose(&self, _obj: &Self::Type) {
-            // self.list_box.unparent();
+            self.no_threads_placeholder.unparent();
+            self.multi_threads_placeholder.unparent();
+            self.empty_tag_placeholder.unparent();
+            self.empty_search_placeholder.unparent();
+
+            if let Some(view) = self.messages_view.borrow().as_ref() {
+                view.unparent();
+            }
+            self.thread_scroller.unparent();
+
         }
     }
     impl WidgetImpl for ThreadView {}
@@ -218,18 +232,18 @@ glib::wrapper! {
 // ThreadView implementation itself
 impl ThreadView {
     pub fn new(sender: Sender<Action>) -> Self {
-        let thread_list: Self = glib::Object::new(&[]).expect("Failed to create ThreadView");
-        let imp = imp::ThreadView::from_instance(&thread_list);
+        let view: Self = glib::Object::new(&[]).expect("Failed to create ThreadView");
+        let imp = imp::ThreadView::from_instance(&view);
 
         imp.sender
             .set(sender)
             .expect("Failed to set sender on ThreadView");
-        thread_list.set_vexpand(true);
-        thread_list.set_vexpand_set(true);
+        view.set_vexpand(true);
+        view.set_vexpand_set(true);
 
-        // thread_list.setup_callbacks();
+        // view.setup_callbacks();
 
-        thread_list
+        view
     }
 
     /**
@@ -246,16 +260,14 @@ impl ThreadView {
         let imp = imp::ThreadView::from_instance(self);
     }
 
-    pub fn load_thread(&self, thread: &Thread) {
+    pub fn load_thread(&self, thread: &notmuch::Thread) {
         let imp = imp::ThreadView::from_instance(self);
         // self.show_loading();
 
-        let messages_view = ThreadMessagesView::new(thread, imp.sender.get().unwrap().clone());
-
-
+        let messages_view = MessagesView::new(thread, imp.sender.get().unwrap().clone());
+        messages_view.show();
         imp.set_messages_view(&messages_view);
-        imp.set_visible_child(&imp.thread_page.get());
-
+        // imp.set_visible_child(&imp.thread_page.get());
 
         // let model = imp::create_liststore();
         // let selection_model = SingleSelection::new(Some(&model));

@@ -151,7 +151,7 @@ impl ThreadsList {
                 .downcast::<Thread>()
                 .unwrap();
 
-            sender.get().unwrap().send(Action::SelectThread(Some(thread)));
+            sender.get().unwrap().send(Action::SelectThread(Some(thread.data().clone())));
         });
     }
     // ANCHOR_END: setup_callbacks

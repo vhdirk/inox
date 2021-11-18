@@ -212,7 +212,7 @@ impl MainWindow {
         imp.threads_list.get().unwrap().set_threads(threads);
     }
 
-    pub fn open_thread(&self, thread: Option<Thread>) {
+    pub fn open_thread(&self, thread: Option<notmuch::Thread>) {
         let imp = imp::MainWindow::from_instance(self);
 
         match thread {

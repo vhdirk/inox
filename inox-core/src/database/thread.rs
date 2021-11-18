@@ -13,21 +13,21 @@ use notmuch;
 use super::message::Message;
 
 mod imp {
-    use glib::Value;
-use once_cell::sync::Lazy;
-    use glib::{ParamSpec, ParamFlags, ToValue};
     use glib::subclass::prelude::*;
+    use glib::Value;
+    use glib::{ParamFlags, ParamSpec, ToValue};
+    use once_cell::sync::Lazy;
     use once_cell::unsync::OnceCell;
 
     #[derive(Clone, Debug)]
-    pub struct Thread{
-        pub data: OnceCell<notmuch::Thread>
+    pub struct Thread {
+        pub data: OnceCell<notmuch::Thread>,
     }
 
     impl Default for Thread {
         fn default() -> Self {
             Thread {
-                data: OnceCell::new()
+                data: OnceCell::new(),
             }
         }
     }
@@ -40,8 +40,7 @@ use once_cell::sync::Lazy;
         type ParentType = glib::Object;
     }
 
-    impl ObjectImpl for Thread {
-    }
+    impl ObjectImpl for Thread {}
 }
 
 glib::wrapper! {
@@ -60,7 +59,7 @@ impl Thread {
         this
     }
 
-    fn data(&self) -> &notmuch::Thread {
+    pub fn data(&self) -> &notmuch::Thread {
         let imp = imp::Thread::from_instance(self);
         imp.data.get().expect("Thread object not set")
     }
@@ -102,9 +101,7 @@ impl Thread {
     }
 
     pub fn messages(&self) -> Vec<Message> {
-        self.data().messages()
-            .map(Message::new)
-            .collect()
+        self.data().messages().map(Message::new).collect()
     }
 
     pub fn subject(&self) -> Cow<'_, str> {

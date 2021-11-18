@@ -39,7 +39,7 @@ pub enum Action {
     SelectTag(Option<String>),
     Search(String),
     Query(notmuch::Query),
-    SelectThread(Option<Thread>),
+    SelectThread(Option<notmuch::Thread>),
     // Reload,
     // ViewShowLibrary,
     // ViewShowPlayer,
@@ -298,7 +298,7 @@ impl InoxApplication {
             .set_query(query);
     }
 
-    fn open_thread(&self, thread: Option<Thread>) {
+    fn open_thread(&self, thread: Option<notmuch::Thread>) {
         let imp = imp::InoxApplication::from_instance(self);
         imp.window
             .get()
