@@ -10,8 +10,6 @@ use std::sync::Arc;
 
 use notmuch;
 
-use super::message::Message;
-
 mod imp {
     use glib::subclass::prelude::*;
     use glib::Value;
@@ -63,8 +61,7 @@ impl Thread {
         let imp = imp::Thread::from_instance(self);
         imp.data.get().expect("Thread object not set")
     }
-
-    pub fn tags(&self) -> Vec<String> {
+        pub fn tags(&self) -> Vec<String> {
         self.data().tags().collect()
     }
 
@@ -80,45 +77,4 @@ impl Thread {
         self.has_tag(TAG_ATTACHMENT)
     }
 
-    pub fn id(&self) -> &str {
-        self.data().id()
-    }
-
-    pub fn total_messages(&self) -> i32 {
-        self.data().total_messages()
-    }
-
-    // pub fn total_files(&self) -> i32 {
-    //     imp.thread.get().unwrap().total_files()
-    // }
-
-    pub fn toplevel_messages(&self) -> notmuch::Messages {
-        self.data().toplevel_messages()
-    }
-
-    pub fn matched_messages(&self) -> i32 {
-        self.data().matched_messages()
-    }
-
-    pub fn messages(&self) -> Vec<Message> {
-        self.data().messages().map(Message::new).collect()
-    }
-
-    pub fn subject(&self) -> Cow<'_, str> {
-        self.data().subject()
-    }
-
-    pub fn authors(&self) -> Vec<String> {
-        self.data().authors()
-    }
-
-    /// Get the date of the oldest message in 'thread' as a time_t value.
-    pub fn oldest_date(&self) -> i64 {
-        self.data().oldest_date()
-    }
-
-    /// Get the date of the newest message in 'thread' as a time_t value.
-    pub fn newest_date(&self) -> i64 {
-        self.data().newest_date()
-    }
 }

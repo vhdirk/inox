@@ -36,12 +36,65 @@ mod imp {
         pub email_menubutton: TemplateChild<gtk::MenuButton>,
 
         #[template_child]
-        pub sub_messages: TemplateChild<gtk::Grid>,
+        pub avatar: TemplateChild<adw::Avatar>,
+
+        #[template_child]
+        pub compact_revealer: TemplateChild<gtk::Revealer>,
+        #[template_child]
+        pub compact_from: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub compact_date: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub compact_body: TemplateChild<gtk::Label>,
+
+        #[template_child]
+        pub header_revealer: TemplateChild<gtk::Revealer>,
+        #[template_child]
+        pub from: TemplateChild<gtk::FlowBox>,
+        #[template_child]
+        pub subject: TemplateChild<gtk::Label>,
+        #[template_child]
+        pub date: TemplateChild<gtk::Label>,
+
+        #[template_child]
+        pub sender_header: TemplateChild<gtk::Grid>,
+        #[template_child]
+        pub sender_address: TemplateChild<gtk::FlowBox>,
+
+        #[template_child]
+        pub reply_to_header: TemplateChild<gtk::Grid>,
+        #[template_child]
+        pub reply_to_addresses: TemplateChild<gtk::FlowBox>,
+
+        #[template_child]
+        pub to_header: TemplateChild<gtk::Grid>,
+        #[template_child]
+        pub cc_header: TemplateChild<gtk::Grid>,
+        #[template_child]
+        pub bcc_header: TemplateChild<gtk::Grid>,
+
+        #[template_child]
+        pub body_revealer: TemplateChild<gtk::Revealer>,
+        #[template_child]
+        pub body_progress: TemplateChild<gtk::ProgressBar>,
+
+        pub message: OnceCell<notmuch::Message>,
 
         pub sender: OnceCell<Sender<Action>>,
     }
 
-    impl MessageView {}
+    impl MessageView {
+
+        pub fn update(&self) {
+
+            let message = self.message.get();
+
+            self.subject.get().set_text(&message.unwrap().id());
+            self.compact_body.get().set_text(&message.unwrap().id());
+
+        }
+
+    }
 
     #[glib::object_subclass]
     impl ObjectSubclass for MessageView {
@@ -56,7 +109,33 @@ mod imp {
                 star_button: TemplateChild::default(),
                 unstar_button: TemplateChild::default(),
                 email_menubutton: TemplateChild::default(),
-                sub_messages: TemplateChild::default(),
+
+                avatar: TemplateChild::default(),
+
+                compact_revealer: TemplateChild::default(),
+                compact_from: TemplateChild::default(),
+                compact_date: TemplateChild::default(),
+                compact_body: TemplateChild::default(),
+
+                header_revealer: TemplateChild::default(),
+                from: TemplateChild::default(),
+                subject: TemplateChild::default(),
+                date: TemplateChild::default(),
+
+                sender_header: TemplateChild::default(),
+                sender_address: TemplateChild::default(),
+
+                reply_to_header: TemplateChild::default(),
+                reply_to_addresses: TemplateChild::default(),
+
+                to_header: TemplateChild::default(),
+                cc_header: TemplateChild::default(),
+                bcc_header: TemplateChild::default(),
+
+                body_revealer: TemplateChild::default(),
+                body_progress: TemplateChild::default(),
+
+                message: OnceCell::new(),
                 sender: OnceCell::new(),
             }
         }
@@ -91,14 +170,20 @@ glib::wrapper! {
 
 // MessageView implementation itself
 impl MessageView {
-    pub fn new(sender: Sender<Action>) -> Self {
-        let thread_list: Self = glib::Object::new(&[]).expect("Failed to create MessageView");
-        let imp = imp::MessageView::from_instance(&thread_list);
+    pub fn new(message: &notmuch::Message, sender: Sender<Action>) -> Self {
+        let view: Self = glib::Object::new(&[]).expect("Failed to create MessageView");
+        let imp = imp::MessageView::from_instance(&view);
 
         imp.sender
             .set(sender)
             .expect("Failed to set sender on MessageView");
 
-        thread_list
+        imp.message
+            .set(message.clone())
+            .expect("Failed to set message on MessageView");
+
+        imp.update();
+
+        view
     }
 }

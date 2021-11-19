@@ -6,7 +6,7 @@ use glib::{self, prelude::*, subclass::prelude::*};
 use gtk::{self, prelude::*, subclass::prelude::*};
 
 use super::message_row_base::{MessageRowBase, MessageRowBaseImpl};
-
+use super::message_view::MessageView;
 mod imp {
 
     use crate::app::Action;
@@ -18,8 +18,7 @@ mod imp {
     #[derive(Debug)]
     pub struct MessageRow {
         pub sender: OnceCell<Sender<Action>>,
-        pub message: Option<notmuch::Message>,
-        pub spinner: gtk::Spinner,
+        pub message: OnceCell<notmuch::Message>,
         pub is_expanded: bool,
     }
 
@@ -36,29 +35,19 @@ mod imp {
         fn new() -> Self {
             Self {
                 sender: OnceCell::new(),
-                message: None,
-                spinner: gtk::Spinner::new(),
+                message: OnceCell::new(),
                 is_expanded: false,
             }
         }
     }
 
     impl ObjectImpl for MessageRow {
-
         fn constructed(&self, obj: &Self::Type) {
-            // get_style_context().add_class(LOADING_CLASS);
-
-            self.spinner.set_height_request(16);
-            self.spinner.set_width_request(16);
-            self.spinner.show();
-            self.spinner.start();
-            self.spinner.set_parent(obj);
-
             self.parent_constructed(obj);
         }
 
         fn dispose(&self, _obj: &Self::Type) {
-            self.spinner.unparent();
+            // if Some(view) = .spinner.unparent();
         }
     }
     impl WidgetImpl for MessageRow {}
@@ -78,14 +67,17 @@ impl MessageRow {
         let imp = imp::MessageRow::from_instance(&row);
 
         imp.sender
-            .set(sender)
+            .set(sender.clone())
             .expect("Failed to set sender on MessageRow");
         row.set_vexpand(true);
         row.set_vexpand_set(true);
 
+        imp.message.set(message.clone())
+            .expect("Failed to set message on MessageRow");
 
+        let view = MessageView::new(message, sender);
 
-
+        view.set_parent(&row);
 
         row
     }

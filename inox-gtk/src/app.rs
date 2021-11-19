@@ -40,6 +40,8 @@ pub enum Action {
     Search(String),
     Query(notmuch::Query),
     SelectThread(Option<notmuch::Thread>),
+    SelectThreads(Vec<notmuch::Thread>),
+
     // Reload,
     // ViewShowLibrary,
     // ViewShowPlayer,
@@ -255,6 +257,8 @@ impl InoxApplication {
                 .unwrap(),
             Action::Query(query) => self.perform_search(&query),
             Action::SelectThread(thread) => self.open_thread(thread),
+            Action::SelectThreads(threads) => self.open_threads(threads),
+
             // Action::ViewShowDiscover => imp.window.borrow().as_ref().unwrap().set_view(View::Discover),
             // Action::ViewShowLibrary => imp.window.borrow().as_ref().unwrap().set_view(View::Library),
             // Action::ViewShowPlayer => imp.window.borrow().as_ref().unwrap().set_view(View::Player),
@@ -306,6 +310,16 @@ impl InoxApplication {
             .upgrade()
             .unwrap()
             .open_thread(thread);
+    }
+
+    fn open_threads(&self, threads: Vec<notmuch::Thread>) {
+        // let imp = imp::InoxApplication::from_instance(self);
+        // imp.window
+        //     .get()
+        //     .unwrap()
+        //     .upgrade()
+        //     .unwrap()
+        //     .open_thread(thread);
     }
 }
 

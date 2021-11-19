@@ -1,9 +1,10 @@
 use gio::prelude::*;
+use glib::clone;
 use glib::subclass::prelude::*;
 use glib::Sender;
-use glib::clone;
 use gtk::prelude::*;
-use gtk::{Application, SignalListItemFactory, SingleSelection};
+use gtk::SingleSelection;
+use gtk::{Application, SignalListItemFactory};
 
 use notmuch;
 
@@ -45,6 +46,8 @@ mod imp {
         pub scrolled_window: gtk::ScrolledWindow,
         pub column_view: gtk::ColumnView,
         pub model: gio::ListStore,
+        pub selection_model: gtk::SingleSelection,
+
         // pub filter: gtk::TreeModelFilter,
         // idle_handle: RefCell<Option<glib::SourceId>>,
         // thread_list: RefCell<Option<Threads>>,
@@ -83,6 +86,7 @@ mod imp {
                 scrolled_window,
                 column_view,
                 model,
+                selection_model,
                 sender: OnceCell::new(),
             }
         }
@@ -143,16 +147,40 @@ impl ThreadsList {
         let imp = imp::ThreadsList::from_instance(self);
 
         let sender = imp.sender.clone();
-        imp.column_view.connect_activate(move |column_view, position| {
-            let model = column_view.model().unwrap();
-            let thread = model
-                .item(position)
-                .unwrap()
-                .downcast::<Thread>()
-                .unwrap();
 
-            sender.get().unwrap().send(Action::SelectThread(Some(thread.data().clone())));
-        });
+        imp.column_view.model().unwrap().connect_selection_changed(
+            move |model, position, n_items| {
+                dbg!("Selection changed {:?} {:?}", position, n_items);
+                match n_items {
+                    0 => {
+                        sender.get().unwrap().send(Action::SelectThread(None));
+                    }
+                    _ => {
+                        let thread = model
+                            .item(position)
+                            .unwrap()
+                            .downcast::<Thread>()
+                            .unwrap();
+                        sender
+                            .get()
+                            .unwrap()
+                            .send(Action::SelectThread(Some(thread.data().clone())));
+                    }
+                    // _ => {
+                    //     let mut threads = vec![];
+                    //     for i in 0..n_items {
+                    //         let thread = model
+                    //             .item(position + i)
+                    //             .unwrap()
+                    //             .downcast::<Thread>()
+                    //             .unwrap();
+                    //         threads.push(thread.data().clone());
+                    //     }
+                    //     sender.get().unwrap().send(Action::SelectThreads(threads));
+                    // }
+                };
+            },
+        );
     }
     // ANCHOR_END: setup_callbacks
 
@@ -163,7 +191,8 @@ impl ThreadsList {
 
         imp.column_view.append_column(&self.setup_authors_column());
         imp.column_view.append_column(&self.setup_subject_column());
-        imp.column_view.append_column(&self.setup_attachment_column());
+        imp.column_view
+            .append_column(&self.setup_attachment_column());
     }
 
     fn setup_authors_column(&self) -> gtk::ColumnViewColumn {
@@ -190,7 +219,7 @@ impl ThreadsList {
                 .downcast::<gtk::Label>()
                 .expect("The child has to be a `Label`.");
 
-            label.set_label(&thread.authors().join(", "));
+            label.set_label(&thread.data().authors().join(", "));
         });
 
         gtk::ColumnViewColumn::builder()
@@ -221,7 +250,7 @@ impl ThreadsList {
                 .downcast::<gtk::Label>()
                 .expect("The child has to be a `Label`.");
 
-            label.set_label(&thread.subject());
+            label.set_label(&thread.data().subject());
         });
 
         gtk::ColumnViewColumn::builder()
@@ -281,12 +310,11 @@ impl ThreadsList {
     pub fn set_threads(&self, threads: notmuch::Threads) {
         let imp = imp::ThreadsList::from_instance(self);
         let model = imp::create_liststore();
-        let selection_model = SingleSelection::new(Some(&model));
 
         for thread in threads {
             model.append(&Thread::new(thread));
         }
 
-        imp.column_view.set_model(Some(&selection_model));
+        imp.selection_model.set_model(Some(&model));
     }
 }

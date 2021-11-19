@@ -60,7 +60,7 @@ mod imp {
         }
 
         fn class_init(klass: &mut Self::Class) {
-            // klass.set_layout_manager_type::<gtk::BinLayout>();
+            klass.set_layout_manager_type::<gtk::BinLayout>();
         }
     }
 
@@ -73,7 +73,7 @@ mod imp {
         fn dispose(&self, _obj: &Self::Type) {
             self.list_box.unparent();
 
-            let mut rows = self.rows.borrow_mut();
+            let rows = self.rows.borrow_mut();
             for row in rows.iter() {
                 row.unparent();
             }
@@ -97,14 +97,14 @@ impl MessagesView {
         imp.sender
             .set(sender)
             .expect("Failed to set sender on MessagesView");
-        view.set_vexpand(true);
-        view.set_vexpand_set(true);
+        // view.set_vexpand(true);
+        // view.set_vexpand_set(true);
         view.load_messages(thread);
         view
     }
 
     pub fn load_messages(&self, thread: &notmuch::Thread) {
-        let mut messages = thread.toplevel_messages();
+        let messages = thread.messages();
         for message in messages {
             self.add_message(&message);
         }

@@ -67,42 +67,44 @@ mod imp {
     impl ThreadView {
         pub fn set_visible_child<W: IsA<gtk::Widget>>(&self, widget: &W) {
             let current = self.stack.get().visible_child();
-            // if current == self.thread_page) {
-            //     if (widget != self.thread_page) {
-            //         // By removing the current list, any load it is currently
-            //         // performing is also cancelled, which is important to
-            //         // avoid a possible crit warning when switching folders,
-            //         // etc.
-            //         self.remove_current_list();
-            //     }
-            // } else if (current == self.loading_page) {
-            //     // Stop the spinner running so it doesn't trigger repaints
-            //     // and wake up Geary even when idle. See Bug 783025.
-            //     self.loading_page.stop();
-            // }
+
+            if current.is_some() && self.thread_page.get().upcast::<gtk::Widget>().eq(current.as_ref().unwrap()) {
+                if self.thread_page.get().upcast::<gtk::Widget>().eq(widget)  {
+                    // By removing the current list, any load it is currently
+                    // performing is also cancelled, which is important to
+                    // avoid a possible crit warning when switching folders,
+                    // etc.
+                    self.remove_messages_view();
+                }
+            } else if current.is_some() && self.loading_page.get().upcast::<gtk::Widget>().eq(current.as_ref().unwrap()) {
+                // Stop the spinner running so it doesn't trigger repaints
+                // and wake up Inox even when idle.
+                self.loading_page.get().stop();
+            }
             self.stack.get().set_visible_child(widget);
         }
 
         //add_new_list
         pub fn set_messages_view(&self, list: &MessagesView) {
             self.messages_view.replace(Some(list.clone()));
-            list.show();
 
             // // Manually create a Viewport rather than letting
             // // ScrolledWindow do it so Container.set_focus_{h,v}adjustment
             // // are not set on the list - it makes changing focus jumpy
             // // when a row or its web_view are larger than the viewport.
-            // Gtk.Viewport viewport = new Gtk.Viewport(null, null);
+            // let viewport = gtk::Viewport::builder().build();
             // viewport.show();
-            // viewport.add(list);
+            // viewport.set_child(Some(list));
 
-            // self.thread_scroller.add(viewport);
-            list.set_parent(&self.thread_scroller);
+            self.thread_scroller.set_child(Some(list));
         }
 
         // Remove any existing thread list, cancelling its loading
         // remove_current_list
         pub fn remove_messages_view(&self) {
+            if let Some(view) = self.messages_view.borrow().as_ref() {
+                view.unparent();
+            }
             // if (self.find_cancellable != null) {
             //     self.find_cancellable.cancel();
             //     self.find_cancellable = null;
@@ -201,7 +203,7 @@ mod imp {
             self.empty_search_placeholder
                 .set_parent(&self.empty_search_page.get());
 
-            self.thread_scroller.set_parent(obj);
+            self.thread_scroller.set_parent(&self.thread_page.get());
             self.parent_constructed(obj);
 
             self.thread_scroller.show();
@@ -213,9 +215,7 @@ mod imp {
             self.empty_tag_placeholder.unparent();
             self.empty_search_placeholder.unparent();
 
-            if let Some(view) = self.messages_view.borrow().as_ref() {
-                view.unparent();
-            }
+            self.remove_messages_view();
             self.thread_scroller.unparent();
 
         }
@@ -266,8 +266,9 @@ impl ThreadView {
 
         let messages_view = MessagesView::new(thread, imp.sender.get().unwrap().clone());
         messages_view.show();
+        // imp.remove_messages_view();
         imp.set_messages_view(&messages_view);
-        // imp.set_visible_child(&imp.thread_page.get());
+        imp.set_visible_child(&imp.thread_page.get());
 
         // let model = imp::create_liststore();
         // let selection_model = SingleSelection::new(Some(&model));

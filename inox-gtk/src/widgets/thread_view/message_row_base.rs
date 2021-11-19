@@ -22,6 +22,7 @@ mod imp {
     #[glib::object_subclass]
     impl ObjectSubclass for MessageRowBase {
         const NAME: &'static str = "InoxMessageRowBase";
+        const ABSTRACT: bool = true;
         type Type = super::MessageRowBase;
         type ParentType = gtk::ListBoxRow;
 
