@@ -1,40 +1,10 @@
-use crate::app::Action;
+use crate::core::Action;
 use glib::Sender;
-use inox_core::database::Thread;
 
-use glib::{self, prelude::*, subclass::prelude::*};
-use gtk::{self, prelude::*, subclass::prelude::*};
+use glib::{self, subclass::prelude::*};
+use gtk::{self, subclass::prelude::*};
 
-mod imp {
-
-    use crate::app::Action;
-    use glib::Sender;
-    use glib::{self, prelude::*, subclass::prelude::*};
-    use gtk::{self, prelude::*, subclass::prelude::*};
-    use once_cell::unsync::OnceCell;
-
-    #[derive(Debug, Default)]
-    pub struct MessageRowBase {
-        pub sender: OnceCell<Sender<Action>>,
-        pub is_expanded: bool,
-    }
-
-    #[glib::object_subclass]
-    impl ObjectSubclass for MessageRowBase {
-        const NAME: &'static str = "InoxMessageRowBase";
-        const ABSTRACT: bool = true;
-        type Type = super::MessageRowBase;
-        type ParentType = gtk::ListBoxRow;
-
-        fn class_init(klass: &mut Self::Class) {
-            klass.set_layout_manager_type::<gtk::BinLayout>();
-        }
-    }
-
-    impl ObjectImpl for MessageRowBase {}
-    impl WidgetImpl for MessageRowBase {}
-    impl ListBoxRowImpl for MessageRowBase {}
-}
+use super::message_row_base_imp as imp;
 
 glib::wrapper! {
     pub struct MessageRowBase(ObjectSubclass<imp::MessageRowBase>)
@@ -45,9 +15,6 @@ glib::wrapper! {
 pub trait MessageRowBaseImpl: ListBoxRowImpl {}
 
 unsafe impl<T: MessageRowBaseImpl> IsSubclassable<T> for MessageRowBase {}
-
-
-
 
 // // Base class for list rows in the list box
 //     internal abstract class ConversationRow : Gtk.ListBoxRow, Geary.BaseInterface {

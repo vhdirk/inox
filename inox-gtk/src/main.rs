@@ -8,20 +8,19 @@ use pretty_env_logger;
 
 use structopt::clap::{App, Arg};
 use structopt::StructOpt;
-mod app;
+mod application;
 mod constants;
 mod macros;
 mod settings;
 mod static_resource;
-// mod headerbar;
+mod core;
 mod widgets;
 
-mod main_window;
 mod webextension;
 
 use inox_core::settings::Settings;
 
-use crate::app::InoxApplication;
+use crate::application::InoxApplication;
 
 pub mod webext_capnp {
     include!(concat!(env!("OUT_DIR"), "/resources/webext_capnp.rs"));

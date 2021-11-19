@@ -20,10 +20,12 @@ use gtk::subclass::prelude::*;
 use log::*;
 
 use crate::constants;
-use crate::main_window::MainWindow;
-
-use inox_core::database::thread::Thread;
+use crate::widgets::MainWindow;
+use crate::core::Thread;
+use crate::core::Action;
 use inox_core::settings::Settings;
+
+use super::application_imp as imp;
 
 // use crate::api::{Station, StationRequest};
 // use crate::audio::{GCastDevice, PlaybackState, Player, Song};
@@ -33,135 +35,6 @@ use inox_core::settings::Settings;
 // use crate::settings::{settings_manager, Key};
 // use crate::ui::{Notification, InoxApplicationWindow, View};
 // use crate::utils::{Order, Sorting};
-
-#[derive(Debug)]
-pub enum Action {
-    SelectTag(Option<String>),
-    Search(String),
-    Query(notmuch::Query),
-    SelectThread(Option<notmuch::Thread>),
-    SelectThreads(Vec<notmuch::Thread>),
-
-    // Reload,
-    // ViewShowLibrary,
-    // ViewShowPlayer,
-    // ViewRaise,
-    // ViewShowNotification(Rc<Notification>),
-    // PlaybackConnectGCastDevice(GCastDevice),
-    // PlaybackDisconnectGCastDevice,
-    // PlaybackSetStation(Box<Station>),
-    // PlaybackStart,
-    // PlaybackStop,
-    // PlaybackSetVolume(f64),
-    // PlaybackSaveSong(Song),
-    // LibraryAddStations(Vec<Station>),
-    // LibraryRemoveStations(Vec<Station>),
-    // SearchFor(StationRequest), // TODO: is this neccessary?,
-    // SettingsKeyChanged(Key)
-}
-
-mod imp {
-    use super::*;
-    use gtk::glib::WeakRef;
-    use once_cell::sync::OnceCell;
-    use std::cell::Cell;
-
-    pub struct InoxApplication {
-        pub sender: Sender<Action>,
-        pub receiver: RefCell<Option<Receiver<Action>>>,
-
-        pub window: OnceCell<WeakRef<MainWindow>>,
-        pub database: RefCell<Option<notmuch::Database>>,
-        // pub player: Player,
-        // pub library: Library,
-        // pub storefront: StoreFront,
-        pub settings: RefCell<Option<Rc<Settings>>>,
-    }
-
-    #[glib::object_subclass]
-    impl ObjectSubclass for InoxApplication {
-        const NAME: &'static str = "InoxApplication";
-        type ParentType = gtk::Application;
-        type Type = super::InoxApplication;
-
-        fn new() -> Self {
-            let (sender, recv) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-            let window = OnceCell::new();
-            // let player = Player::new(sender.clone());
-            // let library = Library::new(sender.clone());
-            // let storefront = StoreFront::new(sender.clone());
-
-            Self {
-                sender,
-                receiver: RefCell::new(Some(recv)),
-                window,
-                database: RefCell::new(None),
-                settings: RefCell::new(None),
-            }
-        }
-    }
-
-    // Implement GLib.Object for InoxApplication
-    impl ObjectImpl for InoxApplication {}
-
-    // Implement Gtk.Application for InoxApplication
-    impl GtkApplicationImpl for InoxApplication {}
-
-    // Implement Gio.Application for InoxApplication
-    impl ApplicationImpl for InoxApplication {
-        // fn startup(&self, app: &Self::Type) {
-        //     self.parent_startup(app);
-
-        //     let app = app.downcast_ref::<super::InoxApplication>().unwrap();
-        //     let imp = InoxApplication::from_instance(app);
-        //     let window = MainWindow::new(imp.sender.clone(), app.clone());
-        //     imp.window
-        //         .set(window)
-        //         .expect("Failed to initialize application window");
-        // }
-
-        fn activate(&self, app: &Self::Type) {
-            debug!("gio::Application -> activate()");
-            let mut imp = imp::InoxApplication::from_instance(app);
-
-            // If the window already exists,
-            // present it instead creating a new one again.
-            if let Some(weak_window) = self.window.get() {
-                let window = weak_window.upgrade().unwrap();
-                window.present();
-                info!("Application window presented.");
-                return;
-            }
-
-            // No window available -> we have to create one
-            let window = app.create_window();
-            let _ = self.window.set(window.downgrade());
-            info!("Created application window.");
-
-            let db = app.init_database();
-            imp.database.borrow_mut().replace(db.clone());
-
-            // Setup action channel
-            let receiver = self.receiver.borrow_mut().take().unwrap();
-            let capp = app.clone();
-            receiver.attach(None, move |action| capp.process_action(action));
-
-            // Setup settings signal (we get notified when a key gets changed)
-            // self.settings.connect_changed(clone!(@strong self.sender as sender => move |_, key_str| {
-            //     let key: Key = Key::from_str(key_str).unwrap();
-            //     send!(sender, Action::SettingsKeyChanged(key));
-            // }));
-
-            // List all setting keys
-            // settings_manager::list_keys();
-
-            // Small workaround to update every view to the correct sorting/order.
-            // send!(self.sender, Action::SettingsKeyChanged(Key::ViewSorting));
-        }
-    }
-}
-
-// Wrap InoxApplicationImpl into a usable gtk-rs object
 
 glib::wrapper! {
     pub struct InoxApplication(ObjectSubclass<imp::InoxApplication>)
@@ -194,7 +67,7 @@ impl InoxApplication {
         app.run_with_args(&args);
     }
 
-    fn create_window(&self) -> MainWindow {
+    pub fn create_window(&self) -> MainWindow {
         let imp = imp::InoxApplication::from_instance(self);
         let window = MainWindow::new(imp.sender.clone(), self.clone());
 
@@ -216,7 +89,7 @@ impl InoxApplication {
         window
     }
 
-    fn init_database(&self) -> notmuch::Database {
+    pub fn init_database(&self) -> notmuch::Database {
         let imp = imp::InoxApplication::from_instance(self);
 
         let db_path = PathBuf::from(
@@ -232,7 +105,7 @@ impl InoxApplication {
         notmuch::Database::open(&db_path, notmuch::DatabaseMode::ReadOnly).unwrap()
     }
 
-    fn process_action(&self, action: Action) -> glib::Continue {
+    pub fn process_action(&self, action: Action) -> glib::Continue {
         let imp = imp::InoxApplication::from_instance(self);
 
         debug!("processing action {:?}", action);

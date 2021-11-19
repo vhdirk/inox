@@ -1,7 +1,7 @@
 use gtk::prelude::*;
 
 mod imp {
-    use crate::widgets::util::EmptyOrWhitespace;
+    use crate::core::util::EmptyOrWhitespace;
     use glib::prelude::*;
     use glib::subclass::prelude::*;
     use glib::{ParamFlags, ParamSpec, Value};
@@ -24,10 +24,10 @@ mod imp {
 
     impl PlaceholderPane {
         pub fn update(&self) {
-            if (self.title_label.get().text().is_empty_or_whitespace()) {
+            if self.title_label.get().text().is_empty_or_whitespace() {
                 self.title_label.hide();
             }
-            if (self.subtitle_label.get().text().is_empty_or_whitespace()) {
+            if self.subtitle_label.get().text().is_empty_or_whitespace() {
                 self.subtitle_label.hide();
             }
             // if (self.title_label.get().is_visible() || self.subtitle_label.get().is_visible()) {

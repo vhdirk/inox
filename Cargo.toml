@@ -2,7 +2,6 @@
 members = [
     "inox-core",
     "inox-gtk"
-#    "inox-tui"
 ]
 
 [profile.dev]
