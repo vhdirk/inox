@@ -14,7 +14,6 @@ use crate::core::Thread;
 
 use super::threads_list_imp as imp;
 
-
 const COLUMN_ID: u8 = 0;
 const COLUMN_THREAD: u8 = 1;
 const COLUMN_AUTHORS: u8 = 2;
@@ -51,38 +50,51 @@ impl ThreadsList {
         // Get state
         let imp = imp::ThreadsList::from_instance(self);
 
-        let sender = imp.sender.clone();
+        let sender = imp.sender.get().unwrap().clone();
 
         imp.column_view.model().unwrap().connect_selection_changed(
             move |model, position, n_items| {
                 dbg!("Selection changed {:?} {:?}", position, n_items);
-                match n_items {
+
+                let selection = model.selection_in_range(position, n_items);
+                let (mut selection_iter, _) = gtk::BitsetIter::init_first(&selection).unwrap();
+
+                let mut threads = vec![];
+
+                while selection_iter.is_valid() {
+                    let selection_val = selection_iter.value();
+                    let threadw = model
+                        .item(selection_val)
+                        .unwrap()
+                        .downcast::<Thread>()
+                        .unwrap();
+                    let thread = threadw.data().clone();
+                    threads.push(thread);
+                    selection_iter.next();
+                }
+
+                match threads.len() {
                     0 => {
-                        sender.get().unwrap().send(Action::SelectThread(None));
+                        sender
+                            .send(Action::SelectThread(None))
+                            .expect("Failed to send thread selected action");
+                    }
+                    1 => {
+                        dbg!(
+                            "Selected thread {:?} {:?}",
+                            threads[0].clone(),
+                            threads[0].clone().subject()
+                        );
+
+                        sender
+                            .send(Action::SelectThread(Some(threads[0].clone())))
+                            .expect("Failed to send thread selected action");
                     }
                     _ => {
-                        let thread = model
-                            .item(position)
-                            .unwrap()
-                            .downcast::<Thread>()
-                            .unwrap();
                         sender
-                            .get()
-                            .unwrap()
-                            .send(Action::SelectThread(Some(thread.data().clone())));
+                            .send(Action::SelectThreads(threads))
+                            .expect("Failed to send thread selected action");
                     }
-                    // _ => {
-                    //     let mut threads = vec![];
-                    //     for i in 0..n_items {
-                    //         let thread = model
-                    //             .item(position + i)
-                    //             .unwrap()
-                    //             .downcast::<Thread>()
-                    //             .unwrap();
-                    //         threads.push(thread.data().clone());
-                    //     }
-                    //     sender.get().unwrap().send(Action::SelectThreads(threads));
-                    // }
                 };
             },
         );
