@@ -60,7 +60,7 @@ impl ThreadsList {
                 let selection = model.selection_in_range(position, n_items);
                 let (mut selection_iter, _) = gtk::BitsetIter::init_first(&selection).unwrap();
 
-                let mut threads = vec![];
+                let mut thread_ids = vec![];
 
                 while selection_iter.is_valid() {
                     let selection_val = selection_iter.value();
@@ -69,12 +69,12 @@ impl ThreadsList {
                         .unwrap()
                         .downcast::<Thread>()
                         .unwrap();
-                    let thread = threadw.data().clone();
-                    threads.push(thread);
+                    let thread_id = threadw.data().id().to_string();
+                    thread_ids.push(thread_id);
                     selection_iter.next();
                 }
 
-                match threads.len() {
+                match thread_ids.len() {
                     0 => {
                         sender
                             .send(Action::SelectThread(None))
@@ -82,18 +82,17 @@ impl ThreadsList {
                     }
                     1 => {
                         dbg!(
-                            "Selected thread {:?} {:?}",
-                            threads[0].clone(),
-                            threads[0].clone().subject()
+                            "Selected thread {:?}",
+                            thread_ids[0].clone()
                         );
 
                         sender
-                            .send(Action::SelectThread(Some(threads[0].clone())))
+                            .send(Action::SelectThread(Some(thread_ids[0].clone())))
                             .expect("Failed to send thread selected action");
                     }
                     _ => {
                         sender
-                            .send(Action::SelectThreads(threads))
+                            .send(Action::SelectThreads(thread_ids))
                             .expect("Failed to send thread selected action");
                     }
                 };

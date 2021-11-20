@@ -1,4 +1,5 @@
 #![allow(new_without_default)]
+use crate::core::database::DatabaseExt;
 use gio::ApplicationFlags;
 use once_cell::unsync::OnceCell;
 use std;
@@ -90,6 +91,10 @@ impl InoxApplication {
     }
 
     pub fn init_database(&self) -> notmuch::Database {
+        self.open_database(notmuch::DatabaseMode::ReadOnly).unwrap()
+    }
+
+    pub fn open_database(&self, mode: notmuch::DatabaseMode) -> Result<notmuch::Database, notmuch::Error> {
         let imp = imp::InoxApplication::from_instance(self);
 
         let db_path = PathBuf::from(
@@ -102,7 +107,7 @@ impl InoxApplication {
                 .path
                 .clone(),
         );
-        notmuch::Database::open(&db_path, notmuch::DatabaseMode::ReadOnly).unwrap()
+        notmuch::Database::open(&db_path, mode)
     }
 
     pub fn process_action(&self, action: Action) -> glib::Continue {
@@ -129,8 +134,8 @@ impl InoxApplication {
                 ))
                 .unwrap(),
             Action::Query(query) => self.perform_search(&query),
-            Action::SelectThread(thread) => self.open_thread(thread),
-            Action::SelectThreads(threads) => self.open_threads(threads),
+            Action::SelectThread(thread_id) => self.open_thread(thread_id),
+            Action::SelectThreads(thread_ids) => self.open_threads(thread_ids),
 
             // Action::ViewShowDiscover => imp.window.borrow().as_ref().unwrap().set_view(View::Discover),
             // Action::ViewShowLibrary => imp.window.borrow().as_ref().unwrap().set_view(View::Library),
@@ -175,8 +180,14 @@ impl InoxApplication {
             .set_query(query);
     }
 
-    fn open_thread(&self, thread: Option<notmuch::Thread>) {
+    fn open_thread(&self, thread_id: Option<String>) {
         let imp = imp::InoxApplication::from_instance(self);
+
+        let thread = thread_id.map(|id| {
+            self.open_database(notmuch::DatabaseMode::ReadOnly)
+                .unwrap().find_thread_by_id(&id).unwrap().unwrap()
+        });
+
         imp.window
             .get()
             .unwrap()
@@ -185,7 +196,7 @@ impl InoxApplication {
             .open_thread(thread);
     }
 
-    fn open_threads(&self, threads: Vec<notmuch::Thread>) {
+    fn open_threads(&self, thread_ids: Vec<String>) {
         // let imp = imp::InoxApplication::from_instance(self);
         // imp.window
         //     .get()

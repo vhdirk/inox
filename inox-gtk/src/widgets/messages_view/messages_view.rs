@@ -32,6 +32,8 @@ impl MessagesView {
     }
 
     pub fn load_messages(&self, thread: &notmuch::Thread) {
+        // TODO: this crashes the second time around since the messages are free'd when the refcount reaches 0.
+        //       This is a bug in notmuch-rs.
         let messages = thread.messages();
         for message in messages {
             self.add_message(&message);

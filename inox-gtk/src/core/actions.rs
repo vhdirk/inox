@@ -5,8 +5,8 @@ pub enum Action {
     SelectTag(Option<String>),
     Search(String),
     Query(notmuch::Query),
-    SelectThread(Option<notmuch::Thread>),
-    SelectThreads(Vec<notmuch::Thread>),
+    SelectThread(Option<String>),
+    SelectThreads(Vec<String>),
 
     // Reload,
     // ViewShowLibrary,

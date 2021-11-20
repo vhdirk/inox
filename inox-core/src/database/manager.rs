@@ -8,7 +8,7 @@ use notmuch;
 
 pub struct Manager {
     notmuch_db_path: PathBuf,
-    database: RefCell<Option<Arc<notmuch::Database>>>,
+    database: RefCell<Option<notmuch::Database>>,
 }
 
 impl Manager {
@@ -23,7 +23,7 @@ impl Manager {
     pub fn get(
         &self,
         mode: notmuch::DatabaseMode,
-    ) -> Result<Arc<notmuch::Database>, notmuch::Error> {
+    ) -> Result<notmuch::Database, notmuch::Error> {
         let current_db = self.database.borrow().clone();
         let open_new = match current_db {
             Some(_db) => false,
@@ -32,10 +32,11 @@ impl Manager {
 
         if open_new {
             // TODO: timeouts?
-            let database = Arc::new(notmuch::Database::open(&self.notmuch_db_path, mode).unwrap());
+            let database = notmuch::Database::open(&self.notmuch_db_path, mode).unwrap();
             self.database.replace(Some(database.clone()));
         };
 
         Ok(self.database.borrow().clone().unwrap())
     }
+
 }
