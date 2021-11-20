@@ -138,7 +138,7 @@ impl ObjectSubclass for MessageView {
 
     fn class_init(klass: &mut Self::Class) {
         Self::bind_template(klass);
-        // klass.set_layout_manager_type::<gtk::BinLayout>();
+        klass.set_layout_manager_type::<gtk::BinLayout>();
     }
 
     fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {

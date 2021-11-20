@@ -56,6 +56,7 @@ impl ThreadsList {
             move |model, position, n_items| {
                 dbg!("Selection changed {:?} {:?}", position, n_items);
 
+                // TODO: is selection_in_range the best choice here?
                 let selection = model.selection_in_range(position, n_items);
                 let (mut selection_iter, _) = gtk::BitsetIter::init_first(&selection).unwrap();
 
