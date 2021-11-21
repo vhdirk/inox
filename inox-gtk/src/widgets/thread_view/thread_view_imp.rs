@@ -67,7 +67,7 @@ impl ThreadView {
                 // performing is also cancelled, which is important to
                 // avoid a possible crit warning when switching folders,
                 // etc.
-                self.remove_messages_view();
+                // self.remove_messages_view();
             }
         } else if current.is_some()
             && self
@@ -85,7 +85,10 @@ impl ThreadView {
 
     //add_new_list
     pub fn set_messages_view(&self, list: &MessagesView) {
-        self.messages_view.replace(Some(list.clone()));
+
+        self.remove_messages_view();
+
+        *self.messages_view.borrow_mut() = Some(list.clone());
 
         // // Manually create a Viewport rather than letting
         // // ScrolledWindow do it so Container.set_focus_{h,v}adjustment
@@ -96,14 +99,17 @@ impl ThreadView {
         // viewport.set_child(Some(list));
 
         self.thread_scroller.set_child(Some(list));
+
+
     }
 
     // Remove any existing thread list, cancelling its loading
     // remove_current_list
     pub fn remove_messages_view(&self) {
-        if let Some(view) = self.messages_view.borrow().as_ref() {
-            view.unparent();
-        }
+        // do not unparent the list from the scrolled window. It does that by itself
+        // when setting the new child
+        *self.messages_view.borrow_mut() = None;
+
         // if (self.find_cancellable != null) {
         //     self.find_cancellable.cancel();
         //     self.find_cancellable = null;

@@ -7,7 +7,7 @@ use once_cell::unsync::OnceCell;
 
 use glib::prelude::*;
 use glib::subclass::prelude::*;
-use glib::{ParamFlags, ParamSpec, Value};
+use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, Value};
 use gtk::{prelude::*, subclass::prelude::*, CompositeTemplate};
 
 #[derive(Debug, Default)]
@@ -32,7 +32,7 @@ impl ObjectImpl for MessageRowBase {
         use once_cell::sync::Lazy;
 
         static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
-            vec![ParamSpec::new_boolean(
+            vec![ParamSpecBoolean::new(
                 // Name
                 "expanded",
                 // Nickname

@@ -55,9 +55,10 @@ impl ThreadView {
         // self.show_loading();
 
         let messages_view = MessagesView::new(thread, imp.sender.get().unwrap().clone());
-        messages_view.show();
-        // imp.remove_messages_view();
+
+        // insert the new view
         imp.set_messages_view(&messages_view);
+
         imp.set_visible_child(&imp.thread_page.get());
 
         // let model = imp::create_liststore();

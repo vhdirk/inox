@@ -49,12 +49,13 @@ impl ObjectImpl for MessagesView {
     }
 
     fn dispose(&self, _obj: &Self::Type) {
-        self.list_box.unparent();
-
-        let rows = self.rows.borrow_mut();
+        let mut rows = self.rows.borrow_mut();
         for row in rows.iter() {
+            dbg!("row {:?}", row);
             row.unparent();
         }
+        rows.clear();
+        self.list_box.unparent();
     }
 }
 impl WidgetImpl for MessagesView {}

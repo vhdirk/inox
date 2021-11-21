@@ -5,6 +5,7 @@ use glib::Sender;
 use gtk::prelude::*;
 use gtk::SingleSelection;
 use gtk::{Application, SignalListItemFactory};
+use gtk::builders::ImageBuilder;
 
 use notmuch;
 
@@ -182,7 +183,7 @@ impl ThreadsList {
 
         let factory = SignalListItemFactory::new();
         factory.connect_setup(move |_, entry| {
-            let img = gtk::ImageBuilder::new().gicon(&icon).build();
+            let img = ImageBuilder::new().gicon(&icon).build();
             entry.set_child(Some(&img));
             img.hide();
         });

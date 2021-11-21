@@ -38,7 +38,7 @@ impl MessageView {
             .expect("Failed to set parsed_message on MessageView");
 
 
-        imp.update();
+        imp.update_compact();
 
         view
     }

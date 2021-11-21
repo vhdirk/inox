@@ -1,4 +1,3 @@
-
 use crate::core::Action;
 use crate::core::Message;
 
@@ -6,8 +5,12 @@ use glib::prelude::*;
 use glib::subclass::prelude::*;
 use glib::Sender;
 use gmime::traits::MessageExt;
+use gmime::{InternetAddressExt, InternetAddressListExt};
+
 use gtk::{self, prelude::*, subclass::prelude::*, CompositeTemplate};
 use once_cell::unsync::OnceCell;
+
+const EMPTY_FROM_LABEL: &str = "No sender";
 
 #[derive(Debug, Default, CompositeTemplate)]
 #[template(resource = "/com/github/vhdirk/Inox/gtk/message_view.ui")]
@@ -24,11 +27,13 @@ pub struct MessageView {
     #[template_child]
     pub unstar_button: TemplateChild<gtk::Button>,
 
-    #[template_child]
-    pub email_menubutton: TemplateChild<gtk::MenuButton>,
-
+    // #[template_child]
+    // pub email_menubutton: TemplateChild<gtk::MenuButton>,
     #[template_child]
     pub avatar: TemplateChild<adw::Avatar>,
+
+    #[template_child]
+    pub message_container: TemplateChild<gtk::Grid>,
 
     #[template_child]
     pub compact_revealer: TemplateChild<gtk::Revealer>,
@@ -76,20 +81,6 @@ pub struct MessageView {
     pub sender: OnceCell<Sender<Action>>,
 }
 
-impl MessageView {
-    pub fn update(&self) {
-        let message = self.message.get();
-        let parsed = self.parsed_message.get();
-
-        self.subject
-            .get()
-            .set_text(&parsed.unwrap().subject().unwrap());
-        self.compact_body
-            .get()
-            .set_text(&parsed.unwrap().subject().unwrap());
-    }
-}
-
 #[glib::object_subclass]
 impl ObjectSubclass for MessageView {
     const NAME: &'static str = "InoxMessageView";
@@ -102,9 +93,10 @@ impl ObjectSubclass for MessageView {
             attachments_button: TemplateChild::default(),
             star_button: TemplateChild::default(),
             unstar_button: TemplateChild::default(),
-            email_menubutton: TemplateChild::default(),
-
+            // email_menubutton: TemplateChild::default(),
             avatar: TemplateChild::default(),
+
+            message_container: TemplateChild::default(),
 
             compact_revealer: TemplateChild::default(),
             compact_from: TemplateChild::default(),
@@ -151,8 +143,102 @@ impl ObjectImpl for MessageView {
         self.parent_constructed(obj);
     }
 
-    fn dispose(&self, _obj: &Self::Type) {
-        // self.list_box.unparent();
+    fn dispose(&self, obj: &Self::Type) {
+        // TODO: not sure why we need to unparent these manually?
+        self.actions.get().unparent();
+        self.message_container.get().unparent();
     }
 }
 impl WidgetImpl for MessageView {}
+
+impl MessageView {
+    pub fn update_compact(&self) {
+        let message = self.message.get();
+        let parsed = self.parsed_message.get().unwrap();
+
+
+        self.compact_body
+            .get()
+            .set_text(&self.format_body_compact());
+        self.compact_from
+            .get()
+            .set_text(&self.format_originator_compact());
+        self.compact_date
+            .get()
+            .set_text(&self.format_date_compact());
+    }
+
+    pub fn update_expanded(&self) {
+        let parsed = self.parsed_message.get().unwrap();
+
+        if let Some(subject) = parsed.subject() {
+            self.subject.get().set_text(&subject);
+        }
+
+    }
+
+    pub fn format_originator_compact(&self) -> String {
+        let parsed = self.parsed_message.get().unwrap();
+        let from = parsed.from();
+
+        if from.is_none() {
+            return EMPTY_FROM_LABEL.to_string();
+        }
+
+        let from = from.unwrap();
+        let num_from = from.length();
+
+        let mut originators = vec![];
+        for i in 0..num_from {
+            // TODO: link email addresses to addressbook
+            let from_address = from.address(i);
+            if from_address.is_none() {
+                continue;
+            }
+
+            let from_name = from_address.unwrap().name();
+            if from_name.is_none() {
+                continue;
+            }
+
+            originators.push(from_name.unwrap().to_string());
+        }
+
+        originators.join(", ")
+    }
+
+    pub fn format_date_compact(&self) -> String {
+        let parsed = self.parsed_message.get().unwrap();
+
+        // FIXME: gmime bindings are wrong. Should increase the datetime refcount.
+
+        // let date = parsed.date();
+
+        // if date.is_none() {
+        //     return "".to_string();
+        // }
+
+        // let date_str = date.unwrap().format_iso8601();
+
+        // if date_str.is_err() {
+        //     return "".to_string();
+        // }
+
+        // // if (this.local_date != null) {
+        // //     date_text = Util.Date.pretty_print(
+        // //         this.local_date, this.config.clock_format
+        // //     );
+        // //     date_tooltip = Util.Date.pretty_print_verbose(
+        // //         this.local_date, this.config.clock_format
+        // //     );
+        // // }
+        // date_str.unwrap().to_string()
+
+        return "".to_string();
+    }
+
+    pub fn format_body_compact(&self) -> String {
+        let parsed = self.parsed_message.get().unwrap();
+        parsed.preview()
+    }
+}

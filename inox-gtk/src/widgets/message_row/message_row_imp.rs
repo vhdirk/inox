@@ -9,7 +9,6 @@ use crate::widgets::MessageView;
 pub struct MessageRow {
     pub sender: OnceCell<Sender<Action>>,
     pub message: OnceCell<notmuch::Message>,
-    pub is_expanded: bool,
     pub view: OnceCell<MessageView>,
 }
 
@@ -27,7 +26,6 @@ impl ObjectSubclass for MessageRow {
         Self {
             sender: OnceCell::new(),
             message: OnceCell::new(),
-            is_expanded: false,
             view: OnceCell::new(),
         }
     }

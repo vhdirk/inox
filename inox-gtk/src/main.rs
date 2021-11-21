@@ -5,6 +5,7 @@ use std::rc::Rc;
 use dirs;
 use log::*;
 use pretty_env_logger;
+use gmime;
 
 use structopt::clap::{App, Arg};
 use structopt::StructOpt;
@@ -38,6 +39,7 @@ fn init() {
         // run initialization here
         gtk::init().expect("Error initializing gtk.");
         static_resource::init().expect("Error initializing static resources.");
+        gmime::functions::init();
     });
 }
 

@@ -10,7 +10,7 @@ use super::MessageRowBaseImpl;
 #[derive(Debug, Default)]
 pub struct LoadingRow {
     pub sender: OnceCell<Sender<Action>>,
-    pub is_expanded: bool,
+    pub spinner: gtk::Spinner,
 }
 
 #[glib::object_subclass]
@@ -28,14 +28,17 @@ impl ObjectImpl for LoadingRow {
     fn constructed(&self, obj: &Self::Type) {
         // get_style_context().add_class(LOADING_CLASS);
 
-        let spinner = gtk::Spinner::new();
-        spinner.set_height_request(16);
-        spinner.set_width_request(16);
-        spinner.show();
-        spinner.start();
-        spinner.set_parent(obj);
+        self.spinner.set_height_request(16);
+        self.spinner.set_width_request(16);
+        self.spinner.show();
+        self.spinner.start();
+        self.spinner.set_parent(obj);
 
         self.parent_constructed(obj);
+    }
+
+    fn dispose(&self, _obj: &Self::Type) {
+        self.spinner.unparent();
     }
 }
 impl WidgetImpl for LoadingRow {}

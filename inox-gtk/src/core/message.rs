@@ -10,7 +10,8 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use notmuch;
-use gmime::traits::ParserExt;
+use gmime::traits::{ParserExt, MessageExt};
+use gmime::MessageExtManual;
 
 
 #[derive(Clone, Debug, GBoxed)]
@@ -44,6 +45,39 @@ impl Message {
         Ok(Self {
             message
         })
+    }
+
+
+        /**
+     * Generates a preview from the email's message body.
+     *
+     * If there is no body, the empty string will be returned.
+     */
+    pub fn preview(&self) -> String {
+        let body = self.message.body();
+        if body.is_none() {
+            return "".to_string()
+        }
+
+        dbg!("message body: {:?}", body);
+
+        // try {
+        //     preview = get_plain_body(false, null);
+        // } catch (Error e) {
+        //     try {
+        //         format = TextFormat.HTML;
+        //         preview = get_html_body(null);
+        //     } catch (Error error) {
+        //         debug("Could not generate message preview: %s\n and: %s",
+        //               e.message, error.message);
+        //     }
+        // }
+
+        // return (preview != null)
+        //     ? Geary.RFC822.Utils.to_preview_text(preview, format)
+        //     : "";
+
+        "".to_string()
     }
 }
 
