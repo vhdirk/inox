@@ -24,6 +24,12 @@ pub trait EmptyOrWhitespace {
     fn is_empty_or_whitespace(&self) -> bool;
 }
 
+impl EmptyOrWhitespace for &str {
+    fn is_empty_or_whitespace(&self) -> bool {
+        self.trim().is_empty()
+    }
+}
+
 impl EmptyOrWhitespace for String {
     fn is_empty_or_whitespace(&self) -> bool {
         self.trim().is_empty()

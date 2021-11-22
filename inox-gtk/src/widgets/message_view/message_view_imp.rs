@@ -1,5 +1,6 @@
 use crate::core::Action;
 use crate::core::Message;
+use chrono_humanize::HumanTime;
 
 use glib::prelude::*;
 use glib::subclass::prelude::*;
@@ -75,8 +76,7 @@ pub struct MessageView {
     #[template_child]
     pub body_progress: TemplateChild<gtk::ProgressBar>,
 
-    pub message: OnceCell<notmuch::Message>,
-    pub parsed_message: OnceCell<Message>,
+    pub message: OnceCell<Message>,
 
     pub sender: OnceCell<Sender<Action>>,
 }
@@ -122,7 +122,6 @@ impl ObjectSubclass for MessageView {
             body_progress: TemplateChild::default(),
 
             message: OnceCell::new(),
-            parsed_message: OnceCell::new(),
 
             sender: OnceCell::new(),
         }
@@ -153,10 +152,6 @@ impl WidgetImpl for MessageView {}
 
 impl MessageView {
     pub fn update_compact(&self) {
-        let message = self.message.get();
-        let parsed = self.parsed_message.get().unwrap();
-
-
         self.compact_body
             .get()
             .set_text(&self.format_body_compact());
@@ -169,17 +164,17 @@ impl MessageView {
     }
 
     pub fn update_expanded(&self) {
-        let parsed = self.parsed_message.get().unwrap();
+        let msg = self.message.get().unwrap();
 
-        if let Some(subject) = parsed.subject() {
+        if let Some(subject) = msg.subject() {
             self.subject.get().set_text(&subject);
         }
 
     }
 
     pub fn format_originator_compact(&self) -> String {
-        let parsed = self.parsed_message.get().unwrap();
-        let from = parsed.from();
+        let msg = self.message.get().unwrap();
+        let from = msg.from();
 
         if from.is_none() {
             return EMPTY_FROM_LABEL.to_string();
@@ -208,37 +203,13 @@ impl MessageView {
     }
 
     pub fn format_date_compact(&self) -> String {
-        let parsed = self.parsed_message.get().unwrap();
-
-        // FIXME: gmime bindings are wrong. Should increase the datetime refcount.
-
-        // let date = parsed.date();
-
-        // if date.is_none() {
-        //     return "".to_string();
-        // }
-
-        // let date_str = date.unwrap().format_iso8601();
-
-        // if date_str.is_err() {
-        //     return "".to_string();
-        // }
-
-        // // if (this.local_date != null) {
-        // //     date_text = Util.Date.pretty_print(
-        // //         this.local_date, this.config.clock_format
-        // //     );
-        // //     date_tooltip = Util.Date.pretty_print_verbose(
-        // //         this.local_date, this.config.clock_format
-        // //     );
-        // // }
-        // date_str.unwrap().to_string()
-
-        return "".to_string();
+        let msg = self.message.get().unwrap();
+        let ht = HumanTime::from(msg.date());
+        format!("{}", ht)
     }
 
     pub fn format_body_compact(&self) -> String {
-        let parsed = self.parsed_message.get().unwrap();
-        parsed.preview()
+        let msg = self.message.get().unwrap();
+        msg.preview()
     }
 }

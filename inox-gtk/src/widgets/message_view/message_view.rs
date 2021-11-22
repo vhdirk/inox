@@ -26,17 +26,10 @@ impl MessageView {
             .set(sender)
             .expect("Failed to set sender on MessageView");
 
+        let message = Message::new(message).unwrap();
         imp.message
             .set(message.clone())
             .expect("Failed to set message on MessageView");
-
-
-        let message = Message::from_file(message).unwrap();
-
-        imp.parsed_message
-            .set(message)
-            .expect("Failed to set parsed_message on MessageView");
-
 
         imp.update_compact();
 
