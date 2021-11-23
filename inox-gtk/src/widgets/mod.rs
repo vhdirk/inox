@@ -6,6 +6,7 @@ pub mod message_view;
 pub mod messages_view;
 pub mod message_row;
 pub mod main_window;
+pub mod message_web_view;
 
 pub use self::about_dialog::about_dialog;
 

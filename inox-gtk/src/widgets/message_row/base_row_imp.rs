@@ -1,16 +1,16 @@
-use std::cell::RefCell;
 use crate::core::Action;
 use glib::Sender;
 use glib::{self, prelude::*, subclass::prelude::*};
 use gtk::{self, prelude::*, subclass::prelude::*};
-use once_cell::unsync::OnceCell;
 use once_cell::sync::Lazy;
+use once_cell::unsync::OnceCell;
+use std::cell::RefCell;
 
 use glib::prelude::*;
 use glib::subclass::prelude::*;
-use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, Value};
 use glib::subclass::signal::Signal;
-use gtk::{prelude::*, subclass::prelude::*, CompositeTemplate};
+use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, Value};
+use gtk::{prelude::*, subclass::prelude::*};
 
 pub type BaseRowInstance = super::BaseRow;
 
@@ -27,7 +27,6 @@ unsafe impl ClassStruct for BaseRowClass {
     type Type = BaseRow;
 }
 
-
 fn expand_default_trampoline(this: &BaseRowInstance) {
     BaseRow::from_instance(this).expand(this)
 }
@@ -36,20 +35,15 @@ fn collapse_default_trampoline(this: &BaseRowInstance) {
     BaseRow::from_instance(this).collapse(this)
 }
 
-pub unsafe fn base_row_expand(
-    this: &BaseRowInstance,
-) {
+pub unsafe fn base_row_expand(this: &BaseRowInstance) {
     let klass = &*(this.class() as *const _ as *const BaseRowClass);
     (klass.expand.unwrap())(this)
 }
 
-pub unsafe fn base_row_collapse(
-    this: &BaseRowInstance,
-) {
+pub unsafe fn base_row_collapse(this: &BaseRowInstance) {
     let klass = &*(this.class() as *const _ as *const BaseRowClass);
     (klass.collapse.unwrap())(this)
 }
-
 
 #[derive(Debug, Default)]
 pub struct BaseRow {
@@ -57,13 +51,9 @@ pub struct BaseRow {
 }
 
 impl BaseRow {
-    fn expand(&self, obj: &BaseRowInstance) {
+    fn expand(&self, _obj: &BaseRowInstance) {}
 
-    }
-
-    fn collapse(&self, obj: &BaseRowInstance) {
-
-    }
+    fn collapse(&self, _obj: &BaseRowInstance) {}
 }
 
 #[glib::object_subclass]

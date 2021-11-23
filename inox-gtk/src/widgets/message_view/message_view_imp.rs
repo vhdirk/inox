@@ -1,5 +1,6 @@
 use crate::core::Action;
 use crate::core::Message;
+use crate::widgets::message_web_view::MessageWebView;
 use chrono_humanize::HumanTime;
 
 use glib::prelude::*;
@@ -76,6 +77,8 @@ pub struct MessageView {
     #[template_child]
     pub body_progress: TemplateChild<gtk::ProgressBar>,
 
+    pub web_view: OnceCell<MessageWebView>,
+
     pub message: OnceCell<Message>,
 
     pub sender: OnceCell<Sender<Action>>,
@@ -121,8 +124,9 @@ impl ObjectSubclass for MessageView {
             body_revealer: TemplateChild::default(),
             body_progress: TemplateChild::default(),
 
-            message: OnceCell::new(),
+            web_view: OnceCell::new(),
 
+            message: OnceCell::new(),
             sender: OnceCell::new(),
         }
     }
@@ -169,7 +173,6 @@ impl MessageView {
         if let Some(subject) = msg.subject() {
             self.subject.get().set_text(&subject);
         }
-
     }
 
     pub fn format_originator_compact(&self) -> String {
@@ -213,47 +216,17 @@ impl MessageView {
         msg.preview()
     }
 
-
-        /**
+    /**
      * Shows the complete message: headers, body and attachments.
      */
-    pub fn expand(include_transitions: bool) {
-        // this.is_collapsed = false;
-        // update_email_state();
-        // this.attachments_button.set_sensitive(true);
-        // // Needs at least some menu set otherwise it won't be enabled,
-        // // also has the side effect of making it sensitive
-        // this.email_menubutton.set_menu_model(new GLib.Menu());
+    pub fn show_message_body(&self, include_transitions: bool) {
 
-        // // Set targets to enable the actions
-        // GLib.Variant email_target = email.id.to_variant();
-        // this.attachments_button.set_action_target_value(email_target);
-        // this.star_button.set_action_target_value(email_target);
-        // this.unstar_button.set_action_target_value(email_target);
-
-        // foreach (ConversationMessage message in this) {
-        //     message.show_message_body(include_transitions);
-        // }
+        // if (self.web_view. == null)
+        //     self.initialize_web_view();
+        // set_revealer(this.compact_revealer, false, include_transitions);
+        // set_revealer(this.header_revealer, true, include_transitions);
+        // set_revealer(this.body_revealer, true, include_transitions);
     }
 
-    /**
-     * Hides the complete message, just showing the header preview.
-     */
-    pub fn collapse() {
-        // is_collapsed = true;
-        // update_email_state();
-        // attachments_button.set_sensitive(false);
-        // email_menubutton.set_sensitive(false);
-
-        // // Clear targets to disable the actions
-        // this.attachments_button.set_action_target_value(null);
-        // this.star_button.set_action_target_value(null);
-        // this.unstar_button.set_action_target_value(null);
-
-        // primary_message.hide_message_body();
-        // foreach (ConversationMessage attached in this._attached_messages) {
-        //     attached.hide_message_body();
-        // }
-    }
-
+    pub fn hide_message_body(&self, include_transitions: bool) {}
 }
