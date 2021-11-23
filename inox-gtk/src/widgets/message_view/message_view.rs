@@ -35,4 +35,13 @@ impl MessageView {
 
         view
     }
+
+    pub fn expand(&self) {
+
+    }
+
+    pub fn collapse(&self) {
+
+    }
+
 }

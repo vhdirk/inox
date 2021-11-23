@@ -6,7 +6,7 @@ use notmuch;
 
 use crate::core::Action;
 use crate::widgets::MessageRow;
-use crate::widgets::MessageRowBase;
+use crate::widgets::BaseRow;
 
 use super::messages_view_imp as imp;
 
@@ -44,7 +44,7 @@ impl MessagesView {
         imp.list_box.append(&message_row);
         imp.rows
             .borrow_mut()
-            .push(message_row.upcast::<MessageRowBase>());
+            .push(message_row.upcast::<BaseRow>());
     }
 
     pub fn clear(&self) {

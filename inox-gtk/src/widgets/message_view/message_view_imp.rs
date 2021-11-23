@@ -212,4 +212,48 @@ impl MessageView {
         let msg = self.message.get().unwrap();
         msg.preview()
     }
+
+
+        /**
+     * Shows the complete message: headers, body and attachments.
+     */
+    pub fn expand(include_transitions: bool) {
+        // this.is_collapsed = false;
+        // update_email_state();
+        // this.attachments_button.set_sensitive(true);
+        // // Needs at least some menu set otherwise it won't be enabled,
+        // // also has the side effect of making it sensitive
+        // this.email_menubutton.set_menu_model(new GLib.Menu());
+
+        // // Set targets to enable the actions
+        // GLib.Variant email_target = email.id.to_variant();
+        // this.attachments_button.set_action_target_value(email_target);
+        // this.star_button.set_action_target_value(email_target);
+        // this.unstar_button.set_action_target_value(email_target);
+
+        // foreach (ConversationMessage message in this) {
+        //     message.show_message_body(include_transitions);
+        // }
+    }
+
+    /**
+     * Hides the complete message, just showing the header preview.
+     */
+    pub fn collapse() {
+        // is_collapsed = true;
+        // update_email_state();
+        // attachments_button.set_sensitive(false);
+        // email_menubutton.set_sensitive(false);
+
+        // // Clear targets to disable the actions
+        // this.attachments_button.set_action_target_value(null);
+        // this.star_button.set_action_target_value(null);
+        // this.unstar_button.set_action_target_value(null);
+
+        // primary_message.hide_message_body();
+        // foreach (ConversationMessage attached in this._attached_messages) {
+        //     attached.hide_message_body();
+        // }
+    }
+
 }

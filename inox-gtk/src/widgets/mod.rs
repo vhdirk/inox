@@ -13,5 +13,5 @@ pub use thread_view::ThreadView;
 pub use messages_view::MessagesView;
 pub use message_view::MessageView;
 
-pub use message_row::{MessageRowBase, MessageRow, LoadingRow};
+pub use message_row::{BaseRow, MessageRow, LoadingRow};
 pub use main_window::MainWindow;

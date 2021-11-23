@@ -1,5 +1,5 @@
 use crate::core::Action;
-use crate::widgets::MessageRowBase;
+use crate::widgets::BaseRow;
 use glib::subclass::prelude::*;
 use glib::Sender;
 use gtk;
@@ -11,7 +11,7 @@ use std::cell::RefCell;
 #[derive(Debug)]
 pub struct MessagesView {
     pub list_box: gtk::ListBox,
-    pub rows: RefCell<Vec<MessageRowBase>>,
+    pub rows: RefCell<Vec<BaseRow>>,
     // pub column_view: gtk::ColumnView,
     // pub model: gio::ListStore,
     // pub filter: gtk::TreeModelFilter,

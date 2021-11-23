@@ -5,7 +5,7 @@ use glib::{self, prelude::*, subclass::prelude::*};
 use gtk::{self, prelude::*, subclass::prelude::*};
 use once_cell::unsync::OnceCell;
 
-use super::MessageRowBaseImpl;
+use super::BaseRowImpl;
 
 #[derive(Debug, Default)]
 pub struct LoadingRow {
@@ -17,7 +17,7 @@ pub struct LoadingRow {
 impl ObjectSubclass for LoadingRow {
     const NAME: &'static str = "InoxLoadingRow";
     type Type = super::LoadingRow;
-    type ParentType = super::MessageRowBase;
+    type ParentType = super::BaseRow;
 
     fn class_init(klass: &mut Self::Class) {
         klass.set_layout_manager_type::<gtk::BinLayout>();
@@ -43,4 +43,4 @@ impl ObjectImpl for LoadingRow {
 }
 impl WidgetImpl for LoadingRow {}
 impl ListBoxRowImpl for LoadingRow {}
-impl MessageRowBaseImpl for LoadingRow {}
+impl BaseRowImpl for LoadingRow {}

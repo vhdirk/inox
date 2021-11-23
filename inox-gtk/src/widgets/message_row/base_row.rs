@@ -1,20 +1,103 @@
 use crate::core::Action;
+use glib::IsA;
 use glib::Sender;
 
-use glib::{self, subclass::prelude::*};
+use glib::{self, prelude::*, subclass::prelude::*};
 use gtk::{self, subclass::prelude::*};
 
-use super::message_row_base_imp as imp;
+use super::base_row_imp as imp;
 
 glib::wrapper! {
-    pub struct MessageRowBase(ObjectSubclass<imp::MessageRowBase>)
+    pub struct BaseRow(ObjectSubclass<imp::BaseRow>)
     @extends gtk::ListBoxRow, gtk::Widget,
     @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Orientable;
 }
 
-pub trait MessageRowBaseImpl: ListBoxRowImpl {}
+pub trait BaseRowExt {
+    fn expand(&self);
+    fn collapse(&self);
+}
 
-unsafe impl<T: MessageRowBaseImpl> IsSubclassable<T> for MessageRowBase {}
+impl<O: IsA<BaseRow>> BaseRowExt for O {
+    fn expand(&self) {
+        unsafe { imp::base_row_expand(self.upcast_ref::<BaseRow>()) }
+    }
+
+    fn collapse(&self) {
+        unsafe { imp::base_row_collapse(self.upcast_ref::<BaseRow>()) }
+    }
+}
+
+pub trait BaseRowImpl: ListBoxRowImpl + ObjectImpl + 'static {
+    fn expand(&self, obj: &BaseRow) {
+        self.parent_expand(obj)
+    }
+
+    fn collapse(&self, obj: &BaseRow) {
+        self.parent_collapse(obj)
+    }
+}
+
+pub trait BaseRowImplExt: ObjectSubclass {
+    fn parent_expand(&self, obj: &BaseRow);
+    fn parent_collapse(&self, obj: &BaseRow);
+}
+
+impl<T: BaseRowImpl> BaseRowImplExt for T {
+    fn parent_expand(&self, obj: &BaseRow) {
+        unsafe {
+            let data = Self::type_data();
+            let parent_class = data.as_ref().parent_class() as *mut imp::BaseRowClass;
+            if let Some(ref f) = (*parent_class).expand {
+                f(obj)
+            } else {
+                unimplemented!()
+            }
+        }
+    }
+
+    fn parent_collapse(&self, obj: &BaseRow) {
+        unsafe {
+            let data = Self::type_data();
+            let parent_class = data.as_ref().parent_class() as *mut imp::BaseRowClass;
+            if let Some(ref f) = (*parent_class).collapse {
+                f(obj)
+            } else {
+                unimplemented!()
+            }
+        }
+    }
+}
+
+/// Make the BaseRow subclassable
+unsafe impl<T: BaseRowImpl> IsSubclassable<T> for BaseRow {
+    fn class_init(class: &mut glib::Class<Self>) {
+        Self::parent_class_init::<T>(class.upcast_ref_mut());
+
+        let klass = class.as_mut();
+        klass.expand = Some(expand_trampoline::<T>);
+        klass.collapse = Some(collapse_trampoline::<T>);
+    }
+}
+
+// Virtual method implementation trampolines
+unsafe fn expand_trampoline<T>(this: &BaseRow)
+where
+    T: ObjectSubclass + BaseRowImpl,
+{
+    let instance = &*(this as *const _ as *const T::Instance);
+    let imp = instance.impl_();
+    imp.expand(this)
+}
+
+unsafe fn collapse_trampoline<T>(this: &BaseRow)
+where
+    T: ObjectSubclass + BaseRowImpl,
+{
+    let instance = &*(this as *const _ as *const T::Instance);
+    let imp = instance.impl_();
+    imp.collapse(this)
+}
 
 // // Base class for list rows in the list box
 //     internal abstract class ConversationRow : Gtk.ListBoxRow, Geary.BaseInterface {
