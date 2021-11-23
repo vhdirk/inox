@@ -1,4 +1,6 @@
 use crate::core::mime::MultipartSubtype;
+use crate::core::util::EmptyOrWhitespace;
+use crate::core::util::ReduceWhiteSpace;
 use chrono::Utc;
 use glib::subclass::boxed::BoxedType;
 use glib::GBoxed;
@@ -11,6 +13,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
+use substring::Substring;
 
 use chrono::{DateTime, NaiveDateTime};
 
@@ -23,6 +26,8 @@ use gmime::traits::{
 };
 use gmime::MessageExtManual;
 use notmuch;
+
+const MAX_PREVIEW_BYTES: usize = 128;
 
 #[derive(Clone, Debug, GBoxed)]
 #[gboxed(type_name = "inox_Message")]
@@ -69,12 +74,12 @@ impl Message {
      * If there is no body, the empty string will be returned.
      */
     pub fn preview(&self) -> String {
-
         // try {
         let mut body = self.get_plain_body(false);
-
+        let mut html = false;
         if body.is_none() {
             body = self.get_html_body();
+            html = true;
         }
 
         dbg!("message body: {:?}", &body);
@@ -89,13 +94,16 @@ impl Message {
         // }
 
         if body.is_none() {
-            "".to_string()
-        } else {
-            body.unwrap()
+            return "".to_string();
         }
-        // return (preview != null)
-        //     ? Geary.RFC822.Utils.to_preview_text(preview, format)
-        //     : "";
+
+        let ptext = Message::to_preview_text(&body.unwrap(), html);
+
+        if ptext.len() > MAX_PREVIEW_BYTES {
+            format!("{}{}", ptext.substring(0, MAX_PREVIEW_BYTES), "…")
+        } else {
+            ptext
+        }
     }
 
     pub fn get_plain_body(&self, convert_to_html: bool) -> Option<String> {
@@ -156,14 +164,11 @@ impl Message {
         to_html: bool, /*,
                        replacer: Option<InlinePartReplacerCB>*/
     ) -> Option<String> {
-        // let part = Part::new(&node);
-        //    throws Error {
-        //     Part part = new Part(node);
         let part = node.clone().downcast::<gmime::Part>().ok();
         let content_type = part
             .as_ref()
             .and_then(|p| p.content_type())
-            .or(node.content_type());
+            .or_else(|| node.content_type());
 
         let multipart = node.clone().downcast::<gmime::Multipart>().ok();
 
@@ -179,7 +184,7 @@ impl Message {
 
                 let child_body = Message::construct_body_from_mime_parts(
                     &child.unwrap(),
-                    self_subtype.clone(),
+                    self_subtype,
                     text_subtype,
                     to_html,
                 );
@@ -187,7 +192,7 @@ impl Message {
                     body_parts.push(body);
                 }
             }
-            if body_parts.len() > 0 {
+            if !body_parts.is_empty() {
                 return Some(body_parts.join(""));
             }
             return None;
@@ -231,5 +236,65 @@ impl Message {
         data.write_to_stream(&stream);
 
         String::from_utf8(stream.byte_array().unwrap().as_ref().to_vec()).unwrap()
+    }
+
+    /**
+     * Obtains the best preview text from a plain or HTML string.
+     *
+     * The given string `text` should have UNIX encoded line endings (LF),
+     * rather than RFC822 (CRLF). The string returned will will have had
+     * its whitespace squashed.
+     */
+    pub fn to_preview_text(text: &str, html: bool) -> String {
+        let preview = if !html {
+            // TODO: pretty sure we can do all og this in a single fancy regex
+            let all_lines = text.split("\n");
+            let mut buf = vec![];
+            let mut in_inline_pgp_header = false;
+            for line in all_lines {
+                if in_inline_pgp_header {
+                    if line.is_empty() {
+                        in_inline_pgp_header = false;
+                    }
+                    continue;
+                }
+
+                if line.starts_with("-----BEGIN PGP SIGNED MESSAGE-----") {
+                    in_inline_pgp_header = true;
+                    continue;
+                }
+
+                if line.starts_with(">") {
+                    continue;
+                }
+
+                if line.starts_with("--") {
+                    continue;
+                }
+                if line.starts_with("====") {
+                    continue;
+                }
+
+                if line.starts_with("~~~~") {
+                    continue;
+                }
+
+                if line.is_empty_or_whitespace() {
+                    buf.push("\n");
+                    continue;
+                }
+
+                buf.push(" ");
+                buf.push(line);
+            }
+
+            buf.join("")
+        } else {
+            text.to_string()
+            // TODO
+            // preview = Geary.HTML.html_to_text(text, false);
+        };
+
+        preview.reduce_whitespace().to_string()
     }
 }

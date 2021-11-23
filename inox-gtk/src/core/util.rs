@@ -1,7 +1,17 @@
 use glib;
 use md5;
+use once_cell::sync::Lazy;
+use regex;
+use regex::Regex;
+use std::borrow::Cow;
 use std::ops::AddAssign;
 use std::str::FromStr;
+
+/** The end-of-string character, NUL. */
+const EOS: &str = "\0";
+
+/** A regex that matches one or more whitespace or non-printing chars. */
+static WS_OR_NP: Lazy<Regex> = Lazy::new(|| Regex::new("[[:space:][:cntrl:]]+").unwrap());
 
 pub trait ToHex {
     fn to_hex(&self) -> String;
@@ -42,7 +52,23 @@ impl EmptyOrWhitespace for glib::GString {
     }
 }
 
+pub trait ReduceWhiteSpace {
+    /**
+     * Removes redundant white space and non-printing characters.
+     *
+     * @return the input string /str/, modified so that any non-printing
+     * characters are converted to spaces, all consecutive spaces are
+     * coalesced into a single space, and stripped of leading and trailing
+     * white space.
+     */
+    fn reduce_whitespace(&self) -> String;
+}
 
+impl ReduceWhiteSpace for String {
+    fn reduce_whitespace(&self) -> String {
+        WS_OR_NP.replace_all(self, " ").trim().to_owned()
+    }
+}
 
 pub fn get_tag_color_rgba(tag: &str, canvascolor: &gdk::RGBA) -> (gdk::RGBA, gdk::RGBA) {
     //TODO: get from settings
