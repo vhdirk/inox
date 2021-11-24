@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use crate::core::Action;
 use crate::core::Message;
 use crate::widgets::message_web_view::MessageWebView;
@@ -76,6 +78,10 @@ pub struct MessageView {
     pub body_revealer: TemplateChild<gtk::Revealer>,
     #[template_child]
     pub body_progress: TemplateChild<gtk::ProgressBar>,
+    #[template_child]
+    pub body_container: TemplateChild<gtk::Grid>,
+
+    pub body_placeholder: RefCell<Option<gtk::Widget>>,
 
     pub web_view: OnceCell<MessageWebView>,
 
@@ -123,6 +129,8 @@ impl ObjectSubclass for MessageView {
 
             body_revealer: TemplateChild::default(),
             body_progress: TemplateChild::default(),
+            body_container: TemplateChild::default(),
+            body_placeholder: RefCell::new(None),
 
             web_view: OnceCell::new(),
 
@@ -155,7 +163,7 @@ impl ObjectImpl for MessageView {
 impl WidgetImpl for MessageView {}
 
 impl MessageView {
-    pub fn update_compact(&self) {
+    pub fn update_collapsed(&self) {
         self.compact_body
             .get()
             .set_text(&self.format_body_compact());
@@ -220,13 +228,91 @@ impl MessageView {
      * Shows the complete message: headers, body and attachments.
      */
     pub fn show_message_body(&self, include_transitions: bool) {
+        if self.web_view.get().is_none() {
+            self.initialize_web_view();
+        }
 
-        // if (self.web_view. == null)
-        //     self.initialize_web_view();
-        // set_revealer(this.compact_revealer, false, include_transitions);
-        // set_revealer(this.header_revealer, true, include_transitions);
-        // set_revealer(this.body_revealer, true, include_transitions);
+        self.set_revealer(&self.compact_revealer.get(), false, include_transitions);
+        self.set_revealer(&self.header_revealer.get(), true, include_transitions);
+        self.set_revealer(&self.body_revealer.get(), true, include_transitions);
     }
 
-    pub fn hide_message_body(&self, include_transitions: bool) {}
+    pub fn hide_message_body(&self) {
+        self.compact_revealer.get().set_reveal_child(true);
+        self.header_revealer.get().set_reveal_child(false);
+        self.body_revealer.get().set_reveal_child(false);
+    }
+
+    pub fn initialize_web_view(&self) {
+        self.web_view
+            .set(MessageWebView::new(self.sender.get().unwrap().clone()));
+    }
+
+    /**
+     * Starts loading the message body in the HTML view.
+     */
+    pub fn load_message_body(&self) {
+        // throws GLib.Error {
+        // if (load_cancelled.is_cancelled()) {
+        //     throw new GLib.IOError.CANCELLED("Conversation load cancelled");
+        // }
+
+        if (self.web_view.get().is_none()) {
+            self.initialize_web_view();
+        }
+
+        // bool contact_load_images = (
+        //     this.primary_contact != null &&
+        //     this.primary_contact.load_remote_resources
+        // );
+        // if (this.load_remote_resources || contact_load_images) {
+        //     yield this.web_view.load_remote_resources(load_cancelled);
+        // }
+
+        self.show_placeholder_pane(None);
+
+        let body_text = if let Some(msg) = self.message.get() {
+            if msg.has_html_body() {
+                msg.html_body(/*inline_image_replacer*/)
+            } else {
+                msg.plain_body(true /*inline_image_replacer*/)
+            }
+        } else {
+            None
+        };
+
+        // load_cancelled.cancelled.connect(() => { web_view.stop_loading(); });
+        self.web_view
+            .get()
+            .unwrap()
+            .load_html(&body_text.unwrap_or_else(|| "".to_string()));
+    }
+
+    pub fn show_placeholder_pane(&self, placeholder: Option<&gtk::Widget>) {
+        if let Some(placeholder) = &*self.body_placeholder.borrow() {
+            placeholder.hide();
+            self.body_container.get().remove(placeholder);
+        }
+
+        *self.body_placeholder.borrow_mut() = placeholder.cloned();
+
+        if let Some(placeholder) = placeholder {
+            if let Some(web_view) = self.web_view.get() {
+                web_view.hide();
+            }
+            placeholder.set_parent(&self.body_container.get());
+            self.show_message_body(true);
+        } else if let Some(web_view) = self.web_view.get() {
+            web_view.show();
+        }
+    }
+
+    pub fn set_revealer(&self, revealer: &gtk::Revealer, expand: bool, use_transition: bool) {
+        let transition_type = revealer.transition_type();
+        if !use_transition {
+            revealer.set_transition_type(gtk::RevealerTransitionType::None);
+        }
+        revealer.set_reveal_child(expand);
+        revealer.set_transition_type(transition_type);
+    }
 }

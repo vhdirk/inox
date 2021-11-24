@@ -109,3 +109,7 @@ impl ObjectImpl for MessageWebView {
     }
 }
 impl WidgetImpl for MessageWebView {}
+
+impl MessageWebView {
+
+}

@@ -75,10 +75,10 @@ impl Message {
      */
     pub fn preview(&self) -> String {
         // try {
-        let mut body = self.get_plain_body(false);
+        let mut body = self.plain_body(false);
         let mut html = false;
         if body.is_none() {
-            body = self.get_html_body();
+            body = self.html_body();
             html = true;
         }
 
@@ -106,7 +106,7 @@ impl Message {
         }
     }
 
-    pub fn get_plain_body(&self, convert_to_html: bool) -> Option<String> {
+    pub fn plain_body(&self, convert_to_html: bool) -> Option<String> {
         Message::construct_body_from_mime_parts(
             &self.gmime_message.mime_part().unwrap(),
             MultipartSubtype::Unspecified,
@@ -115,7 +115,7 @@ impl Message {
         )
     }
 
-    pub fn get_html_body(&self) -> Option<String> {
+    pub fn html_body(&self) -> Option<String> {
         Message::construct_body_from_mime_parts(
             &self.gmime_message.mime_part().unwrap(),
             MultipartSubtype::Unspecified,
@@ -154,6 +154,10 @@ impl Message {
         //     );
         // }
         // return is_matching_part;
+        false
+    }
+
+    pub fn has_html_body(&self) -> bool {
         false
     }
 
@@ -247,7 +251,7 @@ impl Message {
      */
     pub fn to_preview_text(text: &str, html: bool) -> String {
         let preview = if !html {
-            // TODO: pretty sure we can do all og this in a single fancy regex
+            // TODO: pretty sure we can do all of this in a single fancy regex
             let all_lines = text.split("\n");
             let mut buf = vec![];
             let mut in_inline_pgp_header = false;

@@ -36,6 +36,9 @@ impl MessageRow {
         imp.view
             .set(view)
             .expect("Failed to set view on MessageRow");
+
+
+        dbg!("MessageRow.view {:?}", &imp.view);
         row
     }
 }

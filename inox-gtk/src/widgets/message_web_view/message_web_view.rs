@@ -1,3 +1,4 @@
+use crate::core::Message;
 use gmime::traits::MessageExt;
 use async_std::os::unix::net::UnixStream;
 use glib::subclass::prelude::ObjectSubclassExt;
@@ -88,7 +89,7 @@ impl MessageWebView {
                 false
             });
 
-        self.load_html();
+        // self.load_html();
 
         //     // register_keys ();
     }
@@ -120,11 +121,11 @@ impl MessageWebView {
     }
 
     // general message adding and rendering
-    fn load_html(&self) {
+    pub fn load_html(&self, body: &str) {
         info!("render: loading html..");
         let imp = imp::MessageWebView::from_instance(self);
-
-        imp.webview.load_html(&imp.theme.html, None);
+        imp.webview.load_html(body, None)
+        // imp.webview.load_html(&imp.theme.html, None);
     }
 
     pub fn load_thread(&self, thread: Thread) {

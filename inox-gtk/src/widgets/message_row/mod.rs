@@ -8,5 +8,5 @@ mod message_row;
 mod message_row_imp;
 
 pub use message_row::MessageRow;
-pub use base_row::{BaseRow, BaseRowImpl};
+pub use base_row::{BaseRow, BaseRowImpl, BaseRowExt};
 pub use loading_row::LoadingRow;

@@ -11,16 +11,14 @@ use glib::subclass::prelude::*;
 use glib::subclass::signal::Signal;
 use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, Value};
 use gtk::{prelude::*, subclass::prelude::*};
-
+use std::fmt;
 pub type BaseRowInstance = super::BaseRow;
 
 #[repr(C)]
 pub struct BaseRowClass {
     pub parent_class: gtk::ffi::GtkListBoxRowClass,
-    // If these functions are meant to be called from C, you need to make these functions
-    // `extern "C"` & use FFI-safe types (usually raw pointers).
-    pub expand: Option<unsafe fn(&BaseRowInstance)>,
-    pub collapse: Option<unsafe fn(&BaseRowInstance)>,
+    pub expand: fn(&BaseRowInstance),
+    pub collapse: fn(&BaseRowInstance),
 }
 
 unsafe impl ClassStruct for BaseRowClass {
@@ -35,14 +33,14 @@ fn collapse_default_trampoline(this: &BaseRowInstance) {
     BaseRow::from_instance(this).collapse(this)
 }
 
-pub unsafe fn base_row_expand(this: &BaseRowInstance) {
-    let klass = &*(this.class() as *const _ as *const BaseRowClass);
-    (klass.expand.unwrap())(this)
+pub fn base_row_expand(this: &BaseRowInstance) {
+    let klass = this.class();
+    (klass.as_ref().expand)(this)
 }
 
-pub unsafe fn base_row_collapse(this: &BaseRowInstance) {
-    let klass = &*(this.class() as *const _ as *const BaseRowClass);
-    (klass.collapse.unwrap())(this)
+pub fn base_row_collapse(this: &BaseRowInstance) {
+    let klass = this.class();
+    (klass.as_ref().collapse)(this)
 }
 
 #[derive(Debug, Default)]
@@ -67,8 +65,8 @@ impl ObjectSubclass for BaseRow {
     fn class_init(klass: &mut Self::Class) {
         klass.set_layout_manager_type::<gtk::BinLayout>();
 
-        klass.expand = Some(expand_default_trampoline);
-        klass.collapse = Some(collapse_default_trampoline);
+        klass.expand = expand_default_trampoline;
+        klass.collapse = collapse_default_trampoline;
     }
 }
 

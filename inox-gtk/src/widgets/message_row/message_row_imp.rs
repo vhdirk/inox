@@ -1,6 +1,6 @@
 use crate::core::Action;
 use crate::widgets::MessageView;
-use once_cell::unsync::OnceCell;
+use once_cell::sync::OnceCell;
 use std::cell::RefCell;
 
 use glib::subclass::signal::Signal;
@@ -90,6 +90,7 @@ impl ListBoxRowImpl for MessageRow {}
 impl BaseRowImpl for MessageRow {
 
     fn expand(&self, obj: &BaseRow) {
+        dbg!("MessageRow expand");
         obj.set_property("expanded", true);
 
         self.update_row_expansion(obj);

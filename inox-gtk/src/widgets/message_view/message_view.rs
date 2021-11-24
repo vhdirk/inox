@@ -31,7 +31,7 @@ impl MessageView {
             .set(message.clone())
             .expect("Failed to set message on MessageView");
 
-        imp.update_compact();
+        imp.update_collapsed();
 
         view
     }
@@ -75,10 +75,7 @@ impl MessageView {
         // this.star_button.set_action_target_value(null);
         // this.unstar_button.set_action_target_value(null);
 
-        // primary_message.hide_message_body();
-        // foreach (ConversationMessage attached in this._attached_messages) {
-        //     attached.hide_message_body();
-        // }
+        imp.hide_message_body();
     }
 
     fn update_message_state(&self) {}
