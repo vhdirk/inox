@@ -1,4 +1,5 @@
 use gio::prelude::*;
+use gtk::prelude::*;
 use glib::subclass::prelude::*;
 use glib::Sender;
 
@@ -25,8 +26,8 @@ impl MessagesView {
         imp.sender
             .set(sender)
             .expect("Failed to set sender on MessagesView");
-        // view.set_vexpand(true);
-        // view.set_vexpand_set(true);
+        view.set_vexpand(true);
+        view.set_hexpand(true);
         view.load_messages(thread);
         view
     }

@@ -13,7 +13,6 @@ use super::{BaseRow, BaseRowImpl};
 #[derive(Debug)]
 pub struct MessageRow {
     pub sender: OnceCell<Sender<Action>>,
-    pub message: OnceCell<notmuch::Message>,
     pub view: OnceCell<MessageView>,
     pub pinned: RefCell<bool>,
 }
@@ -31,7 +30,6 @@ impl ObjectSubclass for MessageRow {
     fn new() -> Self {
         Self {
             sender: OnceCell::new(),
-            message: OnceCell::new(),
             view: OnceCell::new(),
             pinned: RefCell::new(false),
         }
@@ -40,6 +38,9 @@ impl ObjectSubclass for MessageRow {
 
 impl ObjectImpl for MessageRow {
     fn constructed(&self, obj: &Self::Type) {
+        obj.set_vexpand(true);
+        obj.set_hexpand(true);
+
         self.parent_constructed(obj);
     }
 
@@ -90,7 +91,6 @@ impl ListBoxRowImpl for MessageRow {}
 impl BaseRowImpl for MessageRow {
 
     fn expand(&self, obj: &BaseRow) {
-        dbg!("MessageRow expand");
         obj.set_property("expanded", true);
 
         self.update_row_expansion(obj);
@@ -112,6 +112,14 @@ impl BaseRowImpl for MessageRow {
 }
 
 impl MessageRow {
+
+    pub fn set_view(&self, view: &MessageView) {
+        self.instance().set_child(Some(view));
+        self.view
+            .set(view.clone())
+            .expect("Failed to set view on MessageRow");
+    }
+
     pub fn update_row_expansion(&self, obj: &BaseRow) {
         let expanded = obj.property::<bool>("expanded");
         let pinned = obj.property::<bool>("pinned");

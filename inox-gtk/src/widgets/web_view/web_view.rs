@@ -1,80 +1,63 @@
-use crate::core::Message;
-use gmime::traits::MessageExt;
 use async_std::os::unix::net::UnixStream;
-use glib::subclass::prelude::ObjectSubclassExt;
 use std::cell::RefCell;
 use std::os::unix::io::FromRawFd;
 use std::os::unix::prelude::*;
+use std::fmt;
 
 use log::*;
 use nix::sys::socket::{socketpair, AddressFamily, SockFlag, SockProtocol, SockType};
 
 use gio;
 use gio::prelude::*;
-
 use glib;
+use glib::subclass::prelude::*;
 use glib::Sender;
 use gmime;
-use gmime::traits::{ParserExt, PartExt};
+use gmime::traits::{MessageExt, ParserExt, PartExt};
 use gtk;
 use gtk::prelude::*;
+use gtk::subclass::prelude::*;
 use webkit2gtk;
 use webkit2gtk::traits::{
     NavigationPolicyDecisionExt, PolicyDecisionExt, SettingsExt, URIRequestExt, WebContextExt,
-    WebViewExt,
+    WebViewExt as WebKitWebViewExt,
 };
 
 use crate::core::Action;
+use crate::core::Message;
+use crate::core::Thread;
 use crate::spawn;
 use crate::webextension::rpc::RawFdWrap;
-use crate::core::Thread;
 
 use super::page_client::PageClient;
-use super::theme::MessageWebViewTheme;
-
-use super::message_web_view_imp as imp;
+use super::theme::WebViewTheme;
+use super::web_view_imp as imp;
 
 // Wrap imp::ThreadList into a usable gtk-rs object
 glib::wrapper! {
-    pub struct MessageWebView(ObjectSubclass<imp::MessageWebView>)
+    pub struct WebView(ObjectSubclass<imp::WebView>)
         @extends gtk::Widget;
 }
 
-// MessageWebView implementation itself
-impl MessageWebView {
-    pub fn new(sender: Sender<Action>) -> Self {
-        let thread_view: Self = glib::Object::new(&[]).expect("Failed to create MessageWebView");
-        let imp = imp::MessageWebView::from_instance(&thread_view);
-        imp.webcontext
-            .set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
+pub trait WebViewExt {}
 
-        let settings = WebViewExt::settings(&imp.webview).unwrap();
+impl<O: IsA<WebView>> WebViewExt for O {}
 
-        // settings.set_enable_scripts(true);
-        // settings.set_enable_java_applet(false);
-        settings.set_enable_plugins(false);
-        settings.set_auto_load_images(true);
-        settings.set_enable_dns_prefetching(false);
-        settings.set_enable_fullscreen(false);
-        settings.set_enable_html5_database(false);
-        settings.set_enable_html5_local_storage(false);
-        //settings.set_enable_mediastream(false);
-        // settings.set_enable_mediasource(false);
-        settings.set_enable_offline_web_application_cache(false);
-        // settings.set_enable_private_browsing(true);
-        // settings.set_enable_running_of_insecure_content(false);
-        // settings.set_enable_display_of_insecure_content(false);
-        settings.set_enable_xss_auditor(true);
-        settings.set_media_playback_requires_user_gesture(true);
-        settings.set_enable_developer_extras(true); // TODO: should only enabled conditionally
+pub trait WebViewImpl: WidgetImpl + ObjectImpl + 'static {}
 
-        thread_view
-    }
+pub trait WebViewImplExt: ObjectSubclass {}
 
+impl<T: WebViewImpl> WebViewImplExt for T {}
+
+/// Make the WebView subclassable
+unsafe impl<T: WebViewImpl + fmt::Debug> IsSubclassable<T> for WebView {}
+
+// WebView implementation itself
+impl WebView {
     pub fn setup_signals(&self) {
-        let imp = imp::MessageWebView::from_instance(self);
+        let imp = imp::WebView::from_instance(self);
         let self_ = self.clone();
-        imp.webview.connect_load_changed(move |_, event| {
+        imp.web_view.connect_load_changed(move |_, event| {
             let mut mself = self_.clone();
 
             mself.load_changed(event);
@@ -82,7 +65,7 @@ impl MessageWebView {
 
         //     // add_events (Gdk::KEY_PRESS_MASK);
         let self_ = self.clone();
-        imp.webview
+        imp.web_view
             .connect_decide_policy(move |_, decision, decision_type| {
                 let mut mself = self_.clone();
                 mself.decide_policy(decision, decision_type);
@@ -95,8 +78,8 @@ impl MessageWebView {
     }
 
     fn load_changed(&mut self, event: webkit2gtk::LoadEvent) {
-        info!("MessageWebView: load changed: {:?}", event);
-        let imp = imp::MessageWebView::from_instance(self);
+        info!("WebView: load changed: {:?}", event);
+        let imp = imp::WebView::from_instance(self);
 
         match event {
             webkit2gtk::LoadEvent::Finished => {
@@ -110,7 +93,7 @@ impl MessageWebView {
 
     async fn ready_to_render(&mut self) {
         info!("ready_to_render");
-        let imp = imp::MessageWebView::from_instance(self);
+        let imp = imp::WebView::from_instance(self);
 
         imp.page_client.load(&imp.theme).await;
 
@@ -123,14 +106,14 @@ impl MessageWebView {
     // general message adding and rendering
     pub fn load_html(&self, body: &str) {
         info!("render: loading html..");
-        let imp = imp::MessageWebView::from_instance(self);
-        imp.webview.load_html(body, None)
+        let imp = imp::WebView::from_instance(self);
+        imp.web_view.load_html(body, None)
         // imp.webview.load_html(&imp.theme.html, None);
     }
 
     pub fn load_thread(&self, thread: Thread) {
         info!("load_thread: {:?}", thread);
-        let imp = imp::MessageWebView::from_instance(self);
+        let imp = imp::WebView::from_instance(self);
 
         let client = imp.page_client.clone();
         let mut self_ = self.clone();
@@ -182,7 +165,7 @@ impl MessageWebView {
     // }
 
     async fn add_message<T: MessageExt>(&mut self, message: &T) {
-        let imp = imp::MessageWebView::from_instance(self);
+        let imp = imp::WebView::from_instance(self);
 
         let mut client = imp.page_client.clone();
 
@@ -240,7 +223,7 @@ impl MessageWebView {
 
         //     if (unread_delay > 0) {
         //       Glib::signal_timeout ().connect (
-        //           sigc::mem_fun (this, &MessageWebView::unread_check), std::max (80., (unread_delay * 1000.) / 2));
+        //           sigc::mem_fun (this, &WebView::unread_check), std::max (80., (unread_delay * 1000.) / 2));
         //     } else {
         //       unread_check ();
         //     }
@@ -300,8 +283,8 @@ impl MessageWebView {
     }
 }
 
-// impl Update for MessageWebView {
-//     type Model = MessageWebViewModel;
+// impl Update for WebView {
+//     type Model = WebViewModel;
 //     type ModelParam = Rc<InoxApp>;
 //     type Msg = Msg;
 
@@ -310,7 +293,7 @@ impl MessageWebView {
 //         ctx.set_cache_model(webkit2gtk::CacheModel::DocumentViewer);
 
 //         // can't use relm for this since it would get called too late
-//         let listener = MessageWebViewModel::initialize_web_extensions(&ctx);
+//         let listener = WebViewModel::initialize_web_extensions(&ctx);
 
 //         debug!("Starting connect");
 //         // accept connection from extension
@@ -318,13 +301,13 @@ impl MessageWebView {
 //                             accept_async,
 //                             relm,
 //                             Msg::ExtensionConnect);
-//         MessageWebViewModel {
+//         WebViewModel {
 //             relm: relm.clone(),
 //             app,
 //             webcontext: ctx,
 //             socket_listener: listener,
 //             page_client: None,
-//             theme: MessageWebViewTheme::load()
+//             theme: WebViewTheme::load()
 //         }
 //     }
 
@@ -341,7 +324,7 @@ impl MessageWebView {
 //     }
 // }
 
-// impl Widget for MessageWebView {
+// impl Widget for WebView {
 
 //     type Root = gtk::Box;
 

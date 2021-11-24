@@ -40,7 +40,6 @@ impl MessageView {
      * Shows the complete message: headers, body and attachments.
      */
     pub fn expand(&self, include_transitions: bool) {
-        // self.set.is_collapsed = false;
         self.update_message_state();
 
         let imp = imp::MessageView::from_instance(self);

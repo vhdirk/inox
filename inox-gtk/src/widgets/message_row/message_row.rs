@@ -18,27 +18,16 @@ glib::wrapper! {
 impl MessageRow {
     pub fn new(message: &notmuch::Message, sender: Sender<Action>) -> Self {
         let row: Self = glib::Object::new(&[]).expect("Failed to create MessageRow");
+
         let imp = imp::MessageRow::from_instance(&row);
 
         imp.sender
             .set(sender.clone())
             .expect("Failed to set sender on MessageRow");
-        row.set_vexpand(true);
-        row.set_vexpand_set(true);
-
-        imp.message
-            .set(message.clone())
-            .expect("Failed to set message on MessageRow");
 
         let view = MessageView::new(message, sender);
-        row.set_child(Some(&view));
+        imp.set_view(&view);
 
-        imp.view
-            .set(view)
-            .expect("Failed to set view on MessageRow");
-
-
-        dbg!("MessageRow.view {:?}", &imp.view);
         row
     }
 }

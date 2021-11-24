@@ -23,7 +23,7 @@ use notmuch;
 
 use crate::webext_capnp::page;
 
-use super::theme::MessageWebViewTheme;
+use super::theme::WebViewTheme;
 
 #[derive(Clone)]
 pub struct PageClient {
@@ -65,7 +65,7 @@ impl PageClient {
         Self { socket: socket.clone(), client }
     }
 
-    pub async fn load(&self, theme: &MessageWebViewTheme) -> () {
+    pub async fn load(&self, theme: &WebViewTheme) -> () {
         /* load style sheet */
         debug!("pc: sending page..");
 

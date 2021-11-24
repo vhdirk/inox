@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use crate::core::Action;
 use crate::core::Message;
-use crate::widgets::message_web_view::MessageWebView;
+use crate::widgets::web_view::MessageWebView;
 use chrono_humanize::HumanTime;
 
 use glib::prelude::*;
@@ -243,9 +243,15 @@ impl MessageView {
         self.body_revealer.get().set_reveal_child(false);
     }
 
-    pub fn initialize_web_view(&self) {
-        self.web_view
-            .set(MessageWebView::new(self.sender.get().unwrap().clone()));
+    pub fn initialize_web_view(&self) -> MessageWebView {
+        let web_view = MessageWebView::new(self.sender.get().unwrap().clone());
+        // web_view.set_parent(&self.body_container.get());
+        self.body_container.get().show();
+        self.body_container.get().set_vexpand(true);
+        self.body_container.get().set_hexpand(true);
+        self.body_container.get().attach(&web_view, 0, 0, 1, 1);
+
+        web_view
     }
 
     /**
@@ -257,9 +263,10 @@ impl MessageView {
         //     throw new GLib.IOError.CANCELLED("Conversation load cancelled");
         // }
 
-        if (self.web_view.get().is_none()) {
-            self.initialize_web_view();
-        }
+        self.web_view.get_or_init(move || {
+            self.initialize_web_view()
+        });
+
 
         // bool contact_load_images = (
         //     this.primary_contact != null &&
@@ -280,6 +287,8 @@ impl MessageView {
         } else {
             None
         };
+
+        dbg!("Body text: {:?}", &body_text);
 
         // load_cancelled.cancelled.connect(() => { web_view.stop_loading(); });
         self.web_view
@@ -308,11 +317,11 @@ impl MessageView {
     }
 
     pub fn set_revealer(&self, revealer: &gtk::Revealer, expand: bool, use_transition: bool) {
-        let transition_type = revealer.transition_type();
         if !use_transition {
+            let transition_type = revealer.transition_type();
             revealer.set_transition_type(gtk::RevealerTransitionType::None);
+            revealer.set_transition_type(transition_type);
         }
         revealer.set_reveal_child(expand);
-        revealer.set_transition_type(transition_type);
     }
 }
