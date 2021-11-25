@@ -76,15 +76,12 @@ impl MessageWebView {
     // }
 
 
-    // general message adding and rendering
     pub fn load_html(&self, body: &str) {
         info!("render: loading html..");
+        // TODO: make proper call to parent
         let web_view = self.clone().upcast::<WebView>();
         let web_view_imp = web_view_imp::WebView::from_instance(&web_view);
-
-        // TODO: make proper call to parent
         web_view_imp.web_view.load_html(body, None)
-        // imp.webview.load_html(&imp.theme.html, None);
     }
 
 

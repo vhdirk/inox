@@ -158,6 +158,10 @@ impl ObjectImpl for MessageView {
         // TODO: not sure why we need to unparent these manually?
         self.actions.get().unparent();
         self.message_container.get().unparent();
+
+        if let Some(view) = self.web_view.get() {
+            view.unparent();
+        }
     }
 }
 impl WidgetImpl for MessageView {}
@@ -243,7 +247,9 @@ impl MessageView {
         self.body_revealer.get().set_reveal_child(false);
     }
 
-    pub fn initialize_web_view(&self) -> MessageWebView {
+    pub fn initialize_web_view(&self) {
+        dbg!("initialize_web_view {:?}", self.web_view.get());
+
         let web_view = MessageWebView::new(self.sender.get().unwrap().clone());
         // web_view.set_parent(&self.body_container.get());
         self.body_container.get().show();
@@ -251,7 +257,7 @@ impl MessageView {
         self.body_container.get().set_hexpand(true);
         self.body_container.get().attach(&web_view, 0, 0, 1, 1);
 
-        web_view
+        self.web_view.set(web_view).unwrap();
     }
 
     /**
@@ -263,9 +269,9 @@ impl MessageView {
         //     throw new GLib.IOError.CANCELLED("Conversation load cancelled");
         // }
 
-        self.web_view.get_or_init(move || {
+        if self.web_view.get().is_none() {
             self.initialize_web_view()
-        });
+        }
 
 
         // bool contact_load_images = (

@@ -16,6 +16,7 @@ path = "src/webextension/lib.rs"
 name = "inox_gtk_webext"
 crate-type = ["cdylib"]
 
+# TODO: cleanup this spaghetti
 [dependencies]
 structopt = "0.2"
 log = "*"
@@ -45,6 +46,7 @@ once_cell = "1.2.0"
 chrono = { version = "0.4", features = ["serde"] }
 chrono-humanize = "0.2.1"
 substring = "1.4.5"
+tl = "0.3.0"
 
 gtk = { git = "https://github.com/gtk-rs/gtk4-rs", package = "gtk4"}
 gtk-macros = { git = "https://github.com/gtk-rs/gtk4-rs", package = "gtk4-macros"}

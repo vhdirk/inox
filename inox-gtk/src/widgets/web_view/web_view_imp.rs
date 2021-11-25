@@ -1,4 +1,5 @@
 
+use glib::subclass::prelude::*;
 use std::cell::RefCell;
 
 use log::*;
@@ -27,6 +28,15 @@ use crate::webextension::rpc::RawFdWrap;
 use super::page_client::PageClient;
 use super::theme::WebViewTheme;
 
+pub type WebViewInstance = super::WebView;
+
+/** URI Scheme and delimiter for internal resource loads. */
+const INTERNAL_URL_PREFIX: &str = "inox:";
+
+/** URI for internal message body page loads. */
+// TODO: create from INTERNAL_URL_PREFIX
+const INTERNAL_URL_BODY: &str = "inox:body";
+
 fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> gio::Socket {
     info!("initialize_web_extensions");
     let cur_exe = std::env::current_exe().unwrap();
@@ -52,11 +62,23 @@ fn initialize_web_extensions(ctx: &webkit2gtk::WebContext) -> gio::Socket {
 #[repr(C)]
 pub struct WebViewClass {
     pub parent_class: webkit2gtk::ffi::WebKitWebViewClass,
+    pub load_html: fn(&WebViewInstance, &str),
 }
 
 unsafe impl ClassStruct for WebViewClass {
     type Type = WebView;
 }
+
+
+fn load_html_default_trampoline(this: &WebViewInstance, html: &str) {
+    WebView::from_instance(this).load_html(this, html)
+}
+
+pub fn web_view_load_html(this: &WebViewInstance, html: &str) {
+    let klass = this.class();
+    (klass.as_ref().load_html)(this, html)
+}
+
 
 #[derive(Clone, Debug)]
 pub struct WebView {
@@ -96,6 +118,8 @@ impl ObjectSubclass for WebView {
 
     fn class_init(klass: &mut Self::Class) {
         klass.set_layout_manager_type::<gtk::BinLayout>();
+
+        klass.load_html = load_html_default_trampoline;
     }
 }
 
@@ -144,6 +168,11 @@ impl ObjectImpl for WebView {
 impl WidgetImpl for WebView {}
 
 impl WebView {
+
+    fn load_html(&self, _obj: &WebViewInstance, html: &str) {
+        self.web_view.load_html(html, Some(INTERNAL_URL_BODY))
+    }
+
     pub fn setup_signals(&self) {
         let self_ = self.clone();
         self.web_view

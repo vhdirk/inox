@@ -39,18 +39,55 @@ glib::wrapper! {
         @extends gtk::Widget;
 }
 
-pub trait WebViewExt {}
+pub trait WebViewExt {
+    fn load_html(&self, html: &str);
+}
 
-impl<O: IsA<WebView>> WebViewExt for O {}
+impl<O: IsA<WebView>> WebViewExt for O {
+    fn load_html(&self, html: &str) {
+        imp::web_view_load_html(self.upcast_ref::<WebView>(), html)
+    }
+}
 
-pub trait WebViewImpl: WidgetImpl + ObjectImpl + 'static {}
+pub trait WebViewImpl: WidgetImpl + ObjectImpl + 'static {
+    fn load_html(&self, obj: &WebView, html: &str) {
+        self.parent_load_html(obj, html)
+    }
+}
 
-pub trait WebViewImplExt: ObjectSubclass {}
+pub trait WebViewImplExt: ObjectSubclass {
+    fn parent_load_html(&self, obj: &WebView, html: &str);
+}
 
-impl<T: WebViewImpl> WebViewImplExt for T {}
+impl<T: WebViewImpl> WebViewImplExt for T {
+    fn parent_load_html(&self, obj: &WebView, html: &str) {
+        unsafe {
+            let data = Self::type_data();
+            let parent_class = &*(data.as_ref().parent_class() as *mut imp::WebViewClass);
+            (parent_class.load_html)(obj, html)
+        }
+    }
+}
 
 /// Make the WebView subclassable
-unsafe impl<T: WebViewImpl + fmt::Debug> IsSubclassable<T> for WebView {}
+unsafe impl<T: WebViewImpl + fmt::Debug> IsSubclassable<T> for WebView {
+    fn class_init(class: &mut glib::Class<Self>) {
+        Self::parent_class_init::<T>(class.upcast_ref_mut());
+
+        let klass = class.as_mut();
+        klass.load_html = load_html_trampoline::<T>;
+    }
+}
+
+// Virtual method implementation trampolines
+fn load_html_trampoline<T>(this: &WebView, html: &str)
+where
+    T: ObjectSubclass + WebViewImpl + fmt::Debug,
+{
+    let imp = T::from_instance(this.dynamic_cast_ref::<T::Type>().unwrap());
+    imp.load_html(this, html)
+}
+
 
 // WebView implementation itself
 impl WebView {

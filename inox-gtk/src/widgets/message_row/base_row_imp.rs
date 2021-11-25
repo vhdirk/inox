@@ -12,6 +12,7 @@ use glib::subclass::signal::Signal;
 use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, Value};
 use gtk::{prelude::*, subclass::prelude::*};
 use std::fmt;
+
 pub type BaseRowInstance = super::BaseRow;
 
 #[repr(C)]
