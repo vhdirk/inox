@@ -152,6 +152,9 @@ impl ObjectSubclass for MessageView {
 impl ObjectImpl for MessageView {
     fn constructed(&self, obj: &Self::Type) {
         self.parent_constructed(obj);
+
+        self.body_container.get().set_has_tooltip(true); // Used to show link URLs
+
     }
 
     fn dispose(&self, obj: &Self::Type) {
@@ -167,7 +170,7 @@ impl ObjectImpl for MessageView {
 impl WidgetImpl for MessageView {}
 
 impl MessageView {
-    pub fn update_collapsed(&self) {
+    pub fn update_display(&self) {
         self.compact_body
             .get()
             .set_text(&self.format_body_compact());
@@ -177,14 +180,90 @@ impl MessageView {
         self.compact_date
             .get()
             .set_text(&self.format_date_compact());
+
+        self.subject.get().set_text(&self.format_subject());
+        self.date.get().set_text(&self.format_date());
     }
 
-    pub fn update_expanded(&self) {
+    pub fn fill_originator_addresses(&self) {
         let msg = self.message.get().unwrap();
 
-        if let Some(subject) = msg.subject() {
-            self.subject.get().set_text(&subject);
+        // Show any From header addresses
+        let from = msg.from();
+
+        if from.is_some() && from.as_ref().unwrap().length() > 0 {
+            let from = from.as_ref().unwrap();
+
+
+
+        } else {
+            let label = gtk::Label::new(Some(EMPTY_FROM_LABEL));
+            let child = gtk::FlowBoxChild::new();
+            label.set_parent(&child);
+            child.set_halign(gtk::Align::Start);
+            child.show();
+            child.set_parent(&self.from.get());
         }
+        // if (from != null && from.size > 0) {
+        //     foreach (Geary.RFC822.MailboxAddress address in from) {
+        //         ContactFlowBoxChild child = new ContactFlowBoxChild(
+        //             yield this.contacts.load(address, cancellable),
+        //             address,
+        //             ContactFlowBoxChild.Type.FROM
+        //         );
+        //         this.searchable_addresses.add(child);
+        //         this.from.add(child);
+        //     }
+        // } else {
+        //     Gtk.Label label = new Gtk.Label(null);
+        //     label.set_text(this.empty_from_label);
+
+        //     Gtk.FlowBoxChild child = new Gtk.FlowBoxChild();
+        //     child.add(label);
+        //     child.set_halign(Gtk.Align.START);
+        //     child.show_all();
+        //     this.from.add(child);
+        // }
+
+        // // Show the Sender header addresses if present, but only if
+        // // not already in the From header.
+        // if (sender != null &&
+        //     (from == null || !from.contains_normalized(sender.address))) {
+        //     ContactFlowBoxChild child = new ContactFlowBoxChild(
+        //         yield this.contacts.load(sender, cancellable),
+        //         sender
+        //     );
+        //     this.searchable_addresses.add(child);
+        //     this.sender_header.show();
+        //     this.sender_address.add(child);
+        // }
+
+        // // Show any Reply-To header addresses if present, but only if
+        // // each is not already in the From header.
+        // if (reply_to != null) {
+        //     foreach (Geary.RFC822.MailboxAddress address in reply_to) {
+        //         if (from == null || !from.contains_normalized(address.address)) {
+        //             ContactFlowBoxChild child = new ContactFlowBoxChild(
+        //                 yield this.contacts.load(address, cancellable),
+        //                 address
+        //             );
+        //             this.searchable_addresses.add(child);
+        //             this.reply_to_addresses.add(child);
+        //             this.reply_to_header.show();
+        //         }
+        //     }
+        // }
+
+
+    }
+
+    pub fn fill_addresses(&self) {
+
+    }
+
+    pub fn format_subject(&self) -> String {
+        let msg = self.message.get().unwrap();
+        msg.subject().map(|s| s.to_string()).unwrap_or_else(|| "".to_string())
     }
 
     pub fn format_originator_compact(&self) -> String {
@@ -217,6 +296,11 @@ impl MessageView {
         originators.join(", ")
     }
 
+    pub fn format_date(&self) -> String {
+        let msg = self.message.get().unwrap();
+        msg.date().to_rfc2822()
+    }
+
     pub fn format_date_compact(&self) -> String {
         let msg = self.message.get().unwrap();
         let ht = HumanTime::from(msg.date());
@@ -245,6 +329,21 @@ impl MessageView {
         self.compact_revealer.get().set_reveal_child(true);
         self.header_revealer.get().set_reveal_child(false);
         self.body_revealer.get().set_reveal_child(false);
+    }
+
+    pub fn set_expanded(&self, expanded: bool) {
+        self.date.get().set_visible(expanded);
+        self.subject.get().set_visible(expanded);
+
+
+        self.attachments_button.get().set_sensitive(expanded);
+        // self.message_menubutton.get().set_sensitive(expanded);
+
+
+        self.compact_from.get().set_visible(!expanded);
+        self.compact_date.get().set_visible(!expanded);
+        self.compact_body.get().set_visible(!expanded);
+
     }
 
     pub fn initialize_web_view(&self) {

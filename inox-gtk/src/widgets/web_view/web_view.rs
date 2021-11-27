@@ -29,7 +29,6 @@ use crate::core::Thread;
 use crate::spawn;
 use crate::webextension::rpc::RawFdWrap;
 
-use super::page_client::PageClient;
 use super::theme::WebViewTheme;
 use super::web_view_imp as imp;
 
@@ -120,9 +119,9 @@ impl WebView {
 
         match event {
             webkit2gtk::LoadEvent::Finished => {
-                if imp.page_client.is_ready() {
-                    self.ready_to_render();
-                }
+                // if imp.page_client.is_ready() {
+                //     self.ready_to_render();
+                // }
             }
             _ => (),
         }
@@ -132,10 +131,10 @@ impl WebView {
         info!("ready_to_render");
         let imp = imp::WebView::from_instance(self);
 
-        imp.page_client.load(&imp.theme).await;
+        // imp.page_client.load(&imp.theme).await;
 
-        /* render messages in case we were not ready when first requested */
-        imp.page_client.clear_messages().await;
+        // /* render messages in case we were not ready when first requested */
+        // imp.page_client.clear_messages().await;
 
         // self.render_messages().await;
     }
@@ -148,23 +147,23 @@ impl WebView {
         // imp.webview.load_html(&imp.theme.html, None);
     }
 
-    pub fn load_thread(&self, thread: Thread) {
-        info!("load_thread: {:?}", thread);
-        let imp = imp::WebView::from_instance(self);
+    // pub fn load_thread(&self, thread: Thread) {
+    //     info!("load_thread: {:?}", thread);
+    //     let imp = imp::WebView::from_instance(self);
 
-        let client = imp.page_client.clone();
-        let mut self_ = self.clone();
+    //     let client = imp.page_client.clone();
+    //     let mut self_ = self.clone();
 
-        let future = async move {
-            debug!("clearing messages");
-            client.clear_messages().await;
+    //     let future = async move {
+    //         debug!("clearing messages");
+    //         client.clear_messages().await;
 
-            debug!("render messages");
-            self_.render_messages(thread).await
-        };
+    //         debug!("render messages");
+    //         self_.render_messages(thread).await
+    //     };
 
-        spawn!(future);
-    }
+    //     spawn!(future);
+    // }
 
     // pub fn show_thread(&self, thread: Thread) {
     //     debug!("Showing thread {:?}", thread);
@@ -206,7 +205,7 @@ impl WebView {
 
         let mut client = imp.page_client.clone();
 
-        client.add_message(message);
+        // client.add_message(message);
     }
 
     async fn render_messages(&mut self, thread: Thread) {

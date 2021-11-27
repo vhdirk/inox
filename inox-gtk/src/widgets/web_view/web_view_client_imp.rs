@@ -1,124 +1,113 @@
+use glib::subclass::prelude::*;
+use once_cell::sync::OnceCell;
 use gmime::traits::MessageExt;
 use std::fmt;
+use std::rc::Rc;
 use async_std::os::unix::net::UnixStream;
 use futures::future::{self, FutureExt, Ready, TryFutureExt};
 use futures::io::AsyncReadExt;
 use futures::Future;
 use std::io;
-use std::rc::Rc;
 
 use gio::prelude::*;
 use gio::traits::{IOStreamExt, SocketExt};
 
 use log::*;
 
-use capnp::capability::Promise;
-use capnp::primitive_list;
-use capnp::Error;
-
-use capnp_rpc::twoparty::VatNetwork;
-use capnp_rpc::{rpc_twoparty_capnp, RpcSystem};
-
 use notmuch;
 
-use crate::webext_capnp::page;
-
 use super::theme::WebViewTheme;
+use crate::webextension::protocol::WebViewMessage;
 
-#[derive(Clone)]
-pub struct PageClient {
-    socket: gio::Socket,
-    client: page::Client,
+#[derive(Clone, Debug)]
+pub struct WebViewClient {
+    pub socket: OnceCell<gio::Socket>,
+    pub stream: OnceCell<Rc<gio::IOStreamAsyncReadWrite<gio::SocketConnection>>>
+    // client: page::Client,
 }
 
-impl fmt::Debug for PageClient {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        self.socket.fmt(f);
-        Ok(())
+#[glib::object_subclass]
+impl ObjectSubclass for WebViewClient {
+    const NAME: &'static str = "InoxWebViewClient";
+    type Type = super::WebViewClient;
+    type ParentType = glib::Object;
+
+    fn new() -> Self {
+        WebViewClient {
+            socket: OnceCell::new(),
+            stream: OnceCell::new()
+        }
+    }
+
+    fn class_init(klass: &mut Self::Class) {
     }
 }
 
-impl PageClient {
-    pub fn new(socket: &gio::Socket) -> Self {
-        let connection = socket.connection_factory_create_connection();
-        let stream = connection.into_async_read_write().unwrap();
-        let (istream, ostream) = stream.split();
-        let network = Box::new(VatNetwork::new(
-            istream,
-            ostream,
-            rpc_twoparty_capnp::Side::Client,
-            Default::default(),
-        ));
-
-        let mut rpc_system = RpcSystem::new(network, None);
-        let client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
-
-        let ctx = glib::MainContext::default();
-        ctx.with_thread_default(|| {
-            ctx.spawn_local(rpc_system.then(move |result| {
-                debug!("rpc system result {:?}", result);
-                // TODO: do something with this result...
-                future::ready(())
-            }))
-        });
-
-        Self { socket: socket.clone(), client }
+impl ObjectImpl for WebViewClient {
+    fn constructed(&self, obj: &Self::Type) {
+        self.parent_constructed(obj);
     }
 
-    pub async fn load(&self, theme: &WebViewTheme) -> () {
-        /* load style sheet */
-        debug!("pc: sending page..");
-
-        let mut request = self.client.load_request();
-        request.get().set_html(&theme.html);
-        request.get().set_css(&theme.css);
-
-        request
-            .send()
-            .promise
-            .then(move |_result| {
-                // TODO: do something with this result...
-
-                future::ready(())
-            })
-            .await
-
-        // //     s.set_css  (thread_view->theme.thread_view_css.c_str ());
-        // //     s.set_part_css (thread_view->theme.part_css.c_str ());
-        // //     s.set_html (thread_view->theme.thread_view_html.c_str ());
-
-        // //     s.set_use_stdout (astroid->log_stdout);
-        // //     s.set_use_syslog (astroid->log_syslog);
-        // //     s.set_disable_log (astroid->disable_log);
-        // //     s.set_log_level (astroid->log_level);
+    fn dispose(&self, _obj: &Self::Type) {
     }
-
-    pub fn is_ready(&self) -> bool {
-        return true;
-    }
-
-    pub async fn clear_messages(&self) -> () {
-        debug!("pc: clear messages..");
-
-        let mut request = self.client.clear_messages_request();
-        request
-            .send()
-            .promise
-            .then(move |_result| {
-                // TODO: do something with this result...
-
-                future::ready(())
-            })
-            .await
-    }
-
-    pub async fn add_message<T: MessageExt>(&mut self, message: &T) {
-
-        let mut request = self.client.add_messages_request();
+}
 
 
-        // self.client.add_message(context::current(), self.serialize_message(message)).await.unwrap()
-    }
+impl WebViewClient {
+    // pub async fn load(&self, theme: &WebViewTheme) -> () {
+    //     /* load style sheet */
+    //     debug!("pc: sending page..");
+
+    //     let mut request = self.client.load_request();
+    //     request.get().set_html(&theme.html);
+    //     request.get().set_css(&theme.css);
+
+    //     request
+    //         .send()
+    //         .promise
+    //         .then(move |_result| {
+    //             // TODO: do something with this result...
+
+    //             future::ready(())
+    //         })
+    //         .await
+
+    //     // //     s.set_css  (thread_view->theme.thread_view_css.c_str ());
+    //     // //     s.set_part_css (thread_view->theme.part_css.c_str ());
+    //     // //     s.set_html (thread_view->theme.thread_view_html.c_str ());
+
+    //     // //     s.set_use_stdout (astroid->log_stdout);
+    //     // //     s.set_use_syslog (astroid->log_syslog);
+    //     // //     s.set_disable_log (astroid->disable_log);
+    //     // //     s.set_log_level (astroid->log_level);
+    // }
+
+    // pub fn is_ready(&self) -> bool {
+    //     return true;
+    // }
+
+    // pub async fn clear_messages(&self) -> () {
+    //     debug!("pc: clear messages..");
+
+    //     let mut request = self.client.clear_messages_request();
+    //     request
+    //         .send()
+    //         .promise
+    //         .then(move |_result| {
+    //             // TODO: do something with this result...
+
+    //             future::ready(())
+    //         })
+    //         .await
+    // }
+
+    // pub async fn add_message<T: MessageExt>(&mut self, message: &T) {
+
+    //     let mut request = self.client.add_messages_request();
+
+
+    //     // self.client.add_message(context::current(), self.serialize_message(message)).await.unwrap()
+    // }
 
     // TODO: I think we can do this elegantly with serde
     // fn serialize_message(&self, message: &notmuch::Message<'_, notmuch::Thread<'_, '_>>) -> service::Message {

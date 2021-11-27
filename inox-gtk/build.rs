@@ -23,8 +23,8 @@ fn main() {
         .status()
         .unwrap();
 
-    capnpc::CompilerCommand::new()
-        .file("resources/webext.capnp")
-        .run()
-        .expect("compiling schema");
+    // capnpc::CompilerCommand::new()
+    //     .file("resources/webext.capnp")
+    //     .run()
+    //     .expect("compiling schema");
 }

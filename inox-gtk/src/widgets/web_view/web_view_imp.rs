@@ -25,7 +25,7 @@ use webkit2gtk::traits::{
 use crate::core::Action;
 use crate::webextension::rpc::RawFdWrap;
 
-use super::page_client::PageClient;
+use super::web_view_client::WebViewClient;
 use super::theme::WebViewTheme;
 
 pub type WebViewInstance = super::WebView;
@@ -85,7 +85,7 @@ pub struct WebView {
     pub web_view: webkit2gtk::WebView,
     pub web_context: webkit2gtk::WebContext,
     pub settings: webkit2gtk::Settings,
-    pub page_client: PageClient,
+    pub page_client: WebViewClient,
     pub theme: WebViewTheme,
 }
 
@@ -103,7 +103,7 @@ impl ObjectSubclass for WebView {
             .user_content_manager(&webkit2gtk::UserContentManager::new())
             .build();
         let stream = initialize_web_extensions(&web_context);
-        let page_client = PageClient::new(&stream);
+        let page_client = WebViewClient::new(&stream);
 
         let settings = WebKitWebViewExt::settings(&web_view).unwrap();
 

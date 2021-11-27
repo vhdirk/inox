@@ -7,7 +7,6 @@ pub mod messages_view;
 pub mod message_row;
 pub mod main_window;
 pub mod web_view;
-
 pub use self::about_dialog::about_dialog;
 
 pub use thread_view::ThreadView;

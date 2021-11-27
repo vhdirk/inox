@@ -23,9 +23,9 @@ use inox_core::settings::Settings;
 
 use crate::application::InoxApplication;
 
-pub mod webext_capnp {
-    include!(concat!(env!("OUT_DIR"), "/resources/webext_capnp.rs"));
-}
+// pub mod webext_capnp {
+//     include!(concat!(env!("OUT_DIR"), "/resources/webext_capnp.rs"));
+// }
 
 /// Init Gtk and logger.
 fn init() {

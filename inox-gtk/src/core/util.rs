@@ -88,11 +88,7 @@ pub fn html_to_text<'s>(html: &'s str,
 
     let dom = tl::parse(html, tl::ParserOptions::default());
 
-
-    let text = recurse_html_nodes_for_text(dom.parser(), dom.children().iter().cloned(), include_blockquotes);
-
-
-    return text;
+    recurse_html_nodes_for_text(dom.parser(), dom.children().iter().cloned(), include_blockquotes)
 }
 
 fn recurse_html_nodes_for_text<I: Iterator<Item=tl::NodeHandle>>(parser: &tl::Parser<'_>,

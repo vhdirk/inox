@@ -95,6 +95,9 @@ impl BaseRowImpl for MessageRow {
 
         self.update_row_expansion(obj);
 
+        if let Some(view) = self.view.get() {
+            view.load_body();
+        }
             // throws GLib.Error {
             // update_row_expansion();
             // if (this.view.message_body_state == NOT_STARTED) {

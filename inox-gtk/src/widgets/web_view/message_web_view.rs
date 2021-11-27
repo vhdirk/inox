@@ -29,7 +29,6 @@ use crate::spawn;
 use crate::webextension::rpc::RawFdWrap;
 use crate::core::Thread;
 
-use super::page_client::PageClient;
 use super::theme::WebViewTheme;
 use super::WebView;
 use super::message_web_view_imp as imp;

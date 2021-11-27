@@ -1,3 +1,4 @@
+use gmime::traits::ContentDispositionExt;
 use crate::core::mime::MultipartSubtype;
 use crate::core::util::EmptyOrWhitespace;
 use crate::core::util::ReduceWhiteSpace;
@@ -105,7 +106,7 @@ impl Message {
             return "".to_string();
         }
 
-        let ptext = Message::to_preview_text(&body.unwrap(), text_format);
+        let ptext = self.to_preview_text(&body.unwrap(), text_format);
 
         if ptext.len() > MAX_PREVIEW_BYTES {
             format!("{}{}", ptext.substring(0, MAX_PREVIEW_BYTES), "…")
@@ -114,6 +115,7 @@ impl Message {
         }
     }
 
+    // TODO: should return error when no html body present
     pub fn plain_body(&self, convert_to_html: bool) -> Option<String> {
         self.construct_body_from_mime_parts(
             &self.gmime_message.mime_part().unwrap(),
@@ -123,6 +125,7 @@ impl Message {
         )
     }
 
+    // TODO: should return error when no html body present
     pub fn html_body(&self) -> Option<String> {
         self.construct_body_from_mime_parts(
             &self.gmime_message.mime_part().unwrap(),
@@ -138,35 +141,33 @@ impl Message {
         DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(date, 0), Utc)
     }
 
-    fn has_body_parts(node: &gmime::Object, text_subtype: &str) -> bool {
-        // Part part = new Part(node);
-        // bool is_matching_part = false;
+    fn has_body_parts(&self, node: &gmime::Object, text_subtype: &str) -> bool {
+        if let Some(multipart) = node.downcast_ref::<gmime::Multipart>() {
+            let count = multipart.count();
+            for i in 0..count {
+                let is_matching_part =
+                    self.has_body_parts(&multipart.part(i).unwrap(), text_subtype);
 
-        // if (node is GMime.Multipart) {
-        //     GMime.Multipart multipart = (GMime.Multipart) node;
-        //     int count = multipart.get_count();
-        //     for (int i = 0; i < count && !is_matching_part; i++) {
-        //         is_matching_part = has_body_parts(
-        //             multipart.get_part(i), text_subtype
-        //         );
-        //     }
-        // } else if (node is GMime.Part) {
-        //     Mime.DispositionType disposition = Mime.DispositionType.UNSPECIFIED;
-        //     if (part.content_disposition != null) {
-        //         disposition = part.content_disposition.disposition_type;
-        //     }
+                if is_matching_part {
+                    return true;
+                }
+            }
+        } else if let Some(part) = node.downcast_ref::<gmime::Part>() {
+            if let Some(content_disposition) = part.content_disposition() {
+                if let Some(disposition) = content_disposition.disposition() {
+                    if let Some(content_type) = part.content_type() {
+                        return disposition != "attachment"
+                            && content_type.is_type("text", text_subtype);
+                    }
+                }
 
-        //     is_matching_part = (
-        //         disposition != Mime.DispositionType.ATTACHMENT &&
-        //         part.content_type.is_type("text", text_subtype)
-        //     );
-        // }
-        // return is_matching_part;
+            }
+        }
         false
     }
 
     pub fn has_html_body(&self) -> bool {
-        false
+        return self.has_body_parts(&self.gmime_message.mime_part().unwrap(), "html");
     }
 
     fn construct_body_from_mime_parts(
@@ -257,7 +258,10 @@ impl Message {
     }
 
     fn is_utf_8(&self, charset: &str) -> bool {
-        matches!(charset.to_uppercase().as_str(), "ASCII" | "US-ASCII" | "US_ASCII" | "UTF-8" | "UTF8" | "UTF_8")
+        matches!(
+            charset.to_uppercase().as_str(),
+            "ASCII" | "US-ASCII" | "US_ASCII" | "UTF-8" | "UTF8" | "UTF_8"
+        )
     }
 
     fn write_to_stream(
@@ -339,7 +343,9 @@ impl Message {
                 //             filter.add(new Geary.RFC822.FilterPlain());
                 //         }
                 let filter_html = gmime::FilterHTML::new(
-                    (gmime::ffi::GMIME_FILTER_HTML_CONVERT_URLS | gmime::ffi::GMIME_FILTER_HTML_CONVERT_ADDRESSES) as u32,
+                    (gmime::ffi::GMIME_FILTER_HTML_CONVERT_URLS
+                        | gmime::ffi::GMIME_FILTER_HTML_CONVERT_ADDRESSES)
+                        as u32,
                     0,
                 );
                 filter.add(&filter_html);
@@ -371,7 +377,7 @@ impl Message {
      * rather than RFC822 (CRLF). The string returned will will have had
      * its whitespace squashed.
      */
-    pub fn to_preview_text(text: &str, text_format: TextFormat) -> String {
+    pub fn to_preview_text(&self, text: &str, text_format: TextFormat) -> String {
         let preview = if text_format == TextFormat::Plain {
             // TODO: pretty sure we can do all of this in a single fancy regex
             let all_lines = text.split("\n");

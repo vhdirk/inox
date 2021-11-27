@@ -25,16 +25,16 @@ use webkit2gtk_webextension::traits::{
 };
 use webkit2gtk_webextension::{web_extension_init_with_data, DOMDocument, WebExtension, WebPage};
 
-use capnp::capability::Promise;
-use capnp::primitive_list;
-use capnp::Error;
+// use capnp::capability::Promise;
+// use capnp::primitive_list;
+// use capnp::Error;
 
-use capnp_rpc::twoparty::VatNetwork;
-use capnp_rpc::{pry, rpc_twoparty_capnp, RpcSystem};
+// use capnp_rpc::twoparty::VatNetwork;
+// use capnp_rpc::{pry, rpc_twoparty_capnp, RpcSystem};
 
 // use crate::glib_receiver_future::GLibReceiverFuture;
 use crate::rpc::RawFdWrap;
-use crate::webext_capnp::page;
+// use crate::webext_capnp::page;
 
 web_extension_init_with_data!();
 
@@ -71,29 +71,29 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
     let stream = connection.into_async_read_write().unwrap();
     let (istream, ostream) = stream.split();
 
-    let network = Box::new(VatNetwork::new(
-        istream,
-        ostream,
-        rpc_twoparty_capnp::Side::Server,
-        Default::default(),
-    ));
+    // let network = Box::new(VatNetwork::new(
+    //     istream,
+    //     ostream,
+    //     rpc_twoparty_capnp::Side::Server,
+    //     Default::default(),
+    // ));
 
-    let webext = ThreadViewWebExt::new(socket, extension.clone());
-    let page_srv = page::ToClient::new(webext).into_client::<capnp_rpc::Server>();
-    let rpc_system = RpcSystem::new(network, Some(page_srv.clone().client));
+    // let webext = MessageViewWebExt::new(socket, extension.clone());
+    // let page_srv = page::ToClient::new(webext).into_client::<capnp_rpc::Server>();
+    // let rpc_system = RpcSystem::new(network, Some(page_srv.clone().client));
 
-    let ctx = glib::MainContext::default();
-    ctx.with_thread_default(|| {
-        ctx.spawn_local(rpc_system.then(move |result| {
-            // TODO: do something with this result...
-            info!("rpc_system done? {:?}", result);
-            future::ready(())
-        }))
-    });
+    // let ctx = glib::MainContext::default();
+    // ctx.with_thread_default(|| {
+    //     ctx.spawn_local(rpc_system.then(move |result| {
+    //         // TODO: do something with this result...
+    //         info!("rpc_system done? {:?}", result);
+    //         future::ready(())
+    //     }))
+    // });
 }
 
 #[derive(Clone, Debug)]
-pub struct ThreadViewWebExt {
+pub struct MessageViewWebExt {
     socket: gio::Socket,
     extension: WebExtension,
     part_css: Option<String>,
@@ -114,9 +114,9 @@ pub struct ThreadViewWebExt {
 //     Box::pin(receiver.into_future())
 // }
 
-impl ThreadViewWebExt {
+impl MessageViewWebExt {
     pub fn new(socket: gio::Socket, extension: webkit2gtk_webextension::WebExtension) -> Self {
-        ThreadViewWebExt {
+        MessageViewWebExt {
             socket,
             extension,
             part_css: None,
@@ -183,119 +183,119 @@ impl ThreadViewWebExt {
         // });
     }
 
-    async fn _load(
-        self,
-        params: page::LoadParams,
-        _results: page::LoadResults,
-    ) -> Result<(), Error> {
-        // page_loaded_future(self.extension.clone()).await;
-        // info!("page id: {}:?", page_id);
+    // async fn _load(
+    //     self,
+    //     params: page::LoadParams,
+    //     _results: page::LoadResults,
+    // ) -> Result<(), Error> {
+    //     // page_loaded_future(self.extension.clone()).await;
+    //     // info!("page id: {}:?", page_id);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    async fn _clear_messages(
-        self,
-        params: page::ClearMessagesParams,
-        _results: page::ClearMessagesResults,
-    ) -> Result<(), Error> {
-        // page_loaded_future(self.extension.clone()).await;
+    // async fn _clear_messages(
+    //     self,
+    //     params: page::ClearMessagesParams,
+    //     _results: page::ClearMessagesResults,
+    // ) -> Result<(), Error> {
+    //     // page_loaded_future(self.extension.clone()).await;
 
-        // info!("page id: {}:?", page_id);
+    //     // info!("page id: {}:?", page_id);
 
-        debug!("clearing all messages");
+    //     debug!("clearing all messages");
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }
 
-impl page::Server for ThreadViewWebExt {
-    fn allow_remote_images(
-        &mut self,
-        _params: page::AllowRemoteImagesParams,
-        _results: page::AllowRemoteImagesResults,
-    ) -> Promise<(), Error> {
-        Promise::ok(())
-    }
+// impl page::Server for MessageViewWebExt {
+//     fn allow_remote_images(
+//         &mut self,
+//         _params: page::AllowRemoteImagesParams,
+//         _results: page::AllowRemoteImagesResults,
+//     ) -> Promise<(), Error> {
+//         Promise::ok(())
+//     }
 
-    fn load(&mut self, params: page::LoadParams, results: page::LoadResults) -> Promise<(), Error> {
-        // info!("loading page. page: {:?}", self.page);
+//     fn load(&mut self, params: page::LoadParams, results: page::LoadResults) -> Promise<(), Error> {
+//         // info!("loading page. page: {:?}", self.page);
 
-        Promise::from_future(self.clone()._load(params, results))
+//         Promise::from_future(self.clone()._load(params, results))
 
-        // let page = self.extension.get_page(0).unwrap();
-        // let document: DOMDocument = page.get_dom_document().unwrap();
+//         // let page = self.extension.get_page(0).unwrap();
+//         // let document: DOMDocument = page.get_dom_document().unwrap();
 
-        // // load html
-        // let html_element = document.create_element("HTML").unwrap();
+//         // // load html
+//         // let html_element = document.create_element("HTML").unwrap();
 
-        // let html_content = pry!(pry!(params.get()).get_html());
-        // html_element.set_outer_html(html_content);
+//         // let html_content = pry!(pry!(params.get()).get_html());
+//         // html_element.set_outer_html(html_content);
 
-        // let dom_html_elem = html_element
-        //     .downcast::<webkit2gtk_webextension::DOMHTMLElement>()
-        //     .unwrap();
-        // document.set_body(&dom_html_elem);
+//         // let dom_html_elem = html_element
+//         //     .downcast::<webkit2gtk_webextension::DOMHTMLElement>()
+//         //     .unwrap();
+//         // document.set_body(&dom_html_elem);
 
-        // // load css style
-        // info!("loading stylesheet");
-        // let style_element = document.create_element("STYLE").unwrap();
-        // let css_content = pry!(pry!(params.get()).get_css());
-        // let style_text = document.create_text_node(css_content).unwrap();
-        // style_element.append_child(&style_text);
+//         // // load css style
+//         // info!("loading stylesheet");
+//         // let style_element = document.create_element("STYLE").unwrap();
+//         // let css_content = pry!(pry!(params.get()).get_css());
+//         // let style_text = document.create_text_node(css_content).unwrap();
+//         // style_element.append_child(&style_text);
 
-        // let header = document.get_head().unwrap();
-        // header.append_child(&style_element);
+//         // let header = document.get_head().unwrap();
+//         // header.append_child(&style_element);
 
-        // info!("loaded page");
+//         // info!("loaded page");
 
-        // // store part / iframe css for later
-        // let part_css = pry!(pry!(params.get()).get_part_css());
-        // self.part_css = Some(part_css.to_string());
+//         // // store part / iframe css for later
+//         // let part_css = pry!(pry!(params.get()).get_part_css());
+//         // self.part_css = Some(part_css.to_string());
 
-        // // add allowed uris
-        // let allowed_uris_r = pry!(pry!(params.get()).get_allowed_uris());
-        // let allowed_uris = allowed_uris_r
-        //     .iter()
-        //     .filter_map(|x| x.ok())
-        //     .map(ToOwned::to_owned);
-        // self.allowed_uris = self
-        //     .allowed_uris
-        //     .iter()
-        //     .cloned()
-        //     .chain(allowed_uris)
-        //     .collect();
+//         // // add allowed uris
+//         // let allowed_uris_r = pry!(pry!(params.get()).get_allowed_uris());
+//         // let allowed_uris = allowed_uris_r
+//         //     .iter()
+//         //     .filter_map(|x| x.ok())
+//         //     .map(ToOwned::to_owned);
+//         // self.allowed_uris = self
+//         //     .allowed_uris
+//         //     .iter()
+//         //     .cloned()
+//         //     .chain(allowed_uris)
+//         //     .collect();
 
-        // let mut _self = self.clone();
-        // Promise::from_future(_self._load(params, results))
+//         // let mut _self = self.clone();
+//         // Promise::from_future(_self._load(params, results))
 
-        // Promise::ok(())
-    }
+//         // Promise::ok(())
+//     }
 
-    fn clear_messages(
-        &mut self,
-        params: page::ClearMessagesParams,
-        results: page::ClearMessagesResults,
-    ) -> Promise<(), Error> {
-        Promise::from_future(self.clone()._clear_messages(params, results))
+//     fn clear_messages(
+//         &mut self,
+//         params: page::ClearMessagesParams,
+//         results: page::ClearMessagesResults,
+//     ) -> Promise<(), Error> {
+//         Promise::from_future(self.clone()._clear_messages(params, results))
 
-        // debug!("clearing all messages. page: {:?}", self.page);
+//         // debug!("clearing all messages. page: {:?}", self.page);
 
-        // let page = self.extension.get_page(0).unwrap();
-        // let document: DOMDocument = page.get_dom_document().unwrap();
+//         // let page = self.extension.get_page(0).unwrap();
+//         // let document: DOMDocument = page.get_dom_document().unwrap();
 
-        // let container = document.get_element_by_id("message_container").unwrap();
-        // container.set_inner_html("<span id=\"placeholder\"></span>");
+//         // let container = document.get_element_by_id("message_container").unwrap();
+//         // container.set_inner_html("<span id=\"placeholder\"></span>");
 
-        //   /* reset */
-        //   focused_message = "";
-        //   focused_element = -1;
-        //   messages.clear ();
-        //   state = AstroidMessages::State();
-        //   allow_remote_resources = false;
-        //   indent_messages = false;
-    }
-}
+//         //   /* reset */
+//         //   focused_message = "";
+//         //   focused_element = -1;
+//         //   messages.clear ();
+//         //   state = AstroidMessages::State();
+//         //   allow_remote_resources = false;
+//         //   indent_messages = false;
+//     }
+// }
 
 fn scroll_by(page: &WebPage, pixels: i64) {
     let document = page.dom_document().unwrap();

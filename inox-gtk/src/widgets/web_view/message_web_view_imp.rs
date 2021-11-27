@@ -19,7 +19,6 @@ use webkit2gtk::traits::WebContextExt;
 use crate::core::Action;
 use crate::webextension::rpc::RawFdWrap;
 
-use super::page_client::PageClient;
 use super::theme::WebViewTheme;
 use super::web_view::WebViewImpl;
 use super::WebView;

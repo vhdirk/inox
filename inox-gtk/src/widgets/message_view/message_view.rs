@@ -31,7 +31,7 @@ impl MessageView {
             .set(message.clone())
             .expect("Failed to set message on MessageView");
 
-        imp.update_collapsed();
+        imp.update_display();
 
         view
     }
@@ -40,10 +40,11 @@ impl MessageView {
      * Shows the complete message: headers, body and attachments.
      */
     pub fn expand(&self, include_transitions: bool) {
+        let imp = imp::MessageView::from_instance(self);
+        imp.set_expanded(true);
+
         self.update_message_state();
 
-        let imp = imp::MessageView::from_instance(self);
-        imp.attachments_button.get().set_sensitive(true);
         // // Needs at least some menu set otherwise it won't be enabled,
         // // also has the side effect of making it sensitive
         // this.email_menubutton.set_menu_model(new GLib.Menu());
@@ -53,7 +54,6 @@ impl MessageView {
         // this.attachments_button.set_action_target_value(email_target);
         // this.star_button.set_action_target_value(email_target);
         // this.unstar_button.set_action_target_value(email_target);
-
         imp.show_message_body(include_transitions);
     }
 
@@ -62,9 +62,8 @@ impl MessageView {
      */
     pub fn collapse(&self) {
         // is_collapsed = true;
-        self.update_message_state();
-
         let imp = imp::MessageView::from_instance(self);
+        imp.set_expanded(false);
 
         imp.attachments_button.get().set_sensitive(false);
         // imp.message_menubutton.get().set_sensitive(false);
@@ -77,7 +76,12 @@ impl MessageView {
         imp.hide_message_body();
     }
 
-    fn update_message_state(&self) {}
+    pub fn load_body(&self) {
+        let imp = imp::MessageView::from_instance(self);
+        imp.load_message_body();
+    }
+
+    fn update_message_state(&self) {
     //     private void update_email_state() {
     //     Gtk.StyleContext style = get_style_context();
 
@@ -98,7 +102,7 @@ impl MessageView {
     //     }
 
     //     update_email_menu();
-    // }
+    }
 
     // private void update_email_menu() {
     //     if (this.email_menubutton.active) {
