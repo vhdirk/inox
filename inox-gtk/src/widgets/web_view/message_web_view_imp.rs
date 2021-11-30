@@ -23,7 +23,7 @@ use super::theme::WebViewTheme;
 use super::web_view::WebViewImpl;
 use super::WebView;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct MessageWebView {
     pub sender: OnceCell<Sender<Action>>
 }

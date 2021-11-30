@@ -17,8 +17,9 @@ use std::os::unix::prelude::*;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-
+use async_std::task;
 use log::*;
+use std::time::Duration;
 
 use glib::Cast;
 
@@ -95,6 +96,9 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
     //     //     future::ready(())
     //     // }))
     // });
+
+    let context = glib::MainContext::new();
+    dbg!("context owner? {:?}", context.is_owner());
 }
 
 #[derive(Clone, Debug)]
@@ -152,19 +156,22 @@ impl WebViewExtension {
 
     pub fn on_document_loaded(&self, page: &webkit2gtk_webextension::WebPage) {
         if let Some(height) = self.preferred_height(page) {
-            self.connection
-                .borrow_mut()
-                .send(WebViewMessage::PreferredHeight(height))
-                .wait();
+            dbg!("got height: {}", height);
+
+            let c = glib::MainContext::new();
+            let conn = self.connection.clone();
+            c.block_on(async move {
+                dbg!("Sending height: {}", height);
+                conn.borrow_mut()
+                    .send(WebViewMessage::PreferredHeight(height)).await;
+            });
         }
     }
 
     pub fn on_page_created(&self, page: &webkit2gtk_webextension::WebPage) {
-        debug!("on page created {:?}", self);
-
         let this = self.clone();
         page.connect_document_loaded(move |page| {
-            println!("Page {} created for {:?}", page.id(), page.uri());
+            dbg!("Page {:?} created for {:?}", page.id(), page.uri());
             this.on_document_loaded(page);
         });
 

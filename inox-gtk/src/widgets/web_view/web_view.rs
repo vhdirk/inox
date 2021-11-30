@@ -1,3 +1,5 @@
+use futures::task::LocalSpawn;
+use futures::{future, FutureExt};
 use async_std::os::unix::net::UnixStream;
 use std::cell::RefCell;
 use std::os::unix::io::FromRawFd;
@@ -90,6 +92,7 @@ where
 
 // WebView implementation itself
 impl WebView {
+
     pub fn setup_signals(&self) {
         let imp = imp::WebView::from_instance(self);
         let self_ = self.clone();
@@ -203,7 +206,6 @@ impl WebView {
     async fn add_message<T: MessageExt>(&mut self, message: &T) {
         let imp = imp::WebView::from_instance(self);
 
-        let mut client = imp.client.clone();
 
         // client.add_message(message);
     }
