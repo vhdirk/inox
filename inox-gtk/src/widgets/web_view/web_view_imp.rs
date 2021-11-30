@@ -85,7 +85,7 @@ pub struct WebView {
     pub web_view: webkit2gtk::WebView,
     pub web_context: webkit2gtk::WebContext,
     pub settings: webkit2gtk::Settings,
-    pub page_client: WebViewClient,
+    pub client: WebViewClient,
     pub theme: WebViewTheme,
 }
 
@@ -103,7 +103,8 @@ impl ObjectSubclass for WebView {
             .user_content_manager(&webkit2gtk::UserContentManager::new())
             .build();
         let stream = initialize_web_extensions(&web_context);
-        let page_client = WebViewClient::new(&stream);
+
+        let client = WebViewClient::new(&stream);
 
         let settings = WebKitWebViewExt::settings(&web_view).unwrap();
 
@@ -111,7 +112,7 @@ impl ObjectSubclass for WebView {
             web_view,
             web_context,
             settings,
-            page_client,
+            client,
             theme: WebViewTheme::default(),
         }
     }
@@ -175,12 +176,12 @@ impl WebView {
 
     pub fn setup_signals(&self) {
         let self_ = self.clone();
-        self.web_view
-            .connect_decide_policy(move |_, decision, decision_type| {
-                let mut mself = self_.clone();
-                mself.decide_policy(decision, decision_type);
-                false
-            });
+        // self.web_view
+        //     .connect_decide_policy(move |_, decision, decision_type| {
+        //         let mut mself = self_.clone();
+        //         mself.decide_policy(decision, decision_type);
+        //         false
+        //     });
     }
 
     pub fn decide_policy(
@@ -188,7 +189,7 @@ impl WebView {
         decision: &webkit2gtk::PolicyDecision,
         decision_type: webkit2gtk::PolicyDecisionType,
     ) {
-        debug!("tv: decide policy");
+        debug!("webview: decide policy");
 
         match decision_type {
             // navigate to

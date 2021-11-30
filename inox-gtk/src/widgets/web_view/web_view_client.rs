@@ -13,9 +13,10 @@ use gio::prelude::*;
 use gio::traits::{IOStreamExt, SocketExt};
 
 use log::*;
-
 use notmuch;
 
+use crate::webextension::channel;
+use crate::webextension::protocol::WebViewMessage;
 use super::theme::WebViewTheme;
 use super::web_view_client_imp as imp;
 
@@ -31,11 +32,10 @@ impl WebViewClient {
         let client = glib::Object::new(&[]).expect("Failed to create MessageWebView");
         let imp = imp::WebViewClient::from_instance(&client);
 
-        let connection = socket.connection_factory_create_connection();
-        let stream = connection.into_async_read_write().unwrap();
 
-        imp.socket.set(socket.clone());
-        imp.stream.set(Rc::new(stream));
+        let connection = channel::connection::<WebViewMessage>(socket.clone()).unwrap();
+
+        imp.connection.set(Rc::new(connection));
         // let (istream, ostream) = stream.split();
         // let network = Box::new(VatNetwork::new(
         //     istream,

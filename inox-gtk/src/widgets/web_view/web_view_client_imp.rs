@@ -1,3 +1,4 @@
+use crate::webextension::channel::Connection;
 use glib::subclass::prelude::*;
 use once_cell::sync::OnceCell;
 use gmime::traits::MessageExt;
@@ -21,8 +22,7 @@ use crate::webextension::protocol::WebViewMessage;
 
 #[derive(Clone, Debug)]
 pub struct WebViewClient {
-    pub socket: OnceCell<gio::Socket>,
-    pub stream: OnceCell<Rc<gio::IOStreamAsyncReadWrite<gio::SocketConnection>>>
+    pub connection: OnceCell<Rc<Connection<WebViewMessage, gio::IOStreamAsyncReadWrite<gio::SocketConnection>>>>
     // client: page::Client,
 }
 
@@ -34,8 +34,7 @@ impl ObjectSubclass for WebViewClient {
 
     fn new() -> Self {
         WebViewClient {
-            socket: OnceCell::new(),
-            stream: OnceCell::new()
+            connection: OnceCell::new()
         }
     }
 

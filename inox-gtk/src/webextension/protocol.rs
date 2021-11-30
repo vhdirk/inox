@@ -1,5 +1,7 @@
-#[derive(Clone, Debug)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum WebViewMessage {
 
-    DOMContentLoaded,
+    PreferredHeight(i64),
 }

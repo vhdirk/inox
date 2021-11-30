@@ -119,7 +119,7 @@ impl WebView {
 
         match event {
             webkit2gtk::LoadEvent::Finished => {
-                // if imp.page_client.is_ready() {
+                // if imp.client.is_ready() {
                 //     self.ready_to_render();
                 // }
             }
@@ -131,10 +131,10 @@ impl WebView {
         info!("ready_to_render");
         let imp = imp::WebView::from_instance(self);
 
-        // imp.page_client.load(&imp.theme).await;
+        // imp.client.load(&imp.theme).await;
 
         // /* render messages in case we were not ready when first requested */
-        // imp.page_client.clear_messages().await;
+        // imp.client.clear_messages().await;
 
         // self.render_messages().await;
     }
@@ -151,7 +151,7 @@ impl WebView {
     //     info!("load_thread: {:?}", thread);
     //     let imp = imp::WebView::from_instance(self);
 
-    //     let client = imp.page_client.clone();
+    //     let client = imp.client.clone();
     //     let mut self_ = self.clone();
 
     //     let future = async move {
@@ -203,7 +203,7 @@ impl WebView {
     async fn add_message<T: MessageExt>(&mut self, message: &T) {
         let imp = imp::WebView::from_instance(self);
 
-        let mut client = imp.page_client.clone();
+        let mut client = imp.client.clone();
 
         // client.add_message(message);
     }
@@ -224,7 +224,7 @@ impl WebView {
         //     add_message (m);
         //   }
 
-        //   page_client->update_state ();
+        //   client->update_state ();
         //   update_all_indent_states ();
 
         //   /* focus oldest unread message */
@@ -342,7 +342,7 @@ impl WebView {
 //             app,
 //             webcontext: ctx,
 //             socket_listener: listener,
-//             page_client: None,
+//             client: None,
 //             theme: WebViewTheme::load()
 //         }
 //     }

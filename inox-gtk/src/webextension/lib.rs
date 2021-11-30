@@ -4,6 +4,7 @@
 // }
 
 pub mod rpc;
-pub mod message_view_web_ext;
+pub mod web_view_extension;
 pub mod protocol;
+pub mod channel;
 // pub mod glib_receiver_future;

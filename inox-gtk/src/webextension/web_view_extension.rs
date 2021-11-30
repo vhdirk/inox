@@ -1,12 +1,16 @@
-use gio::prelude::IOStreamExtManual;
-use gio::prelude::SocketExt;
-use gio::Socket;
-use futures::channel::{oneshot, mpsc};
+use crate::channel::Connection;
+use futures::channel::{mpsc, oneshot};
 use futures::future::BoxFuture;
 use futures::future::{self, FutureExt, Ready, TryFuture, TryFutureExt};
 use futures::io::AsyncReadExt;
 use futures::stream;
+use futures::AsyncWriteExt;
 use futures::Future;
+use futures::SinkExt;
+use gio::prelude::IOStreamExtManual;
+use gio::prelude::SocketExt;
+use gio::Socket;
+use serde::Serialize;
 use std::cell::RefCell;
 use std::os::unix::io::{FromRawFd, RawFd};
 use std::os::unix::prelude::*;
@@ -33,7 +37,9 @@ use webkit2gtk_webextension::{web_extension_init_with_data, DOMDocument, WebExte
 // use capnp_rpc::{pry, rpc_twoparty_capnp, RpcSystem};
 
 // use crate::glib_receiver_future::GLibReceiverFuture;
-use crate::rpc::RawFdWrap;
+use super::channel;
+use super::protocol::WebViewMessage;
+use super::rpc::RawFdWrap;
 // use crate::webext_capnp::page;
 
 web_extension_init_with_data!();
@@ -67,10 +73,6 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
 
     debug!("socket connected?: {:?}", socket.is_connected());
 
-    let connection = socket.connection_factory_create_connection();
-    let stream = connection.into_async_read_write().unwrap();
-    let (istream, ostream) = stream.split();
-
     // let network = Box::new(VatNetwork::new(
     //     istream,
     //     ostream,
@@ -78,27 +80,28 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
     //     Default::default(),
     // ));
 
-    // let webext = MessageViewWebExt::new(socket, extension.clone());
+    let webext = WebViewExtension::new(socket, extension.clone());
+    webext.init();
+
     // let page_srv = page::ToClient::new(webext).into_client::<capnp_rpc::Server>();
     // let rpc_system = RpcSystem::new(network, Some(page_srv.clone().client));
-
     // let ctx = glib::MainContext::default();
-    // ctx.with_thread_default(|| {
-    //     ctx.spawn_local(rpc_system.then(move |result| {
-    //         // TODO: do something with this result...
-    //         info!("rpc_system done? {:?}", result);
-    //         future::ready(())
-    //     }))
+    // let cctx = ctx.clone();
+    // ctx.with_thread_default(move || {
+    //     let cwebext = webext.clone();
+    //     // cctx.spawn_local(cwebext.serve().then(move |result| {
+    //     //     // TODO: do something with this result...
+    //     //     info!("serve done? {:?}", result);
+    //     //     future::ready(())
+    //     // }))
     // });
 }
 
 #[derive(Clone, Debug)]
-pub struct MessageViewWebExt {
-    socket: gio::Socket,
+pub struct WebViewExtension {
+    connection:
+        Rc<RefCell<Connection<WebViewMessage, gio::IOStreamAsyncReadWrite<gio::SocketConnection>>>>,
     extension: WebExtension,
-    part_css: Option<String>,
-    allowed_uris: Vec<String>,
-    indent_messages: bool,
 }
 
 // fn page_loaded_future(
@@ -114,20 +117,56 @@ pub struct MessageViewWebExt {
 //     Box::pin(receiver.into_future())
 // }
 
-impl MessageViewWebExt {
+impl WebViewExtension {
     pub fn new(socket: gio::Socket, extension: webkit2gtk_webextension::WebExtension) -> Self {
-        MessageViewWebExt {
-            socket,
+        debug!("create webext {:?}", socket);
+
+        let connection = channel::connection::<WebViewMessage>(socket).unwrap();
+        debug!("created connection {:?}", connection);
+
+        WebViewExtension {
+            connection: Rc::new(RefCell::new(connection)),
             extension,
-            part_css: None,
-            indent_messages: true,
-            allowed_uris: vec![],
         }
     }
 
-    pub fn on_page_created(&mut self, page: &webkit2gtk_webextension::WebPage) {
+    pub fn init(&self) {
+        let this = self.clone();
+        self.extension.connect_page_created(move |_, page| {
+            debug!("on page created {:?}", this);
+
+            this.on_page_created(page)
+        });
+    }
+
+    pub async fn serve(&self) {}
+
+    pub fn preferred_height(&self, page: &webkit2gtk_webextension::WebPage) -> Option<i64> {
+        // Return the scroll height of the HTML element since the BODY
+        // may have margin/border/padding and we want to know
+        // precisely how high the widget needs to be to avoid
+        // scrolling.
+        page.dom_document()
+            .map(|dom_document| dom_document.document_element().unwrap().scroll_height())
+    }
+
+    pub fn on_document_loaded(&self, page: &webkit2gtk_webextension::WebPage) {
+        if let Some(height) = self.preferred_height(page) {
+            self.connection
+                .borrow_mut()
+                .send(WebViewMessage::PreferredHeight(height))
+                .wait();
+        }
+    }
+
+    pub fn on_page_created(&self, page: &webkit2gtk_webextension::WebPage) {
         debug!("on page created {:?}", self);
 
+        let this = self.clone();
+        page.connect_document_loaded(move |page| {
+            println!("Page {} created for {:?}", page.id(), page.uri());
+            this.on_document_loaded(page);
+        });
 
         // page.console_message_sent.connect(on_console_message);
         // page.send_request.connect(on_send_request);
@@ -209,7 +248,7 @@ impl MessageViewWebExt {
     // }
 }
 
-// impl page::Server for MessageViewWebExt {
+// impl page::Server for WebViewExtension {
 //     fn allow_remote_images(
 //         &mut self,
 //         _params: page::AllowRemoteImagesParams,
