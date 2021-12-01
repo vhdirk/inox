@@ -1,15 +1,19 @@
 use async_std::io::Error;
+use async_std::os::unix::net::{UnixListener, UnixStream};
 use futures::future::{self, Ready};
 use futures::{
     AsyncReadExt, AsyncWriteExt, FutureExt, Sink, Stream, StreamExt, TryFuture, TryFutureExt,
     TryStream, TryStreamExt,
 };
+use nix::unistd::dup;
 use std::cell::RefCell;
+use std::fs;
 use std::rc::Rc;
 
 use log::*;
 use nix::sys::socket::{socketpair, AddressFamily, SockFlag, SockType};
 use once_cell::unsync::OnceCell;
+use std::process;
 
 use gio::subclass::prelude::*;
 use glib::subclass::prelude::*;
@@ -17,7 +21,10 @@ use glib::Sender;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::subclass::widget::WidgetClassSubclassExt;
+use ipc_channel::asynch::IpcStream;
+use ipc_channel::ipc::{self, IpcOneShotServer, IpcReceiver, IpcSender};
 use std::os::unix::io::FromRawFd;
+use std::path::Path;
 use webkit2gtk;
 use webkit2gtk::traits::{
     NavigationPolicyDecisionExt, PolicyDecisionExt, SettingsExt, URIRequestExt, WebContextExt,
@@ -25,7 +32,7 @@ use webkit2gtk::traits::{
 };
 
 use crate::core::Action;
-use crate::webextension::channel::{self, Connection};
+use crate::webextension::connection::{self, connection, Connection};
 use crate::webextension::protocol::WebViewMessage;
 use crate::webextension::rpc::RawFdWrap;
 
@@ -40,13 +47,17 @@ const INTERNAL_URL_PREFIX: &str = "inox:";
 // TODO: create from INTERNAL_URL_PREFIX
 const INTERNAL_URL_BODY: &str = "inox:body";
 
+const SOCKET_PATH: &str = "/tmp/inox-gtk-webview-socket";
+
 fn initialize_web_extension(
     ctx: &webkit2gtk::WebContext,
 ) -> Result<Connection<WebViewMessage, gio::IOStreamAsyncReadWrite<gio::SocketConnection>>, Error> {
+    // ) -> Result<String, Error> {
     info!("initialize_web_extension");
     let cur_exe = std::env::current_exe().unwrap();
     let exe_dir = cur_exe.parent().unwrap();
     let extdir = exe_dir.to_string_lossy();
+    info!("cur_exe: {:?}", extdir);
 
     info!("setting web extensions directory: {:?}", extdir);
     ctx.set_web_extensions_directory(&extdir);
@@ -61,11 +72,27 @@ fn initialize_web_extension(
 
     let socket = unsafe { gio::Socket::from_fd(RawFdWrap::from_raw_fd(local)) }.unwrap();
 
-    let connection = channel::connection::<WebViewMessage>(socket.clone());
+    let connection = connection::<WebViewMessage>(socket.clone());
 
     ctx.set_web_extensions_initialization_user_data(&remote.to_variant());
 
     connection
+
+    // // this only allows one webview per process, but makes cleanup easier. Good enough for now.
+    // let socket_path = format!("{}-{}", SOCKET_PATH, process::id());
+    // let socket = Path::new(&socket_path);
+
+    // // Delete old socket if necessary
+    // if socket.exists() {
+    //     fs::remove_file(&socket).unwrap();
+    // }
+
+    // ctx.set_web_extensions_initialization_user_data(&socket_path.to_variant());
+
+    // // bind but don't do anything with the socket
+    // // UnixListener::bind(&socket)
+
+    // Ok(socket_path)
 }
 
 #[repr(C)]
@@ -87,13 +114,14 @@ pub fn web_view_load_html(this: &WebViewInstance, html: &str) {
     (klass.as_ref().load_html)(this, html)
 }
 
-#[derive(Debug)]
 pub struct WebView {
     pub web_view: webkit2gtk::WebView,
     pub web_context: webkit2gtk::WebContext,
     pub settings: webkit2gtk::Settings,
     pub connection:
         RefCell<Connection<WebViewMessage, gio::IOStreamAsyncReadWrite<gio::SocketConnection>>>,
+    // pub socket_path: String,
+    // pub connection: RefCell<Option<Connection<WebViewMessage, UnixStream>>>,
     pub theme: WebViewTheme,
 }
 
@@ -110,6 +138,7 @@ impl ObjectSubclass for WebView {
             .web_context(&web_context)
             .user_content_manager(&webkit2gtk::UserContentManager::new())
             .build();
+        // let socket_path = initialize_web_extension(&web_context).unwrap();
         let connection = initialize_web_extension(&web_context);
 
         let settings = WebKitWebViewExt::settings(&web_view).unwrap();
@@ -119,6 +148,8 @@ impl ObjectSubclass for WebView {
             web_context,
             settings,
             connection: RefCell::new(connection.unwrap()),
+            // socket_path,
+            // connection: RefCell::new(None),
             theme: WebViewTheme::default(),
         }
     }
@@ -132,6 +163,9 @@ impl ObjectSubclass for WebView {
 
 impl ObjectImpl for WebView {
     fn constructed(&self, obj: &Self::Type) {
+        // Start socket stuff first?
+        self.init_extension_message_receiver();
+
         self.web_view.set_parent(obj);
         self.web_view.set_hexpand(true);
         self.web_view.set_vexpand(true);
@@ -179,11 +213,23 @@ impl WebView {
         let inst = self.instance().clone();
 
         let ctx = glib::MainContext::default();
-        ctx.spawn_local(async move {
-            let this = Self::from_instance(&inst);
-            let res = this.receive_extension_messages().await;
-            debug!("receive_extension_messages result");
-            // TODO: do something with this result...
+
+        ctx.with_thread_default(move || {
+            let ctx = glib::MainContext::default();
+
+            ctx.spawn_local(async move {
+                let this = Self::from_instance(&inst);
+
+                // let listener = UnixListener::bind(&this.socket_path).await.unwrap();
+                // let (socket, _addr) = listener.accept().await.unwrap();
+
+                // let connection = Connection::new(socket);
+                // this.connection.replace(Some(connection));
+
+                let res = this.receive_extension_messages().await;
+                debug!("receive_extension_messages result");
+                // TODO: do something with this result...
+            });
         });
     }
 
@@ -194,9 +240,6 @@ impl WebView {
             dbg!("waiting for message");
 
             let msg = self.connection.borrow_mut().next().await;
-
-            dbg!("got message result {:?}", &msg);
-
             if let Some(msg) = msg {
                 self.process_message(&msg);
             } else {
@@ -222,6 +265,7 @@ impl WebView {
         let inst = self.instance();
         dbg!("preferred size changed to: {:?}", height);
 
+        inst.set_size_request(-1, height as i32);
         inst.queue_resize();
     }
 
@@ -249,7 +293,7 @@ impl WebView {
 
         match event {
             webkit2gtk::LoadEvent::Finished => {
-                self.init_extension_message_receiver();
+                // self.init_extension_message_receiver();
                 // if imp.client.is_ready() {
                 //     self.ready_to_render();
                 // }

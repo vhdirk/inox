@@ -1,4 +1,5 @@
-use crate::channel::Connection;
+use async_std::os::unix::net::UnixStream;
+use async_std::task;
 use futures::channel::{mpsc, oneshot};
 use futures::future::BoxFuture;
 use futures::future::{self, FutureExt, Ready, TryFuture, TryFutureExt};
@@ -10,6 +11,7 @@ use futures::SinkExt;
 use gio::prelude::IOStreamExtManual;
 use gio::prelude::SocketExt;
 use gio::Socket;
+use log::*;
 use serde::Serialize;
 use std::cell::RefCell;
 use std::os::unix::io::{FromRawFd, RawFd};
@@ -17,8 +19,6 @@ use std::os::unix::prelude::*;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use async_std::task;
-use log::*;
 use std::time::Duration;
 
 use glib::Cast;
@@ -38,7 +38,7 @@ use webkit2gtk_webextension::{web_extension_init_with_data, DOMDocument, WebExte
 // use capnp_rpc::{pry, rpc_twoparty_capnp, RpcSystem};
 
 // use crate::glib_receiver_future::GLibReceiverFuture;
-use super::channel;
+use super::connection::{self, connection, Connection};
 use super::protocol::WebViewMessage;
 use super::rpc::RawFdWrap;
 // use crate::webext_capnp::page;
@@ -69,36 +69,32 @@ pub fn web_extension_initialize(extension: &WebExtension, user_data: Option<&Var
     init();
 
     debug!("user data: {:?}", user_data);
+    // let socket_address: String = user_data.and_then(Variant::get::<String>).unwrap();
+
     let socket_addr: RawFd = user_data.and_then(Variant::get::<RawFd>).unwrap();
-    let socket = unsafe { gio::Socket::from_fd(RawFdWrap::from_raw_fd(socket_addr)) }.unwrap();
+    let socket = unsafe { gio::Socket::from_fd(socket_addr) }.unwrap();
 
     debug!("socket connected?: {:?}", socket.is_connected());
-
-    // let network = Box::new(VatNetwork::new(
-    //     istream,
-    //     ostream,
-    //     rpc_twoparty_capnp::Side::Server,
-    //     Default::default(),
-    // ));
 
     let webext = WebViewExtension::new(socket, extension.clone());
     webext.init();
 
-    // let page_srv = page::ToClient::new(webext).into_client::<capnp_rpc::Server>();
-    // let rpc_system = RpcSystem::new(network, Some(page_srv.clone().client));
-    // let ctx = glib::MainContext::default();
-    // let cctx = ctx.clone();
-    // ctx.with_thread_default(move || {
-    //     let cwebext = webext.clone();
-    //     // cctx.spawn_local(cwebext.serve().then(move |result| {
-    //     //     // TODO: do something with this result...
-    //     //     info!("serve done? {:?}", result);
-    //     //     future::ready(())
-    //     // }))
-    // });
+    // let extension = extension.clone();
 
-    let context = glib::MainContext::new();
-    dbg!("context owner? {:?}", context.is_owner());
+    // let ctx = glib::MainContext::new();
+
+    // let ctx = glib::MainContext::default();
+    // ctx.with_thread_default(move || {
+    //     let ctx = glib::MainContext::default();
+
+    //     ctx.spawn_local(async move {
+    //         let stream = UnixStream::connect(socket_address).await.unwrap();
+
+    //         let connection = Connection::new(stream);
+    //         let webext = WebViewExtension::new(connection, extension.clone());
+    //         webext.init();
+    //     });
+    // });
 }
 
 #[derive(Clone, Debug)]
@@ -125,7 +121,7 @@ impl WebViewExtension {
     pub fn new(socket: gio::Socket, extension: webkit2gtk_webextension::WebExtension) -> Self {
         debug!("create webext {:?}", socket);
 
-        let connection = channel::connection::<WebViewMessage>(socket).unwrap();
+        let connection = connection::<WebViewMessage>(socket).unwrap();
         debug!("created connection {:?}", connection);
 
         WebViewExtension {
@@ -158,12 +154,19 @@ impl WebViewExtension {
         if let Some(height) = self.preferred_height(page) {
             dbg!("got height: {}", height);
 
-            let c = glib::MainContext::new();
-            let conn = self.connection.clone();
-            c.block_on(async move {
-                dbg!("Sending height: {}", height);
-                conn.borrow_mut()
-                    .send(WebViewMessage::PreferredHeight(height)).await;
+            dbg!("Sending height: {}", height);
+
+            let this = self.clone();
+            let ctx = glib::MainContext::default();
+            ctx.with_thread_default(move || {
+                let ctx = glib::MainContext::default();
+                ctx.spawn_local(async move {
+                    this.connection
+                        .borrow_mut()
+                        .send(WebViewMessage::PreferredHeight(height))
+                        .await;
+                    ()
+                });
             });
         }
     }

@@ -65,8 +65,6 @@ impl MessageView {
         let imp = imp::MessageView::from_instance(self);
         imp.set_expanded(false);
 
-        imp.attachments_button.get().set_sensitive(false);
-        // imp.message_menubutton.get().set_sensitive(false);
 
         // // Clear targets to disable the actions
         // this.attachments_button.set_action_target_value(null);

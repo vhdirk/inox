@@ -42,6 +42,7 @@ glib::wrapper! {
 
 pub trait WebViewExt {
     fn load_html(&self, html: &str);
+
 }
 
 impl<O: IsA<WebView>> WebViewExt for O {
