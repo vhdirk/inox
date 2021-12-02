@@ -313,13 +313,10 @@ pub fn poll_read_buf<T: AsyncRead, B: BufMut>(
 
     let n = {
         let dst = buf.chunk_mut();
-        dbg!("chunk_mut {:?}", dst.len());
-
         let dst = unsafe { &mut *(dst as *mut _ as *mut [MaybeUninit<u8>]) };
         let mut buf = ReadBuf::uninit(dst);
         let ptr = buf.filled().as_ptr();
 
-        dbg!("Reading into {:?}", buf.initialized_mut().len());
         ready!(io.poll_read(cx, buf.initialized_mut())?);
 
         // Ensure the pointer does not change from under us
@@ -389,6 +386,16 @@ where
     }
 }
 
+impl<T> Connection<T, gio::IOStreamAsyncReadWrite<gio::SocketConnection>>
+where
+    T: for<'de> Deserialize<'de> + Serialize
+{
+    pub fn close(&self) -> Result<(), glib::error::Error>{
+        self.connection.io_stream().clear_pending();
+        self.connection.io_stream().close(None::<&gio::Cancellable>)
+    }
+}
+
 impl<T, S> Sink<T> for Connection<T, S>
 where
     T: for<'de> Deserialize<'de> + Serialize + Sized,
@@ -397,16 +404,12 @@ where
     type Error = std::io::Error;
 
     fn poll_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        dbg!("poll_ready");
-
         let this = self.project();
         let connection: Pin<&mut S> = this.connection;
         connection.poll_flush(cx)
     }
 
     fn start_send(self: Pin<&mut Self>, item: T) -> Result<(), Self::Error> {
-        dbg!("start_send");
-
         let this = self.project();
         let remaining = this.write_buffer.capacity() - this.write_buffer.len();
         if remaining < LW {
@@ -419,18 +422,15 @@ where
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        dbg!("poll_flush");
         let mut this = self.project();
 
         while !this.write_buffer.is_empty() {
-            dbg!("writing; remaining={}", this.write_buffer.len());
-
             let n = ready!(this.connection.as_mut().poll_write(cx, this.write_buffer))?;
 
             if n == 0 {
                 return Poll::Ready(Err(io::Error::new(
                     io::ErrorKind::WriteZero,
-                    "failed to write frame to transport",
+                    "failed to write buffer to socket",
                 )));
             }
 
@@ -440,13 +440,10 @@ where
 
         // Try flushing the underlying IO
         ready!(this.connection.as_mut().poll_flush(cx))?;
-
-        dbg!("transport flushed");
         Poll::Ready(Ok(()))
     }
 
     fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        dbg!("poll_close");
         let this = self.project();
         let connection: Pin<&mut S> = this.connection;
         connection.poll_close(cx)
@@ -461,8 +458,6 @@ where
     type Item = T;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        dbg!("poll_next");
-
         let this = self.project();
         let connection: Pin<&mut S> = this.connection;
 
@@ -471,19 +466,15 @@ where
         }
 
         let res = connection.poll_read(cx, this.read_buffer);
-        dbg!("Received bytes, {:?}", &res);
 
         match res {
             Poll::Ready(result) => {
                 if let Ok(num) = result {
-                    dbg!("Received bytes, {:?}", &num);
-
                     if num == 0 {
                         return Poll::Pending;
                     }
 
                     //TODO: test if result is ok and contains correct num bytes
-                    dbg!("Deserialize buffer, {:?}", &this.read_buffer);
                     let val = bincode::deserialize::<T>(this.read_buffer).unwrap();
                     this.read_buffer.advance(num);
 
@@ -580,7 +571,7 @@ mod tests {
 
         let data = b"some bytes";
         let write_buffer = BytesMut::from_iter(data.iter());
-        dbg!("buffer size: {:?}", write_buffer.len());
+
         local_ostream
             .write_all(&write_buffer, None::<&gio::Cancellable>)
             .unwrap();

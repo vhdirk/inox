@@ -152,9 +152,6 @@ impl WebViewExtension {
 
     pub fn on_document_loaded(&self, page: &webkit2gtk_webextension::WebPage) {
         if let Some(height) = self.preferred_height(page) {
-            dbg!("got height: {}", height);
-
-            dbg!("Sending height: {}", height);
 
             let this = self.clone();
             let ctx = glib::MainContext::default();

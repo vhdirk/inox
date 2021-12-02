@@ -39,32 +39,12 @@ glib::wrapper! {
     pub struct MessageWebView(ObjectSubclass<imp::MessageWebView>)
         @extends WebView, gtk::Widget;
 }
-// pub async fn receive_extension_messages(wv: web_view_imp::WebView) -> Result<(),()> {
-//     wv.receive_extension_messages().await
-// }
 
-// MessageWebView implementation itself
 impl MessageWebView {
     pub fn new(sender: Sender<Action>) -> Self {
         let obj: Self = glib::Object::new(&[]).expect("Failed to create MessageWebView");
         obj
     }
-
-
-
-    // fn load_changed(&mut self, event: webkit2gtk::LoadEvent) {
-    //     info!("MessageWebView: load changed: {:?}", event);
-    //     let imp = imp::MessageWebView::from_instance(self);
-
-    //     match event {
-    //         webkit2gtk::LoadEvent::Finished => {
-    //             if imp.page_client.is_ready() {
-    //                 self.ready_to_render();
-    //             }
-    //         }
-    //         _ => (),
-    //     }
-    // }
 
     pub fn load_html(&self, body: &str) {
         info!("render: loading html..");

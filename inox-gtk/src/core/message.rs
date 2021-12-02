@@ -91,7 +91,6 @@ impl Message {
             text_format = TextFormat::Html;
         }
 
-        dbg!("message body: {:?}", &body);
         // } catch (Error e) {
         //     try {
         //         format = TextFormat::HTML;

@@ -13,15 +13,10 @@ use std::cell::RefCell;
 pub struct MessagesView {
     pub list_box: gtk::ListBox,
     pub rows: RefCell<Vec<BaseRow>>,
-    // pub column_view: gtk::ColumnView,
-    // pub model: gio::ListStore,
-    // pub filter: gtk::TreeModelFilter,
-    // idle_handle: RefCell<Option<glib::SourceId>>,
-    // thread_list: RefCell<Option<Threads>>,
-
-    // num_threads: u32,
-    // num_threads_loaded: u32
+    pub thread: OnceCell<notmuch::Thread>,
     pub sender: OnceCell<Sender<Action>>,
+
+    pub row_activated_handler_id: RefCell<Option<glib::SignalHandlerId>>,
 }
 
 #[glib::object_subclass]
@@ -34,7 +29,9 @@ impl ObjectSubclass for MessagesView {
         Self {
             list_box: gtk::ListBox::new(),
             rows: RefCell::new(vec![]),
+            thread: OnceCell::new(),
             sender: OnceCell::new(),
+            row_activated_handler_id: RefCell::new(None),
         }
     }
 
@@ -48,14 +45,18 @@ impl ObjectImpl for MessagesView {
         self.list_box.set_parent(obj);
         self.parent_constructed(obj);
 
-        self.list_box
+        self.row_activated_handler_id.replace(Some(self.list_box
             .connect_row_activated(clone!(@weak obj => move |list_box, row| {
                 let this = MessagesView::from_instance(&obj);
                 this.on_row_activated(list_box, row)
-            }));
+            }))));
     }
 
     fn dispose(&self, _obj: &Self::Type) {
+        if let Some(id) = self.row_activated_handler_id.borrow_mut().take() {
+            self.list_box.disconnect(id);
+        }
+
         let mut rows = self.rows.borrow_mut();
         for row in rows.iter() {
             row.unparent();

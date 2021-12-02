@@ -393,8 +393,6 @@ impl MessageView {
             None
         };
 
-        dbg!("Body text: {:?}", &body_text);
-
         // load_cancelled.cancelled.connect(() => { web_view.stop_loading(); });
         self.web_view
             .get()

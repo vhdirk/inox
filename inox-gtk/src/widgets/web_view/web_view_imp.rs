@@ -47,17 +47,13 @@ const INTERNAL_URL_PREFIX: &str = "inox:";
 // TODO: create from INTERNAL_URL_PREFIX
 const INTERNAL_URL_BODY: &str = "inox:body";
 
-const SOCKET_PATH: &str = "/tmp/inox-gtk-webview-socket";
-
 fn initialize_web_extension(
     ctx: &webkit2gtk::WebContext,
 ) -> Result<Connection<WebViewMessage, gio::IOStreamAsyncReadWrite<gio::SocketConnection>>, Error> {
-    // ) -> Result<String, Error> {
     info!("initialize_web_extension");
     let cur_exe = std::env::current_exe().unwrap();
     let exe_dir = cur_exe.parent().unwrap();
     let extdir = exe_dir.to_string_lossy();
-    info!("cur_exe: {:?}", extdir);
 
     info!("setting web extensions directory: {:?}", extdir);
     ctx.set_web_extensions_directory(&extdir);
@@ -71,28 +67,8 @@ fn initialize_web_extension(
     .unwrap();
 
     let socket = unsafe { gio::Socket::from_fd(RawFdWrap::from_raw_fd(local)) }.unwrap();
-
-    let connection = connection::<WebViewMessage>(socket.clone());
-
     ctx.set_web_extensions_initialization_user_data(&remote.to_variant());
-
-    connection
-
-    // // this only allows one webview per process, but makes cleanup easier. Good enough for now.
-    // let socket_path = format!("{}-{}", SOCKET_PATH, process::id());
-    // let socket = Path::new(&socket_path);
-
-    // // Delete old socket if necessary
-    // if socket.exists() {
-    //     fs::remove_file(&socket).unwrap();
-    // }
-
-    // ctx.set_web_extensions_initialization_user_data(&socket_path.to_variant());
-
-    // // bind but don't do anything with the socket
-    // // UnixListener::bind(&socket)
-
-    // Ok(socket_path)
+    connection::<WebViewMessage>(socket.clone())
 }
 
 #[repr(C)]
@@ -120,9 +96,10 @@ pub struct WebView {
     pub settings: webkit2gtk::Settings,
     pub connection:
         RefCell<Connection<WebViewMessage, gio::IOStreamAsyncReadWrite<gio::SocketConnection>>>,
-    // pub socket_path: String,
-    // pub connection: RefCell<Option<Connection<WebViewMessage, UnixStream>>>,
     pub theme: WebViewTheme,
+
+    pub load_changed_handler_id: RefCell<Option<glib::SignalHandlerId>>,
+    pub decide_policy_handler_id: RefCell<Option<glib::SignalHandlerId>>,
 }
 
 #[glib::object_subclass]
@@ -138,7 +115,6 @@ impl ObjectSubclass for WebView {
             .web_context(&web_context)
             .user_content_manager(&webkit2gtk::UserContentManager::new())
             .build();
-        // let socket_path = initialize_web_extension(&web_context).unwrap();
         let connection = initialize_web_extension(&web_context);
 
         let settings = WebKitWebViewExt::settings(&web_view).unwrap();
@@ -148,9 +124,10 @@ impl ObjectSubclass for WebView {
             web_context,
             settings,
             connection: RefCell::new(connection.unwrap()),
-            // socket_path,
-            // connection: RefCell::new(None),
             theme: WebViewTheme::default(),
+
+            load_changed_handler_id: RefCell::new(None),
+            decide_policy_handler_id: RefCell::new(None),
         }
     }
 
@@ -163,7 +140,7 @@ impl ObjectSubclass for WebView {
 
 impl ObjectImpl for WebView {
     fn constructed(&self, obj: &Self::Type) {
-        // Start socket stuff first?
+        // We're nog sure when the extension is loaded, so start the receiver ASAP.
         self.init_extension_message_receiver();
 
         self.web_view.set_parent(obj);
@@ -204,6 +181,15 @@ impl ObjectImpl for WebView {
 
     fn dispose(&self, _obj: &Self::Type) {
         self.web_view.unparent();
+        self.connection.borrow().close();
+
+        if let Some(id) = self.load_changed_handler_id.borrow_mut().take() {
+            self.web_view.disconnect(id);
+        }
+
+        if let Some(id) = self.decide_policy_handler_id.borrow_mut().take() {
+            self.web_view.disconnect(id);
+        }
     }
 }
 impl WidgetImpl for WebView {}
@@ -211,47 +197,21 @@ impl WidgetImpl for WebView {}
 impl WebView {
     pub fn init_extension_message_receiver(&self) {
         let inst = self.instance().clone();
-
         let ctx = glib::MainContext::default();
-
         ctx.with_thread_default(move || {
             let ctx = glib::MainContext::default();
 
             ctx.spawn_local(async move {
                 let this = Self::from_instance(&inst);
 
-                // let listener = UnixListener::bind(&this.socket_path).await.unwrap();
-                // let (socket, _addr) = listener.accept().await.unwrap();
-
-                // let connection = Connection::new(socket);
-                // this.connection.replace(Some(connection));
-
-                let res = this.receive_extension_messages().await;
-                debug!("receive_extension_messages result");
-                // TODO: do something with this result...
+                while let Some(msg) = this.connection.borrow_mut().next().await {
+                    this.process_extension_message(&msg);
+                }
             });
         });
     }
 
-    pub async fn receive_extension_messages(&self) -> Result<(), ()> {
-        dbg!("waiting for messages");
-
-        loop {
-            dbg!("waiting for message");
-
-            let msg = self.connection.borrow_mut().next().await;
-            if let Some(msg) = msg {
-                self.process_message(&msg);
-            } else {
-                break;
-            }
-        }
-
-        dbg!("stopped waiting for messages");
-        Ok(())
-    }
-
-    pub fn process_message(&self, msg: &WebViewMessage) {
+    pub fn process_extension_message(&self, msg: &WebViewMessage) {
         dbg!("Received extension message: {:?}", msg);
         match msg {
             WebViewMessage::PreferredHeight(height) => {
@@ -275,29 +235,27 @@ impl WebView {
 
     pub fn setup_signals(&self) {
         let inst = self.instance().clone();
-        self.web_view.connect_load_changed(move |_, event| {
-            let this = Self::from_instance(&inst);
-            this.load_changed(event);
-        });
+        self.load_changed_handler_id
+            .replace(Some(self.web_view.connect_load_changed(move |_, event| {
+                let this = Self::from_instance(&inst);
+                this.load_changed(event);
+            })));
 
         let inst = self.instance().clone();
-        self.web_view
-            .connect_decide_policy(move |_, decision, decision_type| {
-                let this = Self::from_instance(&inst);
-                this.decide_policy(decision, decision_type)
-            });
+        self.decide_policy_handler_id
+            .replace(Some(self.web_view.connect_decide_policy(
+                move |_, decision, decision_type| {
+                    let this = Self::from_instance(&inst);
+                    this.decide_policy(decision, decision_type)
+                },
+            )));
     }
 
     pub fn load_changed(&self, event: webkit2gtk::LoadEvent) {
         info!("WebView: load changed: {:?}", event);
 
         match event {
-            webkit2gtk::LoadEvent::Finished => {
-                // self.init_extension_message_receiver();
-                // if imp.client.is_ready() {
-                //     self.ready_to_render();
-                // }
-            }
+            webkit2gtk::LoadEvent::Finished => {}
             _ => (),
         }
     }

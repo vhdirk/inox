@@ -31,8 +31,6 @@ impl<O: IsA<BaseRow>> BaseRowExt for O {
 
 pub trait BaseRowImpl: ListBoxRowImpl + ObjectImpl + 'static {
     fn expand(&self, obj: &BaseRow) {
-        dbg!("BaseRowImpl expand");
-
         self.parent_expand(obj)
     }
 

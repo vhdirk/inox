@@ -26,6 +26,10 @@ impl MessagesView {
         imp.sender
             .set(sender)
             .expect("Failed to set sender on MessagesView");
+        imp.thread
+            .set(thread.clone())
+            .expect("Failed to set thread on MessagesView");
+
         view.set_vexpand(true);
         view.set_hexpand(true);
         view.load_messages(thread);
