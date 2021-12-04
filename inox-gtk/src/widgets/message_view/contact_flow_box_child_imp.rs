@@ -1,23 +1,26 @@
 
+use crate::core::internet_address::InternetAddressAux;
+use gmime::InternetAddressExt;
+use glib::Sender;
+use crate::core::Action;
+use once_cell::sync::OnceCell;
+use gtk;
+use gtk::prelude::*;
 use glib::subclass::prelude::*;
 use gtk::subclass::prelude::*;
-use gtk;
+use pango;
+use gmime;
 
-#[derive(Debug)]
-pub enum AddressType { From, Other }
-
-impl Default for AddressType {
-    fn default() -> Self {
-        AddressType::Other
-    }
-}
 
 #[derive(Debug, Default)]
 pub struct ContactFlowBoxChild {
-    pub address_type: AddressType,
-    pub contact: String,
+    pub sender: OnceCell<Sender<Action>>,
+    pub address: OnceCell<gmime::InternetAddress>,
+    pub address_type: OnceCell<gmime::AddressType>,
     pub displayed: String,
-    pub source: String
+    pub source: String,
+
+    pub address_parts: gtk::Grid
 }
 
 
@@ -34,15 +37,19 @@ impl ObjectImpl for ContactFlowBoxChild {
     fn constructed(&self, obj: &Self::Type) {
         self.parent_constructed(obj);
 
+        self.address_parts.set_parent(obj);
+
     }
 
     fn dispose(&self, obj: &Self::Type) {
+        self.address_parts.unparent();
     }
 }
 impl WidgetImpl for ContactFlowBoxChild {}
 
 impl FlowBoxChildImpl for ContactFlowBoxChild {}
 
+impl ContactFlowBoxChild {
 
     // // Widget used to display sender/recipient email addresses in
     // // message header Gtk.FlowBox instances.
@@ -57,7 +64,7 @@ impl FlowBoxChildImpl for ContactFlowBoxChild {}
 
     //     public Type address_type { get; private set; }
 
-    //     public Application.Contact contact { get; private set; }
+    //     public Application.address address { get; private set; }
 
     //     public Geary.RFC822.MailboxAddress displayed { get; private set; }
     //     public Geary.RFC822.MailboxAddress source { get; private set; }
@@ -67,10 +74,10 @@ impl FlowBoxChildImpl for ContactFlowBoxChild {}
     //     private Gtk.Bin container;
 
 
-    //     public ContactFlowBoxChild(Application.Contact contact,
+    //     public ContactFlowBoxChild(Application.address address,
     //                                Geary.RFC822.MailboxAddress source,
     //                                Type address_type = Type.OTHER) {
-    //         this.contact = contact;
+    //         this.address = address;
     //         this.source = source;
     //         this.address_type = address_type;
     //         this.search_value = source.to_searchable_string().casefold();
@@ -89,12 +96,12 @@ impl FlowBoxChildImpl for ContactFlowBoxChild {}
     //         this.container = events;
     //         set_halign(Gtk.Align.START);
 
-    //         this.contact.changed.connect(on_contact_changed);
+    //         this.address.changed.connect(on_contact_changed);
     //         update();
     //     }
 
     //     public override void destroy() {
-    //         this.contact.changed.disconnect(on_contact_changed);
+    //         this.address.changed.disconnect(on_contact_changed);
     //         base.destroy();
     //     }
 
@@ -112,69 +119,73 @@ impl FlowBoxChildImpl for ContactFlowBoxChild {}
     //         get_style_context().remove_class(MATCH_CLASS);
     //     }
 
-    //     private void update() {
-    //         // We use two GTK.Label instances here when address has
-    //         // distinct parts so we can dim the secondary part, if
-    //         // any. Ideally, it would be just one label instance in
-    //         // both cases, but we can't yet include CSS classes in
-    //         // Pango markup. See Bug 766763.
+    pub fn update(&self) {
+        let inst = self.instance();
+        // We use two GTK.Label instances here when address has
+        // distinct parts so we can dim the secondary part, if
+        // any. Ideally, it would be just one label instance in
+        // both cases, but we can't yet include CSS classes in
+        // Pango markup. See Bug 766763.
+        let address = self.address.get().expect("address should be set");
+        let address_type = self.address_type.get().expect("Address_type should be set");
 
-    //         Gtk.Grid address_parts = new Gtk.Grid();
+        if address.is_spoofed() {
+            let spoof_img = gtk::Image::from_icon_name(
+                Some("dialog-warning-symbolic")
+            );
+            inst.set_tooltip_text(
+                Some("This email address may have been forged")
+            );
+            self.address_parts.attach(&spoof_img, 0, 0, 1, 1);
 
-    //         bool is_spoofed = this.source.is_spoofed();
-    //         if (is_spoofed) {
-    //             Gtk.Image spoof_img = new Gtk.Image.from_icon_name(
-    //                 "dialog-warning-symbolic", Gtk.IconSize.SMALL_TOOLBAR
-    //             );
-    //             this.set_tooltip_text(
-    //                 _("This email address may have been forged")
-    //             );
-    //             address_parts.add(spoof_img);
-    //             get_style_context().add_class(SPOOF_CLASS);
-    //         }
+            // get_style_context().add_class(SPOOF_CLASS);
+        }
 
-    //         Gtk.Label primary = new Gtk.Label(null);
-    //         primary.ellipsize = Pango.EllipsizeMode.END;
-    //         primary.set_halign(Gtk.Align.START);
-    //         primary.get_style_context().add_class(PRIMARY_CLASS);
-    //         if (this.address_type == Type.FROM) {
-    //             primary.get_style_context().add_class(FROM_CLASS);
-    //         }
-    //         address_parts.add(primary);
+        let primary = gtk::Label::new(None);
+        primary.set_ellipsize(pango::EllipsizeMode::End);
+        primary.set_xalign(0.0);
+        // primary.get_style_context().add_class(PRIMARY_CLASS);
+        if (gmime::AddressType::From.eq(address_type)) {
+            // primary.style_context().add_class(FROM_CLASS);
+        }
+        self.address_parts.attach(&primary, 1, 0, 1, 1);
 
-    //         string display_address = this.source.to_address_display("", "");
+        // let display_address = this.source.to_address_display("", "");
 
-    //         if (is_spoofed || this.contact.display_name_is_email) {
+    //         if (is_spoofed || this.address.display_name_is_email) {
     //             // Don't display the name to avoid duplication and/or
     //             // reduce the chance of the user of being tricked by
     //             // malware.
     //             primary.set_text(display_address);
     //             // Use the source as the displayed address so that the
-    //             // contact popover uses the spoofed mailbox and
+    //             // address popover uses the spoofed mailbox and
     //             // displays it as being spoofed.
     //             this.displayed = this.source;
-    //         } else if (this.contact.is_trusted) {
-    //             // The contact's name can be trusted, so no need to
+    //         } else if (this.address.is_trusted) {
+    //             // The address's name can be trusted, so no need to
     //             // display the email address
-    //             primary.set_text(this.contact.display_name);
+    //             primary.set_text(this.address.display_name);
     //             this.displayed = new Geary.RFC822.MailboxAddress(
-    //                 this.contact.display_name, this.source.address
+    //                 this.address.display_name, this.source.address
     //             );
     //             this.tooltip_text = this.source.address;
     //         } else {
     //             // Display both the display name and the email address
     //             // so that the user has the full information at hand
-    //             primary.set_text(this.contact.display_name);
+
+        dbg!(&address.name().unwrap());
+        primary.set_text(&address.name().unwrap());
     //             this.displayed = new Geary.RFC822.MailboxAddress(
-    //                 this.contact.display_name, this.source.address
+    //                 this.address.display_name, this.source.address
     //             );
 
-    //             Gtk.Label secondary = new Gtk.Label(null);
-    //             secondary.ellipsize = Pango.EllipsizeMode.END;
-    //             secondary.set_halign(Gtk.Align.START);
+        let secondary = gtk::Label::new(None);
+        secondary.set_ellipsize(pango::EllipsizeMode::End);
+        secondary.set_xalign(0.0);
     //             secondary.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL);
-    //             secondary.set_text(display_address);
-    //             address_parts.add(secondary);
+        // secondary.set_text(display_address);
+        self.address_parts.attach(&secondary, 2, 0, 1, 1);
+
     //         }
 
     //         Gtk.Widget? existing_ui = this.container.get_child();
@@ -182,9 +193,8 @@ impl FlowBoxChildImpl for ContactFlowBoxChild {}
     //             this.container.remove(existing_ui);
     //         }
 
-    //         this.container.add(address_parts);
-    //         show_all();
-    //     }
+        self.address_parts.show();
+    }
 
     //     private void on_contact_changed() {
     //         update();
@@ -200,6 +210,4 @@ impl FlowBoxChildImpl for ContactFlowBoxChild {}
     //         return Gdk.EVENT_STOP;
     //     }
 
-    // }
-
-    // /**
+}

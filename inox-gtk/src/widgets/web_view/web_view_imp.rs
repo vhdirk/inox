@@ -5,26 +5,25 @@ use futures::{
     AsyncReadExt, AsyncWriteExt, FutureExt, Sink, Stream, StreamExt, TryFuture, TryFutureExt,
     TryStream, TryStreamExt,
 };
-use nix::unistd::dup;
-use std::cell::RefCell;
-use std::fs;
-use std::rc::Rc;
-
 use log::*;
 use nix::sys::socket::{socketpair, AddressFamily, SockFlag, SockType};
+use nix::unistd::dup;
+use once_cell::sync::Lazy;
 use once_cell::unsync::OnceCell;
+use std::cell::RefCell;
+use std::fs;
+use std::os::unix::io::FromRawFd;
+use std::path::Path;
 use std::process;
+use std::rc::Rc;
 
 use gio::subclass::prelude::*;
 use glib::subclass::prelude::*;
-use glib::Sender;
+use glib::subclass::Signal;
+use glib::{clone, Sender};
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::subclass::widget::WidgetClassSubclassExt;
-use ipc_channel::asynch::IpcStream;
-use ipc_channel::ipc::{self, IpcOneShotServer, IpcReceiver, IpcSender};
-use std::os::unix::io::FromRawFd;
-use std::path::Path;
 use webkit2gtk;
 use webkit2gtk::traits::{
     NavigationPolicyDecisionExt, PolicyDecisionExt, SettingsExt, URIRequestExt, WebContextExt,
@@ -139,6 +138,21 @@ impl ObjectSubclass for WebView {
 }
 
 impl ObjectImpl for WebView {
+    fn signals() -> &'static [Signal] {
+        static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
+            vec![Signal::builder(
+                // Signal name
+                "content-loaded",
+                // Types of the values which will be sent to the signal handler
+                &[],
+                // Type of the value the signal handler sends back
+                <()>::static_type().into(),
+            )
+            .build()]
+        });
+        SIGNALS.as_ref()
+    }
+
     fn constructed(&self, obj: &Self::Type) {
         // We're nog sure when the extension is loaded, so start the receiver ASAP.
         self.init_extension_message_receiver();
@@ -196,26 +210,31 @@ impl WidgetImpl for WebView {}
 
 impl WebView {
     pub fn init_extension_message_receiver(&self) {
-        let inst = self.instance().clone();
+        let inst = self.instance();
         let ctx = glib::MainContext::default();
-        ctx.with_thread_default(move || {
+        ctx.with_thread_default(clone!(@weak inst => move || {
             let ctx = glib::MainContext::default();
 
-            ctx.spawn_local(async move {
+            ctx.spawn_local(clone!(@weak inst => async move {
                 let this = Self::from_instance(&inst);
 
                 while let Some(msg) = this.connection.borrow_mut().next().await {
                     this.process_extension_message(&msg);
                 }
-            });
-        });
+            }));
+        }));
     }
 
     pub fn process_extension_message(&self, msg: &WebViewMessage) {
-        dbg!("Received extension message: {:?}", msg);
+        dbg!("Process extension message: {:?}", msg);
+        let inst = self.instance();
         match msg {
-            WebViewMessage::PreferredHeight(height) => {
+            WebViewMessage::PreferredHeightChanged(height) => {
                 self.set_preferred_height(*height);
+            }
+            WebViewMessage::ContentLoaded => {
+                dbg!("Emit Content loaded");
+                inst.emit_by_name::<()>("content-loaded", &[]);
             }
             _ => {}
         };

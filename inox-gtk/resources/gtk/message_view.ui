@@ -212,7 +212,7 @@
                                 <property name="hexpand">1</property>
                                 <child>
                                   <object class="GtkFlowBox" id="from">
-                                    <property name="valign">baseline</property>
+                                    <property name="valign">start</property>
                                     <property name="hexpand">1</property>
                                     <property name="column_spacing">2</property>
                                     <property name="max_children_per_line">4</property>

@@ -160,7 +160,12 @@ impl WebViewExtension {
                 ctx.spawn_local(async move {
                     this.connection
                         .borrow_mut()
-                        .send(WebViewMessage::PreferredHeight(height))
+                        .send(WebViewMessage::PreferredHeightChanged(height))
+                        .await;
+
+                    this.connection
+                        .borrow_mut()
+                        .send(WebViewMessage::ContentLoaded)
                         .await;
                     ()
                 });

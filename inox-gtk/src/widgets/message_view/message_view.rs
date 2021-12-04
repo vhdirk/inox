@@ -31,8 +31,8 @@ impl MessageView {
             .set(message.clone())
             .expect("Failed to set message on MessageView");
 
+        imp.init();
         imp.update_display();
-
         view
     }
 
