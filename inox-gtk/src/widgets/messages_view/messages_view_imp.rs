@@ -1,5 +1,6 @@
 use crate::core::Action;
 use crate::widgets::message_row::BaseRowExt;
+use crate::widgets::MessageRow;
 use crate::widgets::BaseRow;
 use glib::subclass::prelude::*;
 use glib::{clone, Sender};
@@ -84,4 +85,24 @@ impl MessagesView {
             }
         }
     }
+
+    pub fn init(&self) {
+        if let Some(thread) = self.thread.get().as_ref() {
+           let messages = thread.messages();
+            for message in messages {
+                self.add_message(&message);
+            }
+        }
+
+    }
+
+    pub fn add_message(&self, message: &notmuch::Message) {
+        let message_row = MessageRow::new(message, self.sender.get().unwrap().clone());
+        self.list_box.append(&message_row);
+        self.rows
+            .borrow_mut()
+            .push(message_row.upcast::<BaseRow>());
+    }
+
+
 }

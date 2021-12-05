@@ -38,6 +38,7 @@ impl ObjectImpl for ContactFlowBoxChild {
         self.parent_constructed(obj);
 
         self.address_parts.set_parent(obj);
+        obj.set_halign(gtk::Align::Start);
 
     }
 
@@ -127,7 +128,7 @@ impl ContactFlowBoxChild {
         // both cases, but we can't yet include CSS classes in
         // Pango markup. See Bug 766763.
         let address = self.address.get().expect("address should be set");
-        let address_type = self.address_type.get().expect("Address_type should be set");
+        let address_type = self.address_type.get().expect("address_type should be set");
 
         if address.is_spoofed() {
             let spoof_img = gtk::Image::from_icon_name(
@@ -182,7 +183,7 @@ impl ContactFlowBoxChild {
         let secondary = gtk::Label::new(None);
         secondary.set_ellipsize(pango::EllipsizeMode::End);
         secondary.set_xalign(0.0);
-    //             secondary.get_style_context().add_class(Gtk.STYLE_CLASS_DIM_LABEL);
+        // secondary.style_context().add_class(gtk::STYLE_CLASS_DIM_LABEL);
         // secondary.set_text(display_address);
         self.address_parts.attach(&secondary, 2, 0, 1, 1);
 

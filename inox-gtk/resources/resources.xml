@@ -7,7 +7,8 @@
     <file compressed="true" preprocess="xml-stripblanks">gtk/menus.ui</file>
     <file compressed="true" preprocess="xml-stripblanks">gtk/message_view.ui</file>
 
-
+    <file compressed="true">inox.css</file>
+    <file compressed="true">html/inox-web-view.css</file>
 
     <file compressed="true">html/thread_view.html</file>
     <file compressed="true">html/thread_view.css</file>

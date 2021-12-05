@@ -22,16 +22,7 @@ impl MessageView {
         let view: Self = glib::Object::new(&[]).expect("Failed to create MessageView");
         let imp = imp::MessageView::from_instance(&view);
 
-        imp.sender
-            .set(sender)
-            .expect("Failed to set sender on MessageView");
-
-        let message = Message::new(message).unwrap();
-        imp.message
-            .set(message.clone())
-            .expect("Failed to set message on MessageView");
-
-        imp.init();
+        imp.init(message, sender);
         imp.update_display();
         view
     }

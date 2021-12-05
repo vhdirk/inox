@@ -32,6 +32,11 @@ use notmuch;
 const MAX_PREVIEW_BYTES: usize = 128;
 const UTF8_CHARSET: &str = "UTF-8";
 
+// TODO: get from settings
+const TAG_UNREAD: &str = "unread";
+const TAG_ATTACHMENT: &str = "attachment";
+
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum TextFormat {
     Plain,
@@ -77,6 +82,18 @@ impl Message {
         })
     }
 
+    pub fn has_tag(&self, tag: &str) -> bool {
+        self.notmuch_message.tags().collect::<Vec<String>>().contains(&tag.to_string())
+    }
+
+    pub fn is_unread(&self) -> bool {
+        self.has_tag(TAG_UNREAD)
+    }
+
+    pub fn has_attachment(&self) -> bool {
+        self.has_tag(TAG_ATTACHMENT)
+    }
+
     /**
      * Generates a preview from the email's message body.
      *
@@ -90,16 +107,6 @@ impl Message {
             body = self.html_body();
             text_format = TextFormat::Html;
         }
-
-        // } catch (Error e) {
-        //     try {
-        //         format = TextFormat::HTML;
-        //         preview = get_html_body(null);
-        //     } catch (Error error) {
-        //         debug("Could not generate message preview: %s\n and: %s",
-        //               e.message, error.message);
-        //     }
-        // }
 
         if body.is_none() {
             return "".to_string();
@@ -116,22 +123,28 @@ impl Message {
 
     // TODO: should return error when no html body present
     pub fn plain_body(&self, convert_to_html: bool) -> Option<String> {
-        self.construct_body_from_mime_parts(
+        let body = self.construct_body_from_mime_parts(
             &self.gmime_message.mime_part().unwrap(),
             MultipartSubtype::Unspecified,
             "plain",
             convert_to_html,
-        )
+        );
+
+        dbg!(&body);
+        body
     }
 
     // TODO: should return error when no html body present
     pub fn html_body(&self) -> Option<String> {
-        self.construct_body_from_mime_parts(
+        let body = self.construct_body_from_mime_parts(
             &self.gmime_message.mime_part().unwrap(),
             MultipartSubtype::Unspecified,
             "html",
             false,
-        )
+        );
+
+        dbg!(&body);
+        body
     }
 
     pub fn date(&self) -> DateTime<Utc> {
@@ -141,25 +154,28 @@ impl Message {
     }
 
     fn has_body_parts(&self, node: &gmime::Object, text_subtype: &str) -> bool {
+        dbg!("Has body parts", node, text_subtype);
+        dbg!("node mime", node.content_type(), node.content_type().unwrap().mime_type());
         if let Some(multipart) = node.downcast_ref::<gmime::Multipart>() {
             let count = multipart.count();
+            dbg!("Multipart count", count);
             for i in 0..count {
                 let is_matching_part =
                     self.has_body_parts(&multipart.part(i).unwrap(), text_subtype);
+
+                dbg!("is_matching_part", is_matching_part);
 
                 if is_matching_part {
                     return true;
                 }
             }
         } else if let Some(part) = node.downcast_ref::<gmime::Part>() {
-            if let Some(content_disposition) = part.content_disposition() {
-                if let Some(disposition) = content_disposition.disposition() {
-                    if let Some(content_type) = part.content_type() {
-                        return disposition != "attachment"
-                            && content_type.is_type("text", text_subtype);
-                    }
-                }
+            dbg!("part mime", part.content_type(), part.content_type().unwrap().mime_type(), self.gmime_message.body());
 
+            let disposition = part.content_disposition().and_then(|d| d.disposition());
+            if let Some(content_type) = part.content_type() {
+                return (disposition.is_none() || disposition.unwrap() != "attachment")
+                    && content_type.is_type("text", text_subtype);
             }
         }
         false
@@ -283,6 +299,7 @@ impl Message {
         //     );
         // }
 
+        dbg!("Write to stream", content_type.mime_type());
         if content_type.is_type("text", "*") {
             let filter = gmime::StreamFilter::new(stream);
 

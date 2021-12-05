@@ -1,5 +1,7 @@
 use crate::core::Action;
 use crate::widgets::MainWindow;
+use gdk::{self, prelude::*};
+use gio::{self, prelude::*};
 use glib::{subclass::prelude::*, Receiver, Sender, WeakRef};
 use gtk::{self, prelude::*, subclass::prelude::*};
 use inox_core::settings::Settings;
@@ -51,16 +53,25 @@ impl GtkApplicationImpl for InoxApplication {}
 
 // Implement Gio.Application for InoxApplication
 impl ApplicationImpl for InoxApplication {
-    // fn startup(&self, app: &Self::Type) {
-    //     self.parent_startup(app);
+    fn startup(&self, app: &Self::Type) {
+        // Load Inox GTK CSS
+        let css_provider = gtk::CssProvider::new();
+        gtk::StyleContext::add_provider_for_display(
+            &gdk::Display::default().unwrap(),
+            &css_provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+        self.load_css(&css_provider, "resource:///com/github/vhdirk/Inox/inox.css");
 
-    //     let app = app.downcast_ref::<super::InoxApplication>().unwrap();
-    //     let imp = InoxApplication::from_instance(app);
-    //     let window = MainWindow::new(imp.sender.clone(), app.clone());
-    //     imp.window
-    //         .set(window)
-    //         .expect("Failed to initialize application window");
-    // }
+        self.parent_startup(app);
+
+        // let app = app.downcast_ref::<super::InoxApplication>().unwrap();
+        // let imp = InoxApplication::from_instance(app);
+        // let window = MainWindow::new(imp.sender.clone(), app.clone());
+        // imp.window
+        //     .set(window)
+        //     .expect("Failed to initialize application window");
+    }
 
     fn activate(&self, app: &Self::Type) {
         debug!("gio::Application -> activate()");
@@ -99,5 +110,23 @@ impl ApplicationImpl for InoxApplication {
 
         // Small workaround to update every view to the correct sorting/order.
         // send!(self.sender, Action::SettingsKeyChanged(Key::ViewSorting));
+    }
+}
+
+impl InoxApplication {
+    pub fn load_css(&self, css_provider: &gtk::CssProvider, resource_uri: &str) {
+        css_provider.connect_parsing_error(move |provider, section, error| {
+            let start = section.start_location();
+            let end = section.end_location();
+            warn!(
+                "Error parsing {:?}:{:?}-{:?}: {:?}",
+                section.file(),
+                start,
+                end,
+                error.message()
+            );
+        });
+        let file = gio::File::for_uri(resource_uri);
+        css_provider.load_from_file(&file);
     }
 }

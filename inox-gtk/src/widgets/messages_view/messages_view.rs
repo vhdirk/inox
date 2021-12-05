@@ -6,8 +6,7 @@ use glib::Sender;
 use notmuch;
 
 use crate::core::Action;
-use crate::widgets::MessageRow;
-use crate::widgets::BaseRow;
+
 
 use super::messages_view_imp as imp;
 
@@ -32,29 +31,9 @@ impl MessagesView {
 
         view.set_vexpand(true);
         view.set_hexpand(true);
-        view.load_messages(thread);
+
+        imp.init();
+
         view
-    }
-
-    pub fn load_messages(&self, thread: &notmuch::Thread) {
-        let messages = thread.messages();
-        for message in messages {
-            self.add_message(&message);
-        }
-    }
-
-    pub fn add_message(&self, message: &notmuch::Message) {
-        let imp = imp::MessagesView::from_instance(self);
-        let message_row = MessageRow::new(message, imp.sender.get().unwrap().clone());
-        imp.list_box.append(&message_row);
-        imp.rows
-            .borrow_mut()
-            .push(message_row.upcast::<BaseRow>());
-    }
-
-    pub fn clear(&self) {
-        // self.list_box.foreach(|child| {
-        //     self.list_box.remove(&child);
-        // });
     }
 }

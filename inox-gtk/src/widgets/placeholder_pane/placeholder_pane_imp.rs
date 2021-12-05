@@ -22,15 +22,17 @@ pub struct PlaceholderPane {
 
 impl PlaceholderPane {
     pub fn update(&self) {
+        let inst = self.instance();
+
         if self.title_label.get().text().is_empty_or_whitespace() {
             self.title_label.hide();
         }
         if self.subtitle_label.get().text().is_empty_or_whitespace() {
             self.subtitle_label.hide();
         }
-        // if (self.title_label.get().is_visible() || self.subtitle_label.get().is_visible()) {
-        //     self.style_context().add_class(CLASS_HAS_TEXT);
-        // }
+        if (self.title_label.get().is_visible() || self.subtitle_label.get().is_visible()) {
+            inst.style_context().add_class(CLASS_HAS_TEXT);
+        }
     }
 }
 

@@ -18,6 +18,11 @@ use gtk::{self, prelude::*, subclass::prelude::*, CompositeTemplate};
 use once_cell::unsync::OnceCell;
 
 const EMPTY_FROM_LABEL: &str = "No sender";
+const SENT_CLASS: &str = "inox-sent";
+const STARRED_CLASS: &str = "inox-starred";
+const UNREAD_CLASS: &str = "inox-unread";
+
+
 
 // TODO: make configurable
 const MARK_READ_TIMEOUT_MSEC: u64 = 250;
@@ -166,19 +171,6 @@ impl ObjectImpl for MessageView {
         self.parent_constructed(obj);
 
         self.body_container.get().set_has_tooltip(true); // Used to show link URLs
-
-        // TODO: should only be launched when email is actually opened
-        dbg!("Starting unread timeout");
-        // mark the message as read if this view is open for `n` seconds
-        self.read_timeout_source_id
-            .replace(Some(glib::source::timeout_add_local_once(
-                std::time::Duration::from_millis(MARK_READ_TIMEOUT_MSEC),
-                clone!(@weak obj => move || {
-                    let this = Self::from_instance(&obj);
-                    this.read_timeout_source_id.replace(None);
-                    this.mark_read();
-                }),
-            )));
     }
 
     fn dispose(&self, obj: &Self::Type) {
@@ -204,7 +196,35 @@ impl ObjectImpl for MessageView {
 impl WidgetImpl for MessageView {}
 
 impl MessageView {
-    pub fn init(&self) {}
+    pub fn init(&self, message: &notmuch::Message, sender: Sender<Action>) {
+
+        self.sender
+            .set(sender)
+            .expect("Failed to set sender on MessageView");
+
+        let message = Message::new(message).unwrap();
+        self.message
+            .set(message)
+            .expect("Failed to set message on MessageView");
+
+
+        let inst = self.instance();
+
+        if self.message.get().unwrap().is_unread(){
+            // TODO: should only be launched when email is actually opened
+            dbg!("Starting unread timeout");
+            // mark the message as read if this view is open for `n` seconds
+            self.read_timeout_source_id
+                .replace(Some(glib::source::timeout_add_local_once(
+                    std::time::Duration::from_millis(MARK_READ_TIMEOUT_MSEC),
+                    clone!(@weak inst => move || {
+                        let this = Self::from_instance(&inst);
+                        this.read_timeout_source_id.replace(None);
+                        this.mark_read();
+                    }),
+                )));
+        }
+    }
 
     pub fn update_display(&self) {
         self.compact_body
@@ -219,9 +239,40 @@ impl MessageView {
 
         self.subject.get().set_text(&self.format_subject());
         self.date.get().set_text(&self.format_date());
+
+        self.update_state();
+    }
+
+    pub fn update_state(&self) {
+        let inst = self.instance();
+        let style = inst.style_context();
+
+        let msg = self.message.get().unwrap();
+
+        if msg.is_unread() {
+            style.add_class(UNREAD_CLASS);
+        } else {
+            style.remove_class(UNREAD_CLASS);
+        }
+
+        // if (msg.is_starred()) {
+        //     style.add_class(STARRED_CLASS);
+        //     self.star_button.hide();
+        //     self.unstar_button.show();
+        // } else {
+        //     style.remove_class(STARRED_CLASS);
+        //     self.star_button.show();
+        //     self.unstar_button.hide();
+        // }
+
+        // update_email_menu();
     }
 
     pub fn fill_originator_addresses(&self) {
+        if !self.address_flowbox_children.borrow().is_empty() {
+           return;
+        }
+
         let msg = self.message.get().unwrap();
 
         // Show any From header addresses
@@ -529,6 +580,8 @@ impl MessageView {
         self.show_placeholder_pane(None);
 
         let body_text = if let Some(msg) = self.message.get() {
+
+            dbg!("has html body?", msg.has_html_body());
             if msg.has_html_body() {
                 msg.html_body(/*inline_image_replacer*/)
             } else {
