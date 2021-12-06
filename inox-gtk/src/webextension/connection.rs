@@ -106,7 +106,7 @@ where
 //         }
 
 //         // TODO: process err
-//         dbg!("Serialize buffer");
+//         debug!("Serialize buffer");
 
 //         *this.buffer = bincode::serialize(&item).unwrap().into();
 //         Ok(())
@@ -115,11 +115,11 @@ where
 //     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
 //         let mut this = self.project();
 
-//         dbg!("flushing framed transport");
+//         debug!("flushing framed transport");
 //         // let writer: Pin<&mut W> = this.writer.as_mut();
 
 //         while !this.buffer.is_empty() {
-//             dbg!("writing; remaining={}", this.buffer.len());
+//             debug!("writing; remaining={}", this.buffer.len());
 
 //             let f = this.writer.as_mut().poll_write(cx, this.buffer);
 //             let n = ready!(f)?;
@@ -138,7 +138,7 @@ where
 //         // Try flushing the underlying IO
 //         ready!(this.writer.as_mut().poll_flush(cx))?;
 
-//         dbg!("transport flushed");
+//         debug!("transport flushed");
 //         Poll::Ready(Ok(()))
 //     }
 
@@ -209,7 +209,7 @@ where
 //     type Error = std::io::Error;
 
 //     fn poll_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-//         dbg!("poll_ready");
+//         debug!("poll_ready");
 
 //         let this = self.project();
 //         let socket: Pin<&mut S> = this.socket;
@@ -217,7 +217,7 @@ where
 //     }
 
 //     fn start_send(self: Pin<&mut Self>, item: T) -> Result<(), Self::Error> {
-//         dbg!("start_send");
+//         debug!("start_send");
 
 //         let this = self.project();
 //         let remaining = this.buffer.capacity() - this.buffer.len();
@@ -231,11 +231,11 @@ where
 //     }
 
 //     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-//         dbg!("poll_flush");
+//         debug!("poll_flush");
 //         let mut this = self.project();
 
 //         while !this.buffer.is_empty() {
-//             dbg!("writing; remaining={}", this.buffer.len());
+//             debug!("writing; remaining={}", this.buffer.len());
 
 //             let n = ready!(this.socket.as_mut().poll_write(cx, this.buffer))?;
 
@@ -253,12 +253,12 @@ where
 //         // Try flushing the underlying IO
 //         ready!(this.socket.as_mut().poll_flush(cx))?;
 
-//         dbg!("transport flushed");
+//         debug!("transport flushed");
 //         Poll::Ready(Ok(()))
 //     }
 
 //     fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-//         dbg!("poll_close");
+//         debug!("poll_close");
 //         let this = self.project();
 //         let socket: Pin<&mut S> = this.socket;
 //         socket.poll_close(cx)
@@ -273,14 +273,14 @@ where
 //     type Item = T;
 
 //     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-//         dbg!("poll_next");
+//         debug!("poll_next");
 
 //         let this = self.project();
 //         let socket: Pin<&mut S> = this.socket;
 
 //         let mut buffer = Vec::with_capacity(4096);
 //         let res = socket.poll_read(cx, &mut buffer);
-//         dbg!("Received bytes, {:?} {:?}", &res, &buffer);
+//         debug!("Received bytes, {:?} {:?}", &res, &buffer);
 
 //         match res {
 //             Poll::Ready(result) => {
@@ -290,7 +290,7 @@ where
 //                     }
 
 //                     //TODO: test if result is ok and contains correct num bytes
-//                     dbg!("Deserialize buffer, {:?}", &buffer);
+//                     debug!("Deserialize buffer, {:?}", &buffer);
 //                     let val = bincode::deserialize::<T>(&buffer).unwrap();
 //                     Poll::Ready(Some(val))
 //                 } else {

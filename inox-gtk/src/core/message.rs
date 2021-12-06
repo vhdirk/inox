@@ -16,6 +16,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 use substring::Substring;
+use log::*;
 
 use chrono::{DateTime, NaiveDateTime};
 
@@ -123,28 +124,22 @@ impl Message {
 
     // TODO: should return error when no html body present
     pub fn plain_body(&self, convert_to_html: bool) -> Option<String> {
-        let body = self.construct_body_from_mime_parts(
+        self.construct_body_from_mime_parts(
             &self.gmime_message.mime_part().unwrap(),
             MultipartSubtype::Unspecified,
             "plain",
             convert_to_html,
-        );
-
-        dbg!(&body);
-        body
+        )
     }
 
     // TODO: should return error when no html body present
     pub fn html_body(&self) -> Option<String> {
-        let body = self.construct_body_from_mime_parts(
+        self.construct_body_from_mime_parts(
             &self.gmime_message.mime_part().unwrap(),
             MultipartSubtype::Unspecified,
             "html",
             false,
-        );
-
-        dbg!(&body);
-        body
+        )
     }
 
     pub fn date(&self) -> DateTime<Utc> {
@@ -154,24 +149,17 @@ impl Message {
     }
 
     fn has_body_parts(&self, node: &gmime::Object, text_subtype: &str) -> bool {
-        dbg!("Has body parts", node, text_subtype);
-        dbg!("node mime", node.content_type(), node.content_type().unwrap().mime_type());
         if let Some(multipart) = node.downcast_ref::<gmime::Multipart>() {
             let count = multipart.count();
-            dbg!("Multipart count", count);
             for i in 0..count {
                 let is_matching_part =
                     self.has_body_parts(&multipart.part(i).unwrap(), text_subtype);
-
-                dbg!("is_matching_part", is_matching_part);
 
                 if is_matching_part {
                     return true;
                 }
             }
         } else if let Some(part) = node.downcast_ref::<gmime::Part>() {
-            dbg!("part mime", part.content_type(), part.content_type().unwrap().mime_type(), self.gmime_message.body());
-
             let disposition = part.content_disposition().and_then(|d| d.disposition());
             if let Some(content_type) = part.content_type() {
                 return (disposition.is_none() || disposition.unwrap() != "attachment")
@@ -299,7 +287,7 @@ impl Message {
         //     );
         // }
 
-        dbg!("Write to stream", content_type.mime_type());
+        debug!("Write to stream: {:?}", content_type.mime_type());
         if content_type.is_type("text", "*") {
             let filter = gmime::StreamFilter::new(stream);
 

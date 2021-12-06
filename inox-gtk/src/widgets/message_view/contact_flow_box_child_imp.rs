@@ -10,6 +10,7 @@ use glib::subclass::prelude::*;
 use gtk::subclass::prelude::*;
 use pango;
 use gmime;
+use log::*;
 
 
 #[derive(Debug, Default)]
@@ -174,7 +175,7 @@ impl ContactFlowBoxChild {
     //             // Display both the display name and the email address
     //             // so that the user has the full information at hand
 
-        dbg!(&address.name().unwrap());
+        debug!("address name: {:?}", &address.name().unwrap());
         primary.set_text(&address.name().unwrap());
     //             this.displayed = new Geary.RFC822.MailboxAddress(
     //                 this.address.display_name, this.source.address

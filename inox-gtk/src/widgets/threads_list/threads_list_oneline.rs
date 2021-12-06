@@ -9,10 +9,14 @@ use log::*;
 use notmuch;
 
 use crate::core::Action;
+// use crate::widgets::thread_list_cell_renderer::CellRendererThread;
 use crate::core::Thread;
 
 use super::threads_list_imp as imp;
 
+const COLUMN_ID: u8 = 0;
+const COLUMN_THREAD: u8 = 1;
+const COLUMN_AUTHORS: u8 = 2;
 
 // Wrap imp::ThreadsList into a usable gtk-rs object
 glib::wrapper! {

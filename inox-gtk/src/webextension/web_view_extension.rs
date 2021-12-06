@@ -176,7 +176,7 @@ impl WebViewExtension {
     pub fn on_page_created(&self, page: &webkit2gtk_webextension::WebPage) {
         let this = self.clone();
         page.connect_document_loaded(move |page| {
-            dbg!("Page {:?} created for {:?}", page.id(), page.uri());
+            debug!("Page {:?} created for {:?}", page.id(), page.uri());
             this.on_document_loaded(page);
         });
 

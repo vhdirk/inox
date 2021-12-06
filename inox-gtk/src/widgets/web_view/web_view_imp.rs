@@ -147,6 +147,14 @@ impl ObjectImpl for WebView {
                 &[],
                 // Type of the value the signal handler sends back
                 <()>::static_type().into(),
+            ).build(),
+            Signal::builder(
+                // Signal name
+                "link-activated",
+                // Types of the values which will be sent to the signal handler
+                &[String::static_type().into()],
+                // Type of the value the signal handler sends back
+                <()>::static_type().into(),
             )
             .build()]
         });
@@ -226,14 +234,14 @@ impl WebView {
     }
 
     pub fn process_extension_message(&self, msg: &WebViewMessage) {
-        dbg!("Process extension message: {:?}", msg);
+        debug!("Process extension message: {:?}", msg);
         let inst = self.instance();
         match msg {
             WebViewMessage::PreferredHeightChanged(height) => {
                 self.set_preferred_height(*height);
             }
             WebViewMessage::ContentLoaded => {
-                dbg!("Emit Content loaded");
+                debug!("Emit Content loaded");
                 inst.emit_by_name::<()>("content-loaded", &[]);
             }
             _ => {}
@@ -242,7 +250,7 @@ impl WebView {
 
     pub fn set_preferred_height(&self, height: i64) {
         let inst = self.instance();
-        dbg!("preferred size changed to: {:?}", height);
+        debug!("preferred size changed to: {:?}", height);
 
         inst.set_size_request(-1, height as i32);
         inst.queue_resize();
@@ -284,46 +292,64 @@ impl WebView {
         decision: &webkit2gtk::PolicyDecision,
         decision_type: webkit2gtk::PolicyDecisionType,
     ) -> bool {
-        debug!("webview: decide policy");
+        debug!("webview: decide policy: {:?} {:?}", decision, decision_type);
 
         match decision_type {
             // navigate to
-            webkit2gtk::PolicyDecisionType::NavigationAction => {
-                let navigation_decision: webkit2gtk::NavigationPolicyDecision = decision
+            webkit2gtk::PolicyDecisionType::NavigationAction
+            | webkit2gtk::PolicyDecisionType::NewWindowAction => {
+                let policy_decision: webkit2gtk::NavigationPolicyDecision = decision
                     .clone()
                     .downcast::<webkit2gtk::NavigationPolicyDecision>()
                     .unwrap();
 
-                if navigation_decision.navigation_type() == webkit2gtk::NavigationType::LinkClicked
-                {
-                    decision.ignore();
+                debug!("webview navigation_type: {:?}", policy_decision.navigation_type());
 
-                    // TODO: don't unwrap unconditionally
-                    let uri = navigation_decision.request().unwrap().uri().unwrap();
-                    info!("tv: navigating to: {}", uri);
+                match policy_decision.navigation_type() {
+                    webkit2gtk::NavigationType::Other => {
+                        let uri = policy_decision.request().and_then(|r| r.uri()).unwrap();
 
-                    let scheme = glib::uri_parse_scheme(&uri).unwrap();
+                        debug!("webview uri: {:?}", uri);
 
-                    match scheme.as_str() {
-                        "mailto" => {
-                            //uri = uri.substr (scheme.length ()+1, uri.length () - scheme.length()-1);
-                            //           UstringUtils::trim(uri);
-                            //           main_window->add_mode (new EditMessage (main_window, uri));
+                        if uri == INTERNAL_URL_BODY {
+                            decision.use_();
+                        } else {
+                            // decision.ignore();
                         }
-                        "id" | "mid" => {
-                            //main_window->add_mode (new ThreadIndex (main_window, uri));
+                    }
+                    webkit2gtk::NavigationType::LinkClicked => {
+                        decision.ignore();
+
+                        if let Some(uri) = policy_decision.request().and_then(|r| r.uri()) {
+                            self.instance().emit_by_name::<()>("link-activated", &[&uri.to_value()]);
                         }
-                        "http" | "https" | "ftp" => {
-                            //open_link (uri);
-                        }
-                        _ => {
-                            error!("tv: unknown uri scheme '{}'. not opening. ", scheme);
-                        }
-                    };
+
+                        // let scheme = glib::uri_parse_scheme(&uri).unwrap();
+
+                        // match scheme.as_str() {
+                        //     "mailto" => {
+                        //         //uri = uri.substr (scheme.length ()+1, uri.length () - scheme.length()-1);
+                        //         //           UstringUtils::trim(uri);
+                        //         //           main_window->add_mode (new EditMessage (main_window, uri));
+                        //     }
+                        //     "id" | "mid" => {
+                        //         //main_window->add_mode (new ThreadIndex (main_window, uri));
+                        //     }
+                        //     "http" | "https" | "ftp" => {
+                        //         //open_link (uri);
+                        //     }
+                        //     _ => {
+                        //         error!("tv: unknown uri scheme '{}'. not opening. ", scheme);
+                        //     }
+                        // };
+                    }
+                    _ => {
+                        // decision.ignore();
+                    }
                 }
             }
             _ => {
-                decision.ignore();
+                // decision.ignore();
             }
         };
         false

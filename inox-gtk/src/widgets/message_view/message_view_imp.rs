@@ -1,6 +1,6 @@
 use crate::widgets::message_view::ContactFlowBoxChild;
 use std::cell::RefCell;
-
+use log::*;
 use crate::core::Action;
 use crate::core::Message;
 use crate::widgets::web_view::MessageWebView;
@@ -212,7 +212,7 @@ impl MessageView {
 
         if self.message.get().unwrap().is_unread(){
             // TODO: should only be launched when email is actually opened
-            dbg!("Starting unread timeout");
+            debug!("Starting unread timeout");
             // mark the message as read if this view is open for `n` seconds
             self.read_timeout_source_id
                 .replace(Some(glib::source::timeout_add_local_once(
@@ -278,7 +278,7 @@ impl MessageView {
         // Show any From header addresses
         let from = msg.from();
 
-        dbg!(&from);
+        debug!("from: {:?}", &from);
 
         if from.is_some() && from.as_ref().unwrap().length() > 0 {
             let from = from.as_ref().unwrap();
@@ -314,7 +314,7 @@ impl MessageView {
             let sender = sender.as_ref().unwrap();
             for i in 0..sender.length() {
                 let address = sender.address(i).unwrap();
-                dbg!("sender ", &address);
+                debug!("sender: {:?}", &address);
                 if from.is_some()
                     && from.as_ref().unwrap().length() > 0
                     && from.as_ref().unwrap().contains(&address)
@@ -453,7 +453,7 @@ impl MessageView {
     }
 
     pub fn initialize_web_view(&self) {
-        dbg!("initialize_web_view {:?}", self.web_view.get());
+        debug!("initialize_web_view {:?}", self.web_view.get());
 
         let web_view = MessageWebView::new(self.sender.get().unwrap().clone());
         // web_view.set_parent(&self.body_container.get());
@@ -473,7 +473,7 @@ impl MessageView {
             None,
             false,
             clone!(@weak inst => @default-return None, move |_| {
-                dbg!("on content-loaded");
+                debug!("on content-loaded");
                 let this = Self::from_instance(&inst);
                 this.on_content_loaded();
                 None
@@ -581,7 +581,7 @@ impl MessageView {
 
         let body_text = if let Some(msg) = self.message.get() {
 
-            dbg!("has html body?", msg.has_html_body());
+            debug!("has html body? {:?}", msg.has_html_body());
             if msg.has_html_body() {
                 msg.html_body(/*inline_image_replacer*/)
             } else {
