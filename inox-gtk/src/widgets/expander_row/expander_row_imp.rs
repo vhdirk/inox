@@ -94,6 +94,7 @@ impl ObjectImpl for ExpanderRow {
         match pspec.name() {
             "expanded" => {
                 self.expanded.replace(value.get().unwrap());
+                self.update_css_class();
             }
             _ => unimplemented!(),
         }
@@ -126,5 +127,25 @@ impl ListBoxRowImpl for ExpanderRow {}
 
 impl ExpanderRow {
 
+    pub fn update_css_class(&self) {
+        let inst = self.instance();
+        if *self.expanded.borrow() {
+            inst.style_context().add_class("inox-expanded");
+        } else {
+            inst.style_context().remove_class("inox-expanded");
+        }
+        self.update_previous_sibling_css_class();
+    }
 
+    pub fn update_previous_sibling_css_class(&self) {
+        let inst = self.instance();
+
+        if let Some(previous_sibling) = inst.prev_sibling() {
+            if *self.expanded.borrow() {
+                previous_sibling.style_context().add_class("inox-expanded-previous-sibling");
+            } else {
+                previous_sibling.style_context().remove_class("inox-expanded-previous-sibling");
+            }
+        }
+    }
 }
