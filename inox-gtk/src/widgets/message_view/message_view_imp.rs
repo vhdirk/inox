@@ -375,32 +375,7 @@ impl MessageView {
 
     pub fn format_originator_compact(&self) -> String {
         let msg = self.message.get().unwrap();
-        let from = msg.from();
-
-        if from.is_none() {
-            return EMPTY_FROM_LABEL.to_string();
-        }
-
-        let from = from.unwrap();
-        let num_from = from.length();
-
-        let mut originators = vec![];
-        for i in 0..num_from {
-            // TODO: link email addresses to addressbook
-            let from_address = from.address(i);
-            if from_address.is_none() {
-                continue;
-            }
-
-            let from_name = from_address.unwrap().name();
-            if from_name.is_none() {
-                continue;
-            }
-
-            originators.push(from_name.unwrap().to_string());
-        }
-
-        originators.join(", ")
+        msg.from_names().join(", ")
     }
 
     pub fn format_date(&self) -> String {

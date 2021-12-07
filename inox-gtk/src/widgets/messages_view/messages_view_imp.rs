@@ -1,7 +1,6 @@
 use crate::core::Action;
-use crate::widgets::message_row::BaseRowExt;
 use crate::widgets::MessageRow;
-use crate::widgets::BaseRow;
+use crate::widgets::expander_row::{ExpanderRowExt, ExpanderRow};
 use glib::subclass::prelude::*;
 use glib::{clone, Sender};
 use gtk;
@@ -13,7 +12,7 @@ use std::cell::RefCell;
 #[derive(Debug)]
 pub struct MessagesView {
     pub list_box: gtk::ListBox,
-    pub rows: RefCell<Vec<BaseRow>>,
+    pub rows: RefCell<Vec<ExpanderRow>>,
     pub thread: OnceCell<notmuch::Thread>,
     pub sender: OnceCell<Sender<Action>>,
 
@@ -70,8 +69,8 @@ impl WidgetImpl for MessagesView {}
 
 impl MessagesView {
     pub fn on_row_activated(&self, list_box: &gtk::ListBox, row: &gtk::ListBoxRow) {
-        let baserow = row.clone().downcast::<BaseRow>();
-        if let Ok(row) = baserow {
+        let Expanderrow = row.clone().downcast::<ExpanderRow>();
+        if let Ok(row) = Expanderrow {
             // Allow non-last rows to be expanded/collapsed, but also let
             // the last row to be expanded since appended sent emails will
             // be appended last. Finally, don't let rows with active
@@ -101,7 +100,7 @@ impl MessagesView {
         self.list_box.append(&message_row);
         self.rows
             .borrow_mut()
-            .push(message_row.upcast::<BaseRow>());
+            .push(message_row.upcast::<ExpanderRow>());
     }
 
 

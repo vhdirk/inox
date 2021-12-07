@@ -6,24 +6,12 @@
     <file compressed="true" preprocess="xml-stripblanks">gtk/thread_view.ui</file>
     <file compressed="true" preprocess="xml-stripblanks">gtk/menus.ui</file>
     <file compressed="true" preprocess="xml-stripblanks">gtk/message_view.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">gtk/threads_list_item.ui</file>
+    <file compressed="true">gtk/inox.css</file>
 
-    <file compressed="true">inox.css</file>
     <file compressed="true">html/inox-web-view.css</file>
 
     <file compressed="true">html/thread_view.html</file>
     <file compressed="true">html/thread_view.css</file>
-
-      <!-- <file compressed="true" preprocess="xml-stripblanks">gtk/episode_widget.ui</file>
-      <file compressed="true" preprocess="xml-stripblanks">gtk/show_widget.ui</file>
-      <file compressed="true" preprocess="xml-stripblanks">gtk/empty_view.ui</file>
-      <file compressed="true" preprocess="xml-stripblanks">gtk/empty_show.ui</file>
-      <file compressed="true" preprocess="xml-stripblanks">gtk/episodes_view.ui</file>
-      <file compressed="true" preprocess="xml-stripblanks">gtk/episodes_view_widget.ui</file>
-      <file compressed="true" preprocess="xml-stripblanks">gtk/shows_view.ui</file>
-      <file compressed="true" preprocess="xml-stripblanks">gtk/shows_child.ui</file>
-      <file compressed="true" preprocess="xml-stripblanks">gtk/inapp_notif.ui</file>
-      <file compressed="true" preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
-      <file compressed="true" preprocess="xml-stripblanks">gtk/player_toolbar.ui</file>
-      <file compressed="true">gtk/style.css</file> -->
   </gresource>
 </gresources>

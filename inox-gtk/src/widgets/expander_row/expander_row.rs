@@ -6,64 +6,64 @@ use std::fmt;
 use glib::{self, prelude::*, subclass::prelude::*};
 use gtk::{self, subclass::prelude::*};
 
-use super::base_row_imp as imp;
+use super::expander_row_imp as imp;
 
 glib::wrapper! {
-    pub struct BaseRow(ObjectSubclass<imp::BaseRow>)
+    pub struct ExpanderRow(ObjectSubclass<imp::ExpanderRow>)
     @extends gtk::ListBoxRow, gtk::Widget,
     @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Orientable;
 }
 
-pub trait BaseRowExt {
+pub trait ExpanderRowExt {
     fn expand(&self);
     fn collapse(&self);
 }
 
-impl<O: IsA<BaseRow>> BaseRowExt for O {
+impl<O: IsA<ExpanderRow>> ExpanderRowExt for O {
     fn expand(&self) {
-        imp::base_row_expand(self.upcast_ref::<BaseRow>())
+        imp::base_row_expand(self.upcast_ref::<ExpanderRow>())
     }
 
     fn collapse(&self) {
-        imp::base_row_collapse(self.upcast_ref::<BaseRow>())
+        imp::base_row_collapse(self.upcast_ref::<ExpanderRow>())
     }
 }
 
-pub trait BaseRowImpl: ListBoxRowImpl + ObjectImpl + 'static {
-    fn expand(&self, obj: &BaseRow) {
+pub trait ExpanderRowImpl: ListBoxRowImpl + ObjectImpl + 'static {
+    fn expand(&self, obj: &ExpanderRow) {
         self.parent_expand(obj)
     }
 
-    fn collapse(&self, obj: &BaseRow) {
+    fn collapse(&self, obj: &ExpanderRow) {
         self.parent_collapse(obj)
     }
 }
 
-pub trait BaseRowImplExt: ObjectSubclass {
-    fn parent_expand(&self, obj: &BaseRow);
-    fn parent_collapse(&self, obj: &BaseRow);
+pub trait ExpanderRowImplExt: ObjectSubclass {
+    fn parent_expand(&self, obj: &ExpanderRow);
+    fn parent_collapse(&self, obj: &ExpanderRow);
 }
 
-impl<T: BaseRowImpl> BaseRowImplExt for T {
-    fn parent_expand(&self, obj: &BaseRow) {
+impl<T: ExpanderRowImpl> ExpanderRowImplExt for T {
+    fn parent_expand(&self, obj: &ExpanderRow) {
         unsafe {
             let data = Self::type_data();
-            let parent_class = &*(data.as_ref().parent_class() as *mut imp::BaseRowClass);
+            let parent_class = &*(data.as_ref().parent_class() as *mut imp::ExpanderRowClass);
             (parent_class.expand)(obj)
         }
     }
 
-    fn parent_collapse(&self, obj: &BaseRow) {
+    fn parent_collapse(&self, obj: &ExpanderRow) {
         unsafe {
             let data = Self::type_data();
-            let parent_class = &*(data.as_ref().parent_class() as *mut imp::BaseRowClass);
+            let parent_class = &*(data.as_ref().parent_class() as *mut imp::ExpanderRowClass);
             (parent_class.collapse)(obj)
         }
     }
 }
 
-/// Make the BaseRow subclassable
-unsafe impl<T: BaseRowImpl + fmt::Debug> IsSubclassable<T> for BaseRow {
+/// Make the ExpanderRow subclassable
+unsafe impl<T: ExpanderRowImpl + fmt::Debug> IsSubclassable<T> for ExpanderRow {
     fn class_init(class: &mut glib::Class<Self>) {
         Self::parent_class_init::<T>(class.upcast_ref_mut());
 
@@ -74,17 +74,17 @@ unsafe impl<T: BaseRowImpl + fmt::Debug> IsSubclassable<T> for BaseRow {
 }
 
 // Virtual method implementation trampolines
-fn expand_trampoline<T>(this: &BaseRow)
+fn expand_trampoline<T>(this: &ExpanderRow)
 where
-    T: ObjectSubclass + BaseRowImpl + fmt::Debug,
+    T: ObjectSubclass + ExpanderRowImpl + fmt::Debug,
 {
     let imp = T::from_instance(this.dynamic_cast_ref::<T::Type>().unwrap());
     imp.expand(this)
 }
 
-fn collapse_trampoline<T>(this: &BaseRow)
+fn collapse_trampoline<T>(this: &ExpanderRow)
 where
-    T: ObjectSubclass + BaseRowImpl,
+    T: ObjectSubclass + ExpanderRowImpl,
 {
     let imp = T::from_instance(this.dynamic_cast_ref::<T::Type>().unwrap());
     imp.collapse(this)

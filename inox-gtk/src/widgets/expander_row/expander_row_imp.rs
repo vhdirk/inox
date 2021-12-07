@@ -13,55 +13,55 @@ use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, Value};
 use gtk::{prelude::*, subclass::prelude::*};
 use std::fmt;
 
-pub type BaseRowInstance = super::BaseRow;
+pub type ExpanderRowInstance = super::ExpanderRow;
 
 #[repr(C)]
-pub struct BaseRowClass {
+pub struct ExpanderRowClass {
     pub parent_class: gtk::ffi::GtkListBoxRowClass,
-    pub expand: fn(&BaseRowInstance),
-    pub collapse: fn(&BaseRowInstance),
+    pub expand: fn(&ExpanderRowInstance),
+    pub collapse: fn(&ExpanderRowInstance),
 }
 
-unsafe impl ClassStruct for BaseRowClass {
-    type Type = BaseRow;
+unsafe impl ClassStruct for ExpanderRowClass {
+    type Type = ExpanderRow;
 }
 
-fn expand_default_trampoline(this: &BaseRowInstance) {
-    BaseRow::from_instance(this).expand(this)
+fn expand_default_trampoline(this: &ExpanderRowInstance) {
+    ExpanderRow::from_instance(this).expand(this)
 }
 
-fn collapse_default_trampoline(this: &BaseRowInstance) {
-    BaseRow::from_instance(this).collapse(this)
+fn collapse_default_trampoline(this: &ExpanderRowInstance) {
+    ExpanderRow::from_instance(this).collapse(this)
 }
 
-pub fn base_row_expand(this: &BaseRowInstance) {
+pub fn base_row_expand(this: &ExpanderRowInstance) {
     let klass = this.class();
     (klass.as_ref().expand)(this)
 }
 
-pub fn base_row_collapse(this: &BaseRowInstance) {
+pub fn base_row_collapse(this: &ExpanderRowInstance) {
     let klass = this.class();
     (klass.as_ref().collapse)(this)
 }
 
 #[derive(Debug, Default)]
-pub struct BaseRow {
+pub struct ExpanderRow {
     pub expanded: RefCell<bool>,
 }
 
-impl BaseRow {
-    fn expand(&self, _obj: &BaseRowInstance) {}
+impl ExpanderRow {
+    fn expand(&self, _obj: &ExpanderRowInstance) {}
 
-    fn collapse(&self, _obj: &BaseRowInstance) {}
+    fn collapse(&self, _obj: &ExpanderRowInstance) {}
 }
 
 #[glib::object_subclass]
-impl ObjectSubclass for BaseRow {
-    const NAME: &'static str = "InoxBaseRow";
+impl ObjectSubclass for ExpanderRow {
+    const NAME: &'static str = "InoxExpanderRow";
     const ABSTRACT: bool = true;
-    type Type = BaseRowInstance;
+    type Type = ExpanderRowInstance;
     type ParentType = gtk::ListBoxRow;
-    type Class = BaseRowClass;
+    type Class = ExpanderRowClass;
 
     fn class_init(klass: &mut Self::Class) {
         klass.set_layout_manager_type::<gtk::BinLayout>();
@@ -71,7 +71,7 @@ impl ObjectSubclass for BaseRow {
     }
 }
 
-impl ObjectImpl for BaseRow {
+impl ObjectImpl for ExpanderRow {
     fn properties() -> &'static [ParamSpec] {
         static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
             vec![ParamSpecBoolean::new(
@@ -121,5 +121,10 @@ impl ObjectImpl for BaseRow {
         SIGNALS.as_ref()
     }
 }
-impl WidgetImpl for BaseRow {}
-impl ListBoxRowImpl for BaseRow {}
+impl WidgetImpl for ExpanderRow {}
+impl ListBoxRowImpl for ExpanderRow {}
+
+impl ExpanderRow {
+
+
+}

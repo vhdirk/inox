@@ -61,16 +61,9 @@ impl ApplicationImpl for InoxApplication {
             &css_provider,
             gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
-        self.load_css(&css_provider, "resource:///com/github/vhdirk/Inox/inox.css");
+        self.load_css(&css_provider, "resource:///com/github/vhdirk/Inox/gtk/inox.css");
 
         self.parent_startup(app);
-
-        // let app = app.downcast_ref::<super::InoxApplication>().unwrap();
-        // let imp = InoxApplication::from_instance(app);
-        // let window = MainWindow::new(imp.sender.clone(), app.clone());
-        // imp.window
-        //     .set(window)
-        //     .expect("Failed to initialize application window");
     }
 
     fn activate(&self, app: &Self::Type) {

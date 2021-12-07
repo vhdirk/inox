@@ -8,7 +8,7 @@ use glib::{self, prelude::*, subclass::prelude::*};
 use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, Sender, Value};
 use gtk::{self, prelude::*, subclass::prelude::*};
 
-use super::{BaseRow, BaseRowImpl};
+use crate::widgets::expander_row::{ExpanderRow, ExpanderRowImpl};
 
 #[derive(Debug)]
 pub struct MessageRow {
@@ -21,7 +21,7 @@ pub struct MessageRow {
 impl ObjectSubclass for MessageRow {
     const NAME: &'static str = "InoxMessageRow";
     type Type = super::MessageRow;
-    type ParentType = super::BaseRow;
+    type ParentType = ExpanderRow;
 
     fn class_init(klass: &mut Self::Class) {
         klass.set_layout_manager_type::<gtk::BinLayout>();
@@ -88,9 +88,9 @@ impl ObjectImpl for MessageRow {
 }
 impl WidgetImpl for MessageRow {}
 impl ListBoxRowImpl for MessageRow {}
-impl BaseRowImpl for MessageRow {
+impl ExpanderRowImpl for MessageRow {
 
-    fn expand(&self, obj: &BaseRow) {
+    fn expand(&self, obj: &ExpanderRow) {
         obj.set_property("expanded", true);
 
         self.update_row_expansion(obj);
@@ -106,7 +106,7 @@ impl BaseRowImpl for MessageRow {
             // }
     }
 
-    fn collapse(&self, obj: &BaseRow) {
+    fn collapse(&self, obj: &ExpanderRow) {
         obj.set_property("expanded", false);
         obj.set_property("pinned", false);
 
@@ -123,7 +123,7 @@ impl MessageRow {
             .expect("Failed to set view on MessageRow");
     }
 
-    pub fn update_row_expansion(&self, obj: &BaseRow) {
+    pub fn update_row_expansion(&self, obj: &ExpanderRow) {
         let expanded = obj.property::<bool>("expanded");
         let pinned = obj.property::<bool>("pinned");
 

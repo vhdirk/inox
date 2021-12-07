@@ -1,3 +1,5 @@
+use gmime::InternetAddressExt;
+use gmime::InternetAddressListExt;
 use gmime::traits::ContentDispositionExt;
 use crate::core::mime::MultipartSubtype;
 use crate::core::util::EmptyOrWhitespace;
@@ -432,5 +434,37 @@ impl Message {
         };
 
         preview.reduce_whitespace().to_string()
+    }
+
+    pub fn from_names(&self) -> Vec<String> {
+        let msg = &self.gmime_message;
+        let from = msg.from();
+
+        if from.is_none() {
+            return vec![];
+        }
+
+        let from = from.unwrap();
+        let num_from = from.length();
+
+        let mut originators = vec![];
+        for i in 0..num_from {
+            // TODO: link email addresses to addressbook
+            let from_address = from.address(i);
+            if from_address.is_none() {
+                continue;
+            }
+
+            let from_name = from_address.unwrap().name();
+
+            // TODO: if there is no name, take email address instead?
+            if from_name.is_none() {
+                continue;
+            }
+
+            originators.push(from_name.unwrap().to_string());
+        }
+
+        originators
     }
 }

@@ -16,7 +16,7 @@ use super::threads_list_item_imp as imp;
 
 glib::wrapper! {
     pub struct ThreadsListItem(ObjectSubclass<imp::ThreadsListItem>)
-        @extends gtk::Widget;
+        @extends gtk::Box, gtk::Widget;
 }
 
 // ThreadsListItem implementation itself
@@ -28,5 +28,6 @@ impl ThreadsListItem {
     pub fn set_thread(&self, thread: &Thread) {
         let imp = imp::ThreadsListItem::from_instance(self);
         imp.thread.replace(Some(thread.clone()));
+        imp.update();
     }
 }

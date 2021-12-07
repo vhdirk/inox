@@ -5,11 +5,11 @@ use glib::{self, subclass::prelude::*};
 use gtk::{self, prelude::*};
 
 use super::loading_row_imp as imp;
-use super::base_row::BaseRow;
+use crate::widgets::expander_row::ExpanderRow;
 
 glib::wrapper! {
     pub struct LoadingRow(ObjectSubclass<imp::LoadingRow>)
-    @extends BaseRow, gtk::ListBoxRow, gtk::Widget,
+    @extends ExpanderRow, gtk::ListBoxRow, gtk::Widget,
     @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Orientable;
 }
 

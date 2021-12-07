@@ -5,13 +5,12 @@ use glib::{self, prelude::*, subclass::prelude::*};
 use gtk::{self, prelude::*, subclass::prelude::*};
 
 use crate::widgets::MessageView;
-
-use super::{BaseRow};
+use crate::widgets::{ExpanderRow};
 use super::message_row_imp as imp;
 
 glib::wrapper! {
     pub struct MessageRow(ObjectSubclass<imp::MessageRow>)
-    @extends BaseRow, gtk::ListBoxRow, gtk::Widget,
+    @extends ExpanderRow, gtk::ListBoxRow, gtk::Widget,
     @implements gtk::Accessible, gtk::Buildable, gtk::ConstraintTarget, gtk::Orientable;
 }
 
