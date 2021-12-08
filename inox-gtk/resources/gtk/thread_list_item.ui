@@ -1,30 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <template class="InoxThreadsListItem" parent="GtkBox">
+  <template class="InoxThreadListItem" parent="GtkBox">
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
+    <!-- <property name="can_focus">False</property> -->
     <property name="orientation">horizontal</property>
     <property name="margin-top">12</property>
     <property name="margin-bottom">12</property>
     <property name="margin-start">12</property>
     <property name="margin-end">12</property>
-    <property name="halign">start</property>
+    <property name="halign">fill</property>
+    <property name="hexpand">1</property>
 
     <child>
       <object class="GtkBox" id="main_box">
         <property name="orientation">vertical</property>
-        <property name="halign">start</property>
+        <property name="halign">fill</property>
+        <property name="hexpand">1</property>
         <child>
           <object class="GtkBox" id="authors_date_box">
             <property name="orientation">horizontal</property>
+            <property name="hexpand">1</property>
+            <property name="halign">fill</property>
             <child>
               <object class="GtkLabel" id="authors_label">
                 <property name="halign">start</property>
+                <property name="hexpand">1</property>
+                <property name="ellipsize">end</property>
               </object>
             </child>
             <child>
               <object class="GtkLabel" id="date_label">
                 <property name="halign">end</property>
+                <property name="hexpand">1</property>
               </object>
             </child>
           </object>
@@ -32,13 +39,18 @@
         <child>
           <object class="GtkBox" id="subject_labels_box">
             <property name="orientation">horizontal</property>
+            <property name="halign">fill</property>
+            <property name="hexpand">1</property>
             <child>
               <object class="GtkLabel" id="subject_label">
                 <property name="halign">start</property>
+                <property name="ellipsize">end</property>
+                <property name="hexpand">1</property>
               </object>
             </child>
             <child>
               <object class="GtkLabel" id="num_messages_label">
+                <property name="hexpand">1</property>
                 <property name="halign">end</property>
               </object>
             </child>
@@ -47,7 +59,7 @@
       </object>
     </child>
     <style>
-      <class name="threads_list_item" />
+      <class name="thread_list_item" />
     </style>
   </template>
 </interface>

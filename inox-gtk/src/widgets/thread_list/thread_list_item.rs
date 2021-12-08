@@ -11,22 +11,22 @@ use notmuch;
 use crate::core::Action;
 use crate::core::Thread;
 
-use super::threads_list_item_imp as imp;
+use super::thread_list_item_imp as imp;
 
 
 glib::wrapper! {
-    pub struct ThreadsListItem(ObjectSubclass<imp::ThreadsListItem>)
+    pub struct ThreadListItem(ObjectSubclass<imp::ThreadListItem>)
         @extends gtk::Box, gtk::Widget;
 }
 
-// ThreadsListItem implementation itself
-impl ThreadsListItem {
+// ThreadListItem implementation itself
+impl ThreadListItem {
     pub fn new() -> Self {
-        glib::Object::new(&[]).expect("Failed to create ThreadsListItem")
+        glib::Object::new(&[]).expect("Failed to create ThreadListItem")
     }
 
     pub fn set_thread(&self, thread: &Thread) {
-        let imp = imp::ThreadsListItem::from_instance(self);
+        let imp = imp::ThreadListItem::from_instance(self);
         imp.thread.replace(Some(thread.clone()));
         imp.update();
     }

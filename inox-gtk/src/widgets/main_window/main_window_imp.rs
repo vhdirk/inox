@@ -6,7 +6,7 @@ use once_cell::unsync::OnceCell;
 use std::cell::RefCell;
 
 use crate::widgets::thread_view::ThreadView;
-use crate::widgets::threads_list::ThreadsList;
+use crate::widgets::thread_list::ThreadList;
 
 #[derive(Debug, CompositeTemplate)]
 #[template(resource = "/com/github/vhdirk/Inox/gtk/main_window.ui")]
@@ -20,10 +20,10 @@ pub struct MainWindow {
     // #[template_child]
     // pub main_paned: TemplateChild<gtk::Paned>,
     #[template_child]
-    pub threads_list_box: TemplateChild<gtk::Box>,
+    pub thread_list_box: TemplateChild<gtk::Box>,
 
     // menu_builder: gtk::Builder,
-    pub threads_list: OnceCell<ThreadsList>,
+    pub thread_list: OnceCell<ThreadList>,
 
     #[template_child]
     pub thread_view_box: TemplateChild<gtk::Box>,
@@ -38,8 +38,8 @@ impl Default for MainWindow {
             // main_header: TemplateChild::default(),
             // main_layout: TemplateChild::default(),
             // main_paned: TemplateChild::default(),
-            threads_list_box: TemplateChild::default(),
-            threads_list: OnceCell::new(),
+            thread_list_box: TemplateChild::default(),
+            thread_list: OnceCell::new(),
 
             thread_view_box: TemplateChild::default(),
             thread_view: OnceCell::new(),
@@ -77,7 +77,7 @@ impl ObjectImpl for MainWindow {
         if let Some(tv) = self.thread_view.get() {
             tv.unparent()
         }
-        if let Some(tl) = self.threads_list.get() {
+        if let Some(tl) = self.thread_list.get() {
             tl.unparent()
         }
     }

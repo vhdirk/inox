@@ -1,7 +1,7 @@
 use crate::core::Action;
 use crate::widgets::placeholder_pane::PlaceholderPane;
-// use crate::widgets::thread_view::messages_view::MessagesView;
-use crate::widgets::MessagesView;
+// use crate::widgets::thread_view::message_list::MessageList;
+use crate::widgets::MessageList;
 use glib::prelude::*;
 use glib::subclass::prelude::*;
 use glib::Sender;
@@ -45,7 +45,7 @@ pub struct ThreadView {
     pub empty_tag_placeholder: PlaceholderPane,
     pub empty_search_placeholder: PlaceholderPane,
 
-    pub messages_view: RefCell<Option<MessagesView>>,
+    pub message_list: RefCell<Option<MessageList>>,
     pub thread_scroller: gtk::ScrolledWindow,
     //pub composer:
     pub sender: OnceCell<Sender<Action>>,
@@ -67,7 +67,7 @@ impl ThreadView {
                 // performing is also cancelled, which is important to
                 // avoid a possible crit warning when switching folders,
                 // etc.
-                // self.remove_messages_view();
+                // self.remove_message_list();
             }
         } else if current.is_some()
             && self
@@ -84,11 +84,11 @@ impl ThreadView {
     }
 
     //add_new_list
-    pub fn set_messages_view(&self, list: &MessagesView) {
+    pub fn set_message_list(&self, list: &MessageList) {
 
-        self.remove_messages_view();
+        self.remove_message_list();
 
-        *self.messages_view.borrow_mut() = Some(list.clone());
+        *self.message_list.borrow_mut() = Some(list.clone());
 
         // // Manually create a Viewport rather than letting
         // // ScrolledWindow do it so Container.set_focus_{h,v}adjustment
@@ -105,10 +105,10 @@ impl ThreadView {
 
     // Remove any existing thread list, cancelling its loading
     // remove_current_list
-    pub fn remove_messages_view(&self) {
+    pub fn remove_message_list(&self) {
         // do not unparent the list from the scrolled window. It does that by itself
         // when setting the new child
-        *self.messages_view.borrow_mut() = None;
+        *self.message_list.borrow_mut() = None;
 
         // if (self.find_cancellable != null) {
         //     self.find_cancellable.cancel();
@@ -180,7 +180,7 @@ impl ObjectSubclass for ThreadView {
                 "Your search returned no results, try refining your search terms",
             ),
 
-            messages_view: RefCell::new(None),
+            message_list: RefCell::new(None),
             thread_scroller,
             sender: OnceCell::new(),
         }
@@ -220,7 +220,7 @@ impl ObjectImpl for ThreadView {
         self.empty_tag_placeholder.unparent();
         self.empty_search_placeholder.unparent();
 
-        self.remove_messages_view();
+        self.remove_message_list();
         self.thread_scroller.unparent();
     }
 }

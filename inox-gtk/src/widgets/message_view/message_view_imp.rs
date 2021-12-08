@@ -210,6 +210,7 @@ impl MessageView {
 
         let inst = self.instance();
 
+
         if self.message.get().unwrap().is_unread(){
             // TODO: should only be launched when email is actually opened
             debug!("Starting unread timeout");

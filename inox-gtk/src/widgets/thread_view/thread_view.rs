@@ -7,7 +7,7 @@ use crate::core::Thread;
 
 use notmuch;
 
-use crate::widgets::MessagesView;
+use crate::widgets::MessageList;
 use crate::core::Action;
 
 use super::thread_view_imp as imp;
@@ -54,10 +54,10 @@ impl ThreadView {
         let imp = imp::ThreadView::from_instance(self);
         // self.show_loading();
 
-        let messages_view = MessagesView::new(thread, imp.sender.get().unwrap().clone());
+        let message_list = MessageList::new(thread, imp.sender.get().unwrap().clone());
 
         // insert the new view
-        imp.set_messages_view(&messages_view);
+        imp.set_message_list(&message_list);
 
         imp.set_visible_child(&imp.thread_page.get());
 

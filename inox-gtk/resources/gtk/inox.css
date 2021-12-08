@@ -18,7 +18,7 @@
   min-width: 300px;
 }
 
-InoxThreadList revealer {
+InoxMessagesList revealer {
   margin: 6px;
 }
 
@@ -78,43 +78,46 @@ row.geary-folder-popover-list-row > label {
   color: @theme_text_color;
 } */
 
-/* ConversationListBox */
+/* InoxThreadList */
 
-/* .conversation-listbox {
+
+/* InoxMessageList */
+
+.messages-list{
   padding: 0px 12px;
 }
 
-.conversation-listbox > row {
+.message-list > row {
   padding: 0;
 }
 
-.conversation-listbox *.geary-matched *.geary-match {
+.message-list *.inox-matched *.inox-match {
   color: @theme_selected_fg_color;
   background: @theme_selected_bg_color;
 }
 
-.conversation-listbox > row.geary-loading {
+.message-list > row.inox-loading {
   border-top-width: 0px;
   padding: 6px;
   border-top-left-radius: 0px;
   border-top-right-radius: 0px;
 }
 
-.conversation-listbox.content > row:first-child:not(.geary-loading) {
+.message-list.content > row:first-child:not(.inox-loading) {
   margin-top: 12px;
   transition: 0;
 }
 
-.conversation-listbox.content > row:last-child {
+.message-list.content > row:last-child {
   margin-bottom: 12px;
 }
 
-.conversation-listbox.content > row:last-child,
-.conversation-listbox.content > row.geary-expanded-previous-sibling,
-.conversation-listbox.content > row.geary-expanded {
+.message-list.content > row:last-child,
+.message-list.content > row.inox-expanded-previous-sibling,
+.message-list.content > row.inox-expanded {
   border-width: 1px;
 }
-*/
+
 
 .inox-expanded:not(:first-child), .inox-expanded + row {
   border-top-left-radius: 8px;
@@ -133,7 +136,7 @@ row.geary-folder-popover-list-row > label {
   border-radius: 8px;
 }
 
-/* ConversationEmail */
+/* InoxMessageView */
 
 .inox-unread grid.inox-message-summary {
   border-color: @theme_selected_bg_color;

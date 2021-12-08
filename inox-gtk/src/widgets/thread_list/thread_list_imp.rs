@@ -10,14 +10,14 @@ use gtk::SignalListItemFactory;
 use once_cell::unsync::OnceCell;
 use log::*;
 
-use super::ThreadsListItem;
+use super::ThreadListItem;
 
 pub fn create_liststore() -> gio::ListStore {
     gio::ListStore::new(Thread::static_type())
 }
 
 #[derive(Debug)]
-pub struct ThreadsList {
+pub struct ThreadList {
     pub scrolled_window: gtk::ScrolledWindow,
     pub column_view: gtk::ColumnView,
     pub model: gio::ListStore,
@@ -33,9 +33,9 @@ pub struct ThreadsList {
 }
 
 #[glib::object_subclass]
-impl ObjectSubclass for ThreadsList {
-    const NAME: &'static str = "InoxThreadsList";
-    type Type = super::ThreadsList;
+impl ObjectSubclass for ThreadList {
+    const NAME: &'static str = "InoxThreadList";
+    type Type = super::ThreadList;
     type ParentType = gtk::Widget;
 
     fn new() -> Self {
@@ -65,7 +65,7 @@ impl ObjectSubclass for ThreadsList {
     }
 }
 
-impl ObjectImpl for ThreadsList {
+impl ObjectImpl for ThreadList {
     fn constructed(&self, obj: &Self::Type) {
         self.scrolled_window.set_parent(obj);
         // Setup
@@ -80,13 +80,13 @@ impl ObjectImpl for ThreadsList {
         self.scrolled_window.unparent();
     }
 }
-impl WidgetImpl for ThreadsList {}
+impl WidgetImpl for ThreadList {}
 
-impl ThreadsList {
+impl ThreadList {
     pub fn setup_column(&self) {
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_setup(move |_, entry| {
-            let item = ThreadsListItem::new();
+            let item = ThreadListItem::new();
             entry.set_child(Some(&item));
             item.show();
         });
@@ -101,8 +101,8 @@ impl ThreadsList {
             let item = entry
                 .child()
                 .expect("The child has to exist.")
-                .downcast::<ThreadsListItem>()
-                .expect("The child has to be a `ThreadsListItem`.");
+                .downcast::<ThreadListItem>()
+                .expect("The child has to be a `ThreadListItem`.");
 
             item.set_thread(&thread);
         });

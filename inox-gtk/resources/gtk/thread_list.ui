@@ -32,5 +32,8 @@
                 </child>
             </object>
         </child>
+        <style>
+            <class name="thread_list" />
+        </style>
     </template>
 </interface>
