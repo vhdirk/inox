@@ -33,7 +33,7 @@
             </object>
         </child>
         <style>
-            <class name="thread_list" />
+            <class name="thread-list" />
         </style>
     </template>
 </interface>

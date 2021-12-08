@@ -18,7 +18,7 @@
   min-width: 300px;
 }
 
-InoxMessagesList revealer {
+InoxMessageList revealer {
   margin: 6px;
 }
 
@@ -29,7 +29,7 @@ InoxMessagesList revealer {
   min-width: 360px;
 }
 
-InoxMessagesView{
+InoxMessageList{
   min-width: 360px;
 }
 
@@ -79,6 +79,10 @@ row.geary-folder-popover-list-row > label {
 } */
 
 /* InoxThreadList */
+
+.thread-list-item .inox-unread {
+  font-weight: bold;
+}
 
 
 /* InoxMessageList */

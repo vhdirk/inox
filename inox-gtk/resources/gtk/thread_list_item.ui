@@ -59,7 +59,7 @@
       </object>
     </child>
     <style>
-      <class name="thread_list_item" />
+      <class name="thread-list-item" />
     </style>
   </template>
 </interface>
