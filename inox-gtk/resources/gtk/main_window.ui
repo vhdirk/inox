@@ -11,16 +11,17 @@
         <property name="orientation">vertical</property>
         <property name="homogeneous">1</property>
         <child>
+          <object class="GtkPaned" id="outer_leaflet">
+       <!-- TODO: leaflets are not resizeable
           <object class="AdwLeaflet" id="outer_leaflet">
             <property name="can-swipe-back">True</property>
-            <property name="can-swipe-forward">True</property>
+            <property name="can-swipe-forward">True</property> -->
             <child>
+              <object class="GtkPaned" id="inner_leaflet">
+          <!-- TODO: leaflets are not resizeable
               <object class="AdwLeaflet" id="inner_leaflet">
                 <property name="can-swipe-back">True</property>
-                <property name="can-swipe-forward">True</property>
-<!--
-                <child>
-                  <object class="GtkPaned" id="inner_leaflet_paned"> -->
+                <property name="can-swipe-forward">True</property> -->
                     <child>
 
                       <object class="GtkBox">
@@ -28,7 +29,9 @@
                         <property name="orientation">vertical</property>
                         <child>
                           <object class="AdwHeaderBar" id="nbtitlebar">
-                            <property name="show-end-title-buttons" bind-source="inner_leaflet" bind-property="folded" bind-flags="sync-create" />
+                            <property name="show-end-title-buttons" >false</property>
+                            <!-- TODO: leaflets are not resizeable
+                               <property name="show-end-title-buttons" bind-source="inner_leaflet" bind-property="folded" bind-flags="sync-create" /> -->
                             <property name="valign">center</property>
                             <property name="hexpand">0</property>
                             <property name="width-request">200</property>
@@ -157,7 +160,11 @@
                         <property name="orientation">vertical</property>
                         <child>
                           <object class="AdwHeaderBar" id="stitlebar">
+                            <property name="show-end-title-buttons">false</property>
+
+                            <!-- TODO: leaflets are not resizeable
                             <property name="show-end-title-buttons" bind-source="inner_leaflet" bind-property="folded" bind-flags="sync-create" />
+                            -->
                             <property name="valign">center</property>
                             <property name="hexpand">0</property>
                             <property name="width-request">200</property>

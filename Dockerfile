@@ -24,7 +24,7 @@ RUN set -eux; \
     rustc --version;
 
 # Install additional dependencies
-RUN apt-get install -y libgmime-3.0-dev libgtk-3-dev libnotmuch-dev libsoup2.4-dev libwebkit2gtk-4.0-dev sassc capnproto libcapnp-dev
+RUN apt-get install -y libgmime-3.0-dev libgtk-3-dev libnotmuch-dev sassc
 
 # Install tools for testing
 RUN apt-get install -y notmuch git

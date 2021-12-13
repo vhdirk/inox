@@ -33,6 +33,9 @@ pub struct ThreadListItem {
     pub date_label: TemplateChild<gtk::Label>,
 
     #[template_child]
+    pub tags_container: TemplateChild<gtk::Box>,
+
+    #[template_child]
     pub num_messages_label: TemplateChild<gtk::Label>,
 }
 
@@ -49,6 +52,7 @@ impl ObjectSubclass for ThreadListItem {
             subject_label: TemplateChild::default(),
             date_label: TemplateChild::default(),
             num_messages_label: TemplateChild::default(),
+            tags_container: TemplateChild::default(),
         }
     }
 
@@ -84,11 +88,23 @@ impl ThreadListItem {
             self.num_messages_label
                 .set_text(&format!("{}", thread.data().total_messages()));
 
-
             if thread.is_unread() {
                 self.authors_label.style_context().add_class("inox-unread");
                 self.subject_label.style_context().add_class("inox-unread");
             }
+        }
+    }
+
+    pub fn update_tags(&self) {
+        if let Some(thread) = self.thread.borrow().as_ref() {
+            let container = self.tags_container.get();
+            for tag in thread.data().tags() {
+                let tag_label = gtk::Label::new(Some(&tag));
+                container.append(&tag_label);
+            }
+
+            let tag_label = gtk::Label::new(Some(&"lalala"));
+            container.append(&tag_label);
         }
     }
 

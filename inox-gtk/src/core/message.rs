@@ -6,7 +6,6 @@ use crate::core::util::EmptyOrWhitespace;
 use crate::core::util::ReduceWhiteSpace;
 use chrono::Utc;
 use glib::subclass::boxed::BoxedType;
-use glib::GBoxed;
 use gmime::traits::ContentTypeExt;
 use gmime::traits::StreamFilterExt;
 use serde::{Deserialize, Serialize};
@@ -46,8 +45,7 @@ pub enum TextFormat {
     Html,
 }
 
-#[derive(Clone, Debug, GBoxed)]
-#[gboxed(type_name = "inox_Message")]
+#[derive(Clone, Debug)]
 pub struct Message {
     notmuch_message: notmuch::Message,
     gmime_message: gmime::Message,

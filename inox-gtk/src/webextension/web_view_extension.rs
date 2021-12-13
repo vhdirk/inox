@@ -30,18 +30,10 @@ use webkit2gtk_webextension::traits::{
 };
 use webkit2gtk_webextension::{web_extension_init_with_data, DOMDocument, WebExtension, WebPage};
 
-// use capnp::capability::Promise;
-// use capnp::primitive_list;
-// use capnp::Error;
-
-// use capnp_rpc::twoparty::VatNetwork;
-// use capnp_rpc::{pry, rpc_twoparty_capnp, RpcSystem};
-
 // use crate::glib_receiver_future::GLibReceiverFuture;
 use super::connection::{self, connection, Connection};
 use super::protocol::WebViewMessage;
 use super::rpc::RawFdWrap;
-// use crate::webext_capnp::page;
 
 web_extension_init_with_data!();
 

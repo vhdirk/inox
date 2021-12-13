@@ -1,4 +1,6 @@
 
+use crate::core::Action;
+use glib::Sender;
 use adw::subclass::prelude::{AdwApplicationWindowImpl, *};
 use gtk::subclass::prelude::*;
 use gtk::{prelude::*, subclass::prelude::*, CompositeTemplate};
@@ -17,8 +19,9 @@ pub struct MainWindow {
     // #[template_child]
     // pub main_layout: TemplateChild<gtk::Box>,
 
-    // #[template_child]
-    // pub main_paned: TemplateChild<gtk::Paned>,
+    #[template_child]
+    pub mail_search: TemplateChild<gtk::SearchEntry>,
+
     #[template_child]
     pub thread_list_box: TemplateChild<gtk::Box>,
 
@@ -29,6 +32,8 @@ pub struct MainWindow {
     pub thread_view_box: TemplateChild<gtk::Box>,
 
     pub thread_view: OnceCell<ThreadView>,
+
+    pub sender: OnceCell<Sender<Action>>
     // thread_view: RefCell<Option<ThreadView>>, // current_notification: RefCell<Option<Rc<Notification>>>,
 }
 
@@ -37,12 +42,13 @@ impl Default for MainWindow {
         MainWindow {
             // main_header: TemplateChild::default(),
             // main_layout: TemplateChild::default(),
-            // main_paned: TemplateChild::default(),
+            mail_search: TemplateChild::default(),
             thread_list_box: TemplateChild::default(),
             thread_list: OnceCell::new(),
 
             thread_view_box: TemplateChild::default(),
             thread_view: OnceCell::new(),
+            sender: OnceCell::new()
         }
     }
 }
@@ -70,7 +76,6 @@ impl ObjectSubclass for MainWindow {
 impl ObjectImpl for MainWindow {
     fn constructed(&self, obj: &Self::Type) {
         self.parent_constructed(obj);
-        obj.setup_all();
     }
 
     fn dispose(&self, _obj: &Self::Type) {
@@ -87,3 +92,40 @@ impl WidgetImpl for MainWindow {}
 impl WindowImpl for MainWindow {}
 impl ApplicationWindowImpl for MainWindow {}
 impl AdwApplicationWindowImpl for MainWindow {}
+
+impl MainWindow {
+
+    pub fn init(&self) {
+        let thread_list = ThreadList::new(self.sender.get().unwrap().clone());
+        thread_list.set_parent(&self.thread_list_box.get());
+        thread_list.show();
+        self.thread_list_box.show();
+        self.thread_list
+            .set(thread_list)
+            .expect("Threads list box was not empty");
+        // // thread_list.setup_signals();
+
+        let thread_view = ThreadView::new(self.sender.get().unwrap().clone());
+        thread_view.set_parent(&self.thread_view_box.get());
+        thread_view.show();
+        self.thread_view_box.show();
+        self.thread_view
+            .set(thread_view)
+            .expect("Thread view box was not empty");
+
+
+        let inst = self.instance();
+        self.mail_search.get().connect_search_changed(move |f| {
+            let this = Self::from_instance(&inst);
+            this.sender.get().unwrap().send(Action::Search(f.text().to_string()));
+        });
+        // thread_view.setup_signals();
+
+        // thread_box.add(&thread_view.widget);
+        // thread_view.widget.show_all();
+        // imp.thread_view.replace(Some(thread_view));
+
+        // self.resize(800, 480);
+    }
+
+}

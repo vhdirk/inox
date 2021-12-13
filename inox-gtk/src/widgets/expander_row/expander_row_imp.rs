@@ -6,7 +6,6 @@ use once_cell::sync::Lazy;
 use once_cell::unsync::OnceCell;
 use std::cell::RefCell;
 
-use glib::prelude::*;
 use glib::subclass::prelude::*;
 use glib::subclass::signal::Signal;
 use glib::{ParamFlags, ParamSpec, ParamSpecBoolean, Value};

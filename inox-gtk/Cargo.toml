@@ -18,7 +18,8 @@ crate-type = ["cdylib"]
 
 # TODO: cleanup this spaghetti
 [dependencies]
-structopt = "0.2"
+structopt = { version = "0.3.25", features = [ "paw" ] }
+paw = "1.0"
 log = "*"
 env_logger ="*"
 pretty_env_logger = "0.4.0"
@@ -54,6 +55,7 @@ gtk-macros = { git = "https://github.com/gtk-rs/gtk4-rs", package = "gtk4-macros
 gtk-sys = { git = "https://github.com/gtk-rs/gtk4-rs", package = "gtk4-sys"}
 gdk = { git = "https://github.com/gtk-rs/gtk4-rs", package = "gdk4" }
 gdk-sys = { git = "https://github.com/gtk-rs/gtk4-rs", package = "gdk4-sys"}
+gsk = { git = "https://github.com/gtk-rs/gtk4-rs", package="gsk4" }
 glib = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 glib-sys = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 gobject-sys = { git = "https://github.com/gtk-rs/gtk-rs-core" }
@@ -65,15 +67,14 @@ pango = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 pangocairo = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 gdk-pixbuf = { git = "https://github.com/gtk-rs/gtk-rs-core" }
 gdk-pixbuf-sys = { git = "https://github.com/gtk-rs/gtk-rs-core" }
+graphene = { git = "https://github.com/gtk-rs/gtk-rs-core", package="graphene-rs" }
 webkit2gtk = { git = "https://gitlab.gnome.org/World/Rust/webkit2gtk5-rs", features=["v2_18"], package = "webkit2gtk5" }
 webkit2gtk-webextension = { git = "https://gitlab.gnome.org/World/Rust/webkit2gtk5-rs", features=["v2_18"], package = "webkit2gtk5-webextension" }
-adw = { path = "../../libadwaita-rs/libadwaita", package = "libadwaita" }
+adw = { git="https://gitlab.gnome.org/World/Rust/libadwaita-rs", package = "libadwaita" }
 
-# capnp = "0.12"
-# capnp-rpc = "0.12"
-# capnp-futures = "0.12"
+jsonrpc-core = "18.0.0"
+jsonrpc-derive = "18.0.0"
 
-ipc-channel = { path="../../ipc-channel", features = ["memfd", "async"] }
 pin-project = "1.0.8"
 
 rand = "0.7"
@@ -97,5 +98,3 @@ inox-core = { path = "../inox-core" }
 cargo-expand = "*"
 pretty_assertions = "0.5.1"
 
-[build-dependencies]
-capnpc = "0.12"

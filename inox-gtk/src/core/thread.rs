@@ -1,5 +1,4 @@
 use glib::subclass::prelude::*;
-use glib::GBoxed;
 use once_cell::unsync::OnceCell;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;

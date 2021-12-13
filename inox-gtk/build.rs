@@ -1,4 +1,3 @@
-use capnpc;
 use std::process::Command;
 
 fn main() {
@@ -22,9 +21,4 @@ fn main() {
         .current_dir("resources")
         .status()
         .unwrap();
-
-    // capnpc::CompilerCommand::new()
-    //     .file("resources/webext.capnp")
-    //     .run()
-    //     .expect("compiling schema");
 }

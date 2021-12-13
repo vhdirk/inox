@@ -8,9 +8,14 @@ edition = "2018"
 name = "inox_core"
 path = "src/lib.rs"
 
+[[bin]]
+name = "inox_core"
+path = "src/main.rs"
+
 
 [dependencies]
-structopt = "0.2"
+structopt = { version = "0.3.25", features = [ "paw" ] }
+paw = "1.0"
 log = "*"
 env_logger ="*"
 shellexpand = "*"
@@ -23,23 +28,16 @@ serde_derive = "*"
 serde_ini = "*"
 lazy_static = "1.0"
 once_cell = "*"
-# vte = "0.3.2"
 chrono = { version = "0.4", features = ["serde"] }
 md5 = "0.3.7"
 dirs = "1.0"
+pretty_env_logger = "0.4.0"
 
-gio = { git = "https://github.com/gtk-rs/gtk-rs-core" }
-glib = { git = "https://github.com/gtk-rs/gtk-rs-core" }
-glib-sys = { git = "https://github.com/gtk-rs/gtk-rs-core"}
-gio-sys = { git = "https://github.com/gtk-rs/gtk-rs-core"}
-gobject-sys = { git = "https://github.com/gtk-rs/gtk-rs-core"}
+jsonrpc-core = "18.0.0"
+jsonrpc-derive = "18.0.0"
 
 notmuch = "0.7.0"
 gmime = { git = "https://gitlab.gnome.org/World/Rust/gmime-rs"}
-
-# [patch.crates-io]
-#notmuch = { path = "../../notmuch-rs" }
-#gmime = { path = "../../gmime-rs" }
 
 [dev-dependencies]
 cargo-expand = "*"

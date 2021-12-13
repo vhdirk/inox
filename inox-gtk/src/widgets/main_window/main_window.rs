@@ -40,45 +40,18 @@ impl MainWindow {
         let window: Self = glib::Object::new(&[("application", &app)])
             .expect("Failed to create ApplicationWindow");
 
+        let imp = imp::MainWindow::from_instance(&window);
+        imp.sender
+            .set(sender.clone())
+            .expect("Failed to set sender on MessageRow");
+
         app.add_window(&window.clone());
-        window.setup_widgets(sender.clone());
+        imp.init();
         // // window.setup_signals();
         // // window.setup_gactions(sender);
         window
     }
 
-    pub fn setup_all(&self) {
-        let imp = imp::MainWindow::from_instance(self);
-    }
-
-    pub fn setup_widgets(&self, sender: Sender<Action>) {
-        let imp = imp::MainWindow::from_instance(self);
-
-        let thread_list = ThreadList::new(sender.clone());
-        thread_list.set_parent(&imp.thread_list_box.get());
-        thread_list.show();
-        imp.thread_list_box.show();
-        imp.thread_list
-            .set(thread_list)
-            .expect("Threads list box was not empty");
-        // // thread_list.setup_signals();
-
-        let thread_view = ThreadView::new(sender.clone());
-        thread_view.set_parent(&imp.thread_view_box.get());
-        thread_view.show();
-        imp.thread_view_box.show();
-        imp.thread_view
-            .set(thread_view)
-            .expect("Thread view box was not empty");
-
-        // thread_view.setup_signals();
-
-        // thread_box.add(&thread_view.widget);
-        // thread_view.widget.show_all();
-        // imp.thread_view.replace(Some(thread_view));
-
-        // self.resize(800, 480);
-    }
 
     // fn setup_signals(&self) {
     //     let imp = imp::MainWindow::from_instance(self);
