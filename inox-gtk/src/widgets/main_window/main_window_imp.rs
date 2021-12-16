@@ -7,8 +7,8 @@ use gtk::{prelude::*, subclass::prelude::*, CompositeTemplate};
 use once_cell::unsync::OnceCell;
 use std::cell::RefCell;
 
-use crate::widgets::thread_view::ThreadView;
-use crate::widgets::thread_list::ThreadList;
+use crate::widgets::conversation_view::ConversationView;
+use crate::widgets::conversation_list::ConversationList;
 
 #[derive(Debug, CompositeTemplate)]
 #[template(resource = "/com/github/vhdirk/Inox/gtk/main_window.ui")]
@@ -23,18 +23,18 @@ pub struct MainWindow {
     pub mail_search: TemplateChild<gtk::SearchEntry>,
 
     #[template_child]
-    pub thread_list_box: TemplateChild<gtk::Box>,
+    pub conversation_list_box: TemplateChild<gtk::Box>,
 
     // menu_builder: gtk::Builder,
-    pub thread_list: OnceCell<ThreadList>,
+    pub conversation_list: OnceCell<ConversationList>,
 
     #[template_child]
-    pub thread_view_box: TemplateChild<gtk::Box>,
+    pub conversation_view_box: TemplateChild<gtk::Box>,
 
-    pub thread_view: OnceCell<ThreadView>,
+    pub conversation_view: OnceCell<ConversationView>,
 
     pub sender: OnceCell<Sender<Action>>
-    // thread_view: RefCell<Option<ThreadView>>, // current_notification: RefCell<Option<Rc<Notification>>>,
+    // conversation_view: RefCell<Option<ConversationView>>, // current_notification: RefCell<Option<Rc<Notification>>>,
 }
 
 impl Default for MainWindow {
@@ -43,11 +43,11 @@ impl Default for MainWindow {
             // main_header: TemplateChild::default(),
             // main_layout: TemplateChild::default(),
             mail_search: TemplateChild::default(),
-            thread_list_box: TemplateChild::default(),
-            thread_list: OnceCell::new(),
+            conversation_list_box: TemplateChild::default(),
+            conversation_list: OnceCell::new(),
 
-            thread_view_box: TemplateChild::default(),
-            thread_view: OnceCell::new(),
+            conversation_view_box: TemplateChild::default(),
+            conversation_view: OnceCell::new(),
             sender: OnceCell::new()
         }
     }
@@ -79,10 +79,10 @@ impl ObjectImpl for MainWindow {
     }
 
     fn dispose(&self, _obj: &Self::Type) {
-        if let Some(tv) = self.thread_view.get() {
+        if let Some(tv) = self.conversation_view.get() {
             tv.unparent()
         }
-        if let Some(tl) = self.thread_list.get() {
+        if let Some(tl) = self.conversation_list.get() {
             tl.unparent()
         }
     }
@@ -96,21 +96,21 @@ impl AdwApplicationWindowImpl for MainWindow {}
 impl MainWindow {
 
     pub fn init(&self) {
-        let thread_list = ThreadList::new(self.sender.get().unwrap().clone());
-        thread_list.set_parent(&self.thread_list_box.get());
-        thread_list.show();
-        self.thread_list_box.show();
-        self.thread_list
-            .set(thread_list)
+        let conversation_list = ConversationList::new(self.sender.get().unwrap().clone());
+        conversation_list.set_parent(&self.conversation_list_box.get());
+        conversation_list.show();
+        self.conversation_list_box.show();
+        self.conversation_list
+            .set(conversation_list)
             .expect("Threads list box was not empty");
-        // // thread_list.setup_signals();
+        // // conversation_list.setup_signals();
 
-        let thread_view = ThreadView::new(self.sender.get().unwrap().clone());
-        thread_view.set_parent(&self.thread_view_box.get());
-        thread_view.show();
-        self.thread_view_box.show();
-        self.thread_view
-            .set(thread_view)
+        let conversation_view = ConversationView::new(self.sender.get().unwrap().clone());
+        conversation_view.set_parent(&self.conversation_view_box.get());
+        conversation_view.show();
+        self.conversation_view_box.show();
+        self.conversation_view
+            .set(conversation_view)
             .expect("Thread view box was not empty");
 
 
@@ -119,11 +119,11 @@ impl MainWindow {
             let this = Self::from_instance(&inst);
             this.sender.get().unwrap().send(Action::Search(f.text().to_string()));
         });
-        // thread_view.setup_signals();
+        // conversation_view.setup_signals();
 
-        // thread_box.add(&thread_view.widget);
-        // thread_view.widget.show_all();
-        // imp.thread_view.replace(Some(thread_view));
+        // thread_box.add(&conversation_view.widget);
+        // conversation_view.widget.show_all();
+        // imp.conversation_view.replace(Some(conversation_view));
 
         // self.resize(800, 480);
     }

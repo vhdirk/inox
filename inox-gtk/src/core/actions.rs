@@ -1,10 +1,10 @@
-use notmuch;
+use inox_core::models::query::Query;
 
 #[derive(Debug)]
 pub enum Action {
     SelectTag(Option<String>),
     Search(String),
-    Query(notmuch::Query),
+    Query(Query),
     SelectThread(Option<String>),
     SelectThreads(Vec<String>),
 

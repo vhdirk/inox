@@ -1,5 +1,5 @@
 use crate::handlers::state_metadata::StateMetadata;
-use crate::models::query::Query;
+use crate::models::{Conversation, Message, Query};
 use crate::protocol::QueryService;
 use crate::settings::Settings;
 use async_std::path::PathBuf;
@@ -37,7 +37,7 @@ impl QueryService for QueryHandler {
         &self,
         state: Self::Metadata,
         query: Query,
-    ) -> BoxFuture<Result<u32, jsonrpc_core::Error>> {
+    ) -> BoxFuture<Result<Vec<Message>, jsonrpc_core::Error>> {
         Box::pin(async move {
             let db = state.open_database(notmuch::DatabaseMode::ReadOnly).await;
 
@@ -45,11 +45,11 @@ impl QueryService for QueryHandler {
                 // TODO
                 return Err(jsonrpc_core::Error::internal_error());
             }
-            Ok(0)
+            Ok(vec![])
         })
     }
 
-    fn count_threads(
+    fn count_conversations(
         &self,
         state: Self::Metadata,
         query: Query,
@@ -65,11 +65,11 @@ impl QueryService for QueryHandler {
         })
     }
 
-    fn threads(
+    fn conversations(
         &self,
         state: Self::Metadata,
         query: Query,
-    ) -> BoxFuture<Result<u32, jsonrpc_core::Error>> {
+    ) -> BoxFuture<Result<Vec<Conversation>, jsonrpc_core::Error>> {
         Box::pin(async move {
             let db = state.open_database(notmuch::DatabaseMode::ReadOnly).await;
 
@@ -77,7 +77,7 @@ impl QueryService for QueryHandler {
                 // TODO
                 return Err(jsonrpc_core::Error::internal_error());
             }
-            Ok(0)
+            Ok(vec![])
         })
     }
 }

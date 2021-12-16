@@ -11,31 +11,31 @@ use notmuch;
 use crate::core::Action;
 use crate::core::Thread;
 
-use super::thread_list_imp as imp;
+use super::conversation_list_imp as imp;
 
 
-// Wrap imp::ThreadList into a usable gtk-rs object
+// Wrap imp::ConversationList into a usable gtk-rs object
 glib::wrapper! {
-    pub struct ThreadList(ObjectSubclass<imp::ThreadList>)
+    pub struct ConversationList(ObjectSubclass<imp::ConversationList>)
         @extends gtk::Widget;
 }
 
-// ThreadList implementation itself
-impl ThreadList {
+// ConversationList implementation itself
+impl ConversationList {
     pub fn new(sender: Sender<Action>) -> Self {
-        let thread_list: Self = glib::Object::new(&[]).expect("Failed to create ThreadList");
-        let imp = imp::ThreadList::from_instance(&thread_list);
+        let thread_list: Self = glib::Object::new(&[]).expect("Failed to create ConversationList");
+        let imp = imp::ConversationList::from_instance(&thread_list);
 
         imp.sender
             .set(sender)
-            .expect("Failed to set sender on ThreadList");
+            .expect("Failed to set sender on ConversationList");
         thread_list.set_vexpand(true);
         thread_list.set_hexpand(true);
         thread_list
     }
 
     pub fn set_threads(&self, threads: notmuch::Threads) {
-        let imp = imp::ThreadList::from_instance(self);
+        let imp = imp::ConversationList::from_instance(self);
         let model = imp::create_liststore();
 
         for thread in threads {

@@ -1,7 +1,8 @@
 use std::result::Result;
 use jsonrpc_derive::rpc;
 use jsonrpc_core::BoxFuture;
-use crate::models::query::Query;
+use crate::models::{Conversation, Message, Query};
+
 
 #[rpc]
 pub trait QueryService {
@@ -19,12 +20,13 @@ pub trait QueryService {
     fn count_messages(&self, state: Self::Metadata, query: Query) -> BoxFuture<Result<u32, jsonrpc_core::Error>>;
 
     #[rpc(meta, name = "mail/query/messages")]
-    fn messages(&self, state: Self::Metadata, query: Query) -> BoxFuture<Result<u32, jsonrpc_core::Error>>;
+    fn messages(&self, state: Self::Metadata, query: Query) -> BoxFuture<Result<Vec<Message>, jsonrpc_core::Error>>;
 
-    #[rpc(meta, name = "mail/query/count_threads")]
-    fn count_threads(&self, state: Self::Metadata, query: Query) -> BoxFuture<Result<u32, jsonrpc_core::Error>>;
+    #[rpc(meta, name = "mail/query/count_conversations")]
+    fn count_conversations(&self, state: Self::Metadata, query: Query) -> BoxFuture<Result<u32, jsonrpc_core::Error>>;
 
-    #[rpc(meta, name = "mail/query/threads")]
-    fn threads(&self, state: Self::Metadata, query: Query) -> BoxFuture<Result<u32, jsonrpc_core::Error>>;
+    // TODO: how to handle pagination?
+    #[rpc(meta, name = "mail/query/conversations")]
+    fn conversations(&self, state: Self::Metadata, query: Query) -> BoxFuture<Result<Vec<Conversation>, jsonrpc_core::Error>>;
 
 }

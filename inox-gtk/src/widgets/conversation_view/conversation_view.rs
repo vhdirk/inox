@@ -10,24 +10,24 @@ use notmuch;
 use crate::widgets::MessageList;
 use crate::core::Action;
 
-use super::thread_view_imp as imp;
+use super::conversation_view_imp as imp;
 
 
-// Wrap imp::ThreadView into a usable gtk-rs object
+// Wrap imp::ConversationView into a usable gtk-rs object
 glib::wrapper! {
-    pub struct ThreadView(ObjectSubclass<imp::ThreadView>)
+    pub struct ConversationView(ObjectSubclass<imp::ConversationView>)
         @extends gtk::Widget;
 }
 
-// ThreadView implementation itself
-impl ThreadView {
+// ConversationView implementation itself
+impl ConversationView {
     pub fn new(sender: Sender<Action>) -> Self {
-        let view: Self = glib::Object::new(&[]).expect("Failed to create ThreadView");
-        let imp = imp::ThreadView::from_instance(&view);
+        let view: Self = glib::Object::new(&[]).expect("Failed to create ConversationView");
+        let imp = imp::ConversationView::from_instance(&view);
 
         imp.sender
             .set(sender)
-            .expect("Failed to set sender on ThreadView");
+            .expect("Failed to set sender on ConversationView");
         view.set_vexpand(true);
         view.set_vexpand_set(true);
 
@@ -40,18 +40,18 @@ impl ThreadView {
      * Shows the loading UI.
      */
     fn show_loading(&self) {
-        let imp = imp::ThreadView::from_instance(self);
+        let imp = imp::ConversationView::from_instance(self);
 
         imp.loading_page.get().start();
         imp.set_visible_child(&imp.loading_page.get());
     }
 
     fn setup_columns(&self) {
-        let imp = imp::ThreadView::from_instance(self);
+        let imp = imp::ConversationView::from_instance(self);
     }
 
     pub fn load_thread(&self, thread: &notmuch::Thread) {
-        let imp = imp::ThreadView::from_instance(self);
+        let imp = imp::ConversationView::from_instance(self);
         // self.show_loading();
 
         let message_list = MessageList::new(thread, imp.sender.get().unwrap().clone());

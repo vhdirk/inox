@@ -1,5 +1,4 @@
 #![allow(new_without_default)]
-use crate::core::database::DatabaseExt;
 use gio::ApplicationFlags;
 use once_cell::unsync::OnceCell;
 use std;
@@ -24,6 +23,7 @@ use crate::constants;
 use crate::widgets::MainWindow;
 use crate::core::Thread;
 use crate::core::Action;
+use inox_core::models::query::{Query, Sort};
 use inox_core::settings::Settings;
 
 use super::application_imp as imp;
@@ -90,26 +90,6 @@ impl InoxApplication {
         window
     }
 
-    pub fn init_database(&self) -> notmuch::Database {
-        self.open_database(notmuch::DatabaseMode::ReadOnly).unwrap()
-    }
-
-    pub fn open_database(&self, mode: notmuch::DatabaseMode) -> Result<notmuch::Database, notmuch::Error> {
-        let imp = imp::InoxApplication::from_instance(self);
-
-        let db_path = PathBuf::from(
-            &imp.settings
-                .borrow()
-                .as_ref()
-                .unwrap()
-                .notmuch_config
-                .database
-                .path
-                .clone(),
-        );
-        notmuch::Database::open(&db_path, mode)
-    }
-
     pub fn process_action(&self, action: Action) -> glib::Continue {
         let imp = imp::InoxApplication::from_instance(self);
 
@@ -126,11 +106,12 @@ impl InoxApplication {
             Action::Search(search) => imp
                 .sender
                 .send(Action::Query(
-                    notmuch::Query::create(
-                        &imp.database.borrow().as_ref().unwrap().clone(),
-                        &search,
-                    )
-                    .unwrap(),
+                    Query {
+                        query: search,
+                        sort: Sort::NewestFirst,
+                        tags_exclude: vec![],
+                        omit_excluded: false,
+                    }
                 ))
                 .unwrap(),
             Action::Query(query) => self.perform_search(&query),
@@ -170,14 +151,14 @@ impl InoxApplication {
         glib::Continue(true)
     }
 
-    fn perform_search(&self, query: &notmuch::Query) {
+    fn perform_search(&self, query: &Query) {
         let imp = imp::InoxApplication::from_instance(self);
         imp.window
             .get()
             .unwrap()
             .upgrade()
             .unwrap()
-            .set_query(query);
+            .set_conversations(query);
     }
 
     fn open_thread(&self, thread_id: Option<String>) {

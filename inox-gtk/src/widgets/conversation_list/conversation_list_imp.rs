@@ -10,12 +10,14 @@ use gtk::SignalListItemFactory;
 use once_cell::unsync::OnceCell;
 use log::*;
 
+use super::ConversationListItem;
+
 pub fn create_liststore() -> gio::ListStore {
     gio::ListStore::new(Thread::static_type())
 }
 
 #[derive(Debug)]
-pub struct ThreadsList {
+pub struct ConversationList {
     pub scrolled_window: gtk::ScrolledWindow,
     pub column_view: gtk::ColumnView,
     pub model: gio::ListStore,
@@ -31,9 +33,9 @@ pub struct ThreadsList {
 }
 
 #[glib::object_subclass]
-impl ObjectSubclass for ThreadsList {
-    const NAME: &'static str = "InoxThreadsList";
-    type Type = super::ThreadsList;
+impl ObjectSubclass for ConversationList {
+    const NAME: &'static str = "InoxConversationList";
+    type Type = super::ConversationList;
     type ParentType = gtk::Widget;
 
     fn new() -> Self {
@@ -63,11 +65,11 @@ impl ObjectSubclass for ThreadsList {
     }
 }
 
-impl ObjectImpl for ThreadsList {
+impl ObjectImpl for ConversationList {
     fn constructed(&self, obj: &Self::Type) {
         self.scrolled_window.set_parent(obj);
         // Setup
-        self.setup_columns();
+        self.setup_column();
         self.setup_callbacks();
 
         // imp.column_view.set_parent(&imp.window);
@@ -78,23 +80,15 @@ impl ObjectImpl for ThreadsList {
         self.scrolled_window.unparent();
     }
 }
-impl WidgetImpl for ThreadsList {}
+impl WidgetImpl for ConversationList {}
 
-impl ThreadsList {
-    pub fn setup_columns(&self) {
-        self.column_view.append_column(&self.setup_authors_column());
-        self.column_view.append_column(&self.setup_subject_column());
-        self.column_view
-            .append_column(&self.setup_attachment_column());
-    }
-
-    pub fn setup_authors_column(&self) -> gtk::ColumnViewColumn {
+impl ConversationList {
+    pub fn setup_column(&self) {
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_setup(move |_, entry| {
-            let label = gtk::Label::new(None);
-            entry.set_child(Some(&label));
-            label.set_xalign(0.0);
-            label.show();
+            let item = ConversationListItem::new();
+            entry.set_child(Some(&item));
+            item.show();
         });
 
         factory.connect_bind(move |_, entry| {
@@ -104,98 +98,20 @@ impl ThreadsList {
                 .downcast::<Thread>()
                 .expect("The item has to be an `Thread`.");
 
-            let label = entry
+            let item = entry
                 .child()
                 .expect("The child has to exist.")
-                .downcast::<gtk::Label>()
-                .expect("The child has to be a `Label`.");
+                .downcast::<ConversationListItem>()
+                .expect("The child has to be a `ConversationListItem`.");
 
-            label.set_label(&thread.data().authors().join(", "));
+            item.set_thread(&thread);
         });
 
-        gtk::ColumnViewColumn::builder()
-            .title("authors")
+        let column = gtk::ColumnViewColumn::builder()
             .factory(&factory)
-            .build()
-    }
+            .build();
 
-    pub fn setup_subject_column(&self) -> gtk::ColumnViewColumn {
-        let factory = gtk::SignalListItemFactory::new();
-        factory.connect_setup(move |_, entry| {
-            let label = gtk::Label::new(None);
-            entry.set_child(Some(&label));
-            label.set_xalign(0.0);
-            label.show();
-        });
-
-        factory.connect_bind(move |_, entry| {
-            let thread = entry
-                .item()
-                .expect("The item has to exist.")
-                .downcast::<Thread>()
-                .expect("The item has to be an `Thread`.");
-
-            let label = entry
-                .child()
-                .expect("The child has to exist.")
-                .downcast::<gtk::Label>()
-                .expect("The child has to be a `Label`.");
-
-            label.set_label(&thread.data().subject());
-        });
-
-        gtk::ColumnViewColumn::builder()
-            .title("subject")
-            .factory(&factory)
-            .build()
-    }
-
-    pub fn setup_attachment_column(&self) -> gtk::ColumnViewColumn {
-        let icon_name = "mail-attachment-symbolic";
-        let icon = gio::ThemedIcon::new(icon_name);
-
-        let factory = SignalListItemFactory::new();
-        factory.connect_setup(move |_, entry| {
-            let img = ImageBuilder::new().gicon(&icon).build();
-            entry.set_child(Some(&img));
-            img.hide();
-        });
-
-        factory.connect_bind(move |_, entry| {
-            let thread = entry
-                .item()
-                .expect("The item has to exist.")
-                .downcast::<Thread>()
-                .expect("The item has to be an `Thread`.");
-
-            let img = entry
-                .child()
-                .expect("The child has to exist.")
-                .downcast::<gtk::Image>()
-                .expect("The child has to be a `Image`.");
-
-            if thread.has_attachment() {
-                img.show()
-            } else {
-                img.hide()
-            }
-        });
-
-        // Tell factory how to unbind `ThreadRow` from `Thread`
-        // factory.connect_unbind(move |_, entry| {
-        //     let label = entry
-        //         .child()
-        //         .expect("The child has to exist.")
-        //         .downcast::<gtk::Label>()
-        //         .expect("The child has to be a `Label`.");
-
-        //     label.unbind();
-        // });
-
-        gtk::ColumnViewColumn::builder()
-            .title("attachment")
-            .factory(&factory)
-            .build()
+        self.column_view.append_column(&column);
     }
 
     // ANCHOR: setup_callbacks

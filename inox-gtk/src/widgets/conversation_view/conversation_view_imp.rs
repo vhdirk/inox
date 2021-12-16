@@ -11,7 +11,7 @@ use std::cell::RefCell;
 
 #[derive(Debug, Default, CompositeTemplate)]
 #[template(resource = "/com/github/vhdirk/Inox/gtk/thread_view.ui")]
-pub struct ThreadView {
+pub struct ConversationView {
     #[template_child]
     pub stack: TemplateChild<gtk::Stack>,
     // Stack pages
@@ -51,7 +51,7 @@ pub struct ThreadView {
     pub sender: OnceCell<Sender<Action>>,
 }
 
-impl ThreadView {
+impl ConversationView {
     pub fn set_visible_child<W: IsA<gtk::Widget>>(&self, widget: &W) {
         let current = self.stack.get().visible_child();
 
@@ -130,9 +130,9 @@ impl ThreadView {
 }
 
 #[glib::object_subclass]
-impl ObjectSubclass for ThreadView {
-    const NAME: &'static str = "InoxThreadView";
-    type Type = super::ThreadView;
+impl ObjectSubclass for ConversationView {
+    const NAME: &'static str = "InoxConversationView";
+    type Type = super::ConversationView;
     type ParentType = gtk::Widget;
 
     fn new() -> Self {
@@ -197,7 +197,7 @@ impl ObjectSubclass for ThreadView {
     }
 }
 
-impl ObjectImpl for ThreadView {
+impl ObjectImpl for ConversationView {
     fn constructed(&self, obj: &Self::Type) {
         self.no_threads_placeholder
             .set_parent(&self.no_threads_page.get());
@@ -224,4 +224,4 @@ impl ObjectImpl for ThreadView {
         self.thread_scroller.unparent();
     }
 }
-impl WidgetImpl for ThreadView {}
+impl WidgetImpl for ConversationView {}

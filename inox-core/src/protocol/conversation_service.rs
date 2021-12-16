@@ -16,3 +16,10 @@ pub trait ConversationService {
 	#[rpc(meta, name = "mail/conversation/get")]
 	fn get(&self, state: Self::Metadata, id: String) -> BoxFuture<Result<u64, jsonrpc_core::Error>>;
 }
+
+
+
+// pub fn toplevel_messages(&self) -> Messagesⓘ
+
+// pub fn messages(&self) -> Messagesⓘ
+

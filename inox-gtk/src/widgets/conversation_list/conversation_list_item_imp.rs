@@ -20,7 +20,7 @@ pub fn create_liststore() -> gio::ListStore {
 
 #[derive(Debug, CompositeTemplate)]
 #[template(resource = "/com/github/vhdirk/Inox/gtk/thread_list_item.ui")]
-pub struct ThreadListItem {
+pub struct ConversationListItem {
     pub thread: RefCell<Option<Thread>>,
 
     #[template_child]
@@ -40,9 +40,9 @@ pub struct ThreadListItem {
 }
 
 #[glib::object_subclass]
-impl ObjectSubclass for ThreadListItem {
-    const NAME: &'static str = "InoxThreadListItem";
-    type Type = super::ThreadListItem;
+impl ObjectSubclass for ConversationListItem {
+    const NAME: &'static str = "InoxConversationListItem";
+    type Type = super::ConversationListItem;
     type ParentType = gtk::Box;
 
     fn new() -> Self {
@@ -65,18 +65,18 @@ impl ObjectSubclass for ThreadListItem {
     }
 }
 
-impl ObjectImpl for ThreadListItem {
+impl ObjectImpl for ConversationListItem {
     fn constructed(&self, obj: &Self::Type) {
         self.parent_constructed(obj);
     }
 
     fn dispose(&self, _obj: &Self::Type) {}
 }
-impl WidgetImpl for ThreadListItem {}
+impl WidgetImpl for ConversationListItem {}
 
-impl BoxImpl for ThreadListItem {}
+impl BoxImpl for ConversationListItem {}
 
-impl ThreadListItem {
+impl ConversationListItem {
     pub fn update(&self) {
         if let Some(thread) = self.thread.borrow().as_ref() {
             self.authors_label

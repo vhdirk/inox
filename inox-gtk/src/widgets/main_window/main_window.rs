@@ -21,8 +21,8 @@ use crate::application::InoxApplication;
 // use crate::headerbar::HeaderBar;
 use crate::core::Thread;
 
-use crate::widgets::thread_view::ThreadView;
-use crate::widgets::thread_list::ThreadList;
+use crate::widgets::conversation_view::ConversationView;
+use crate::widgets::conversation_list::ConversationList;
 use super::main_window_imp as imp;
 
 // Wrap imp::MainWindow into a usable gtk-rs object
@@ -90,10 +90,10 @@ impl MainWindow {
     // //     let _app = window.application().unwrap();
     // // }
 
-    pub fn set_query(&self, query: &notmuch::Query) {
+    pub fn set_conversations(&self, conversation: &Vec<String>) {
         let imp = imp::MainWindow::from_instance(self);
         let threads = query.search_threads().unwrap();
-        imp.thread_list.get().unwrap().set_threads(threads);
+        imp.conversation_list.get().unwrap().set_threads(threads);
     }
 
     pub fn open_thread(&self, thread: Option<notmuch::Thread>) {
@@ -103,8 +103,8 @@ impl MainWindow {
             Some(thread) => {
                 // self.update_titlebar(Some(&thread.subject()));
 
-                let thread_view = imp.thread_view.get().unwrap();
-                thread_view.load_thread(&thread);
+                let conversation_view = imp.conversation_view.get().unwrap();
+                conversation_view.load_thread(&thread);
             }
             None => {
                 // self.update_titlebar(None);
@@ -137,8 +137,8 @@ impl MainWindow {
 // struct Widgets {
 //     headerbar: Component<HeaderBar>,
 //     taglist: Component<TagList>,
-//     threadlist: Component<ThreadList>,
-//     threadview: Component<ThreadView>
+//     Conversationlist: Component<ConversationList>,
+//     Conversationview: Component<ConversationView>
 // }
 
 // // TODO: Factor out the hamburger menu
@@ -166,11 +166,11 @@ impl MainWindow {
 //         let query = <notmuch::Database as notmuch::DatabaseExt>::create_query(db, &qs).unwrap();
 //         let threads = <notmuch::Query<'_> as notmuch::QueryExt>::search_threads(query).unwrap();
 
-//         self.widgets.threadlist.emit(ThreadListMsg::Update(Some(threads)));
+//         self.widgets.Conversationlist.emit(ConversationListMsg::Update(Some(threads)));
 //     }
 
 //     fn on_thread_selected(self: &mut Self, thread: Thread){
-//         self.widgets.threadview.emit(ThreadViewMsg::ShowThread(thread))
+//         self.widgets.Conversationview.emit(ConversationViewMsg::ShowThread(thread))
 //     }
 
 // }
@@ -219,15 +219,15 @@ impl MainWindow {
 
 //         let headerbar = relm_init::<HeaderBar>(model.app.clone()).unwrap();
 //         let taglist = relm_init::<TagList>(model.app.clone()).unwrap();
-//         let threadlist = relm_init::<ThreadList>(model.app.clone()).unwrap();
-//         let threadview = relm_init::<ThreadView>(model.app.clone()).unwrap();
+//         let Conversationlist = relm_init::<ConversationList>(model.app.clone()).unwrap();
+//         let Conversationview = relm_init::<ConversationView>(model.app.clone()).unwrap();
 
 //         // TODO: what would be the best place to connect all UI signals?
 //         use self::TagListMsg::ItemSelect as TagList_ItemSelect;
 //         connect!(taglist@TagList_ItemSelect(ref tag), relm, Msg::TagSelect(tag.clone()));
 
-//         use self::ThreadListMsg::ThreadSelect as ThreadList_ThreadSelect;
-//         connect!(threadlist@ThreadList_ThreadSelect(ref thread), relm, Msg::ThreadSelect(thread.as_ref().unwrap().clone()));
+//         use self::ConversationListMsg::ThreadSelect as ConversationList_ThreadSelect;
+//         connect!(Conversationlist@ConversationList_ThreadSelect(ref thread), relm, Msg::ThreadSelect(thread.as_ref().unwrap().clone()));
 
 //         MainWindow {
 //             model,
@@ -235,8 +235,8 @@ impl MainWindow {
 //             widgets: Widgets{
 //                 headerbar,
 //                 taglist,
-//                 threadlist,
-//                 threadview
+//                 Conversationlist,
+//                 Conversationview
 //             }
 //         }
 
@@ -247,11 +247,11 @@ impl MainWindow {
 //         let main_paned = self.model.app.builder.get_object::<gtk::Paned>("main_paned")
 //                                    .expect("Couldn't find main_paned in ui file.");
 
-//         let threadlist_header = self.model.app.builder.get_object::<gtk::HeaderBar>("threadlist_header")
-//                                  .expect("Couldn't find threadlist_header in ui file.");
+//         let Conversationlist_header = self.model.app.builder.get_object::<gtk::HeaderBar>("Conversationlist_header")
+//                                  .expect("Couldn't find Conversationlist_header in ui file.");
 
 //         // // TODO: do I need to unbind this at some point?
-//         // let _width_bind = main_paned.bind_property("position", &threadlist_header, "width-request")
+//         // let _width_bind = main_paned.bind_property("position", &Conversationlist_header, "width-request")
 //         //                             .flags(glib::BindingFlags::SYNC_CREATE)
 //         //                             .transform_to(move |_binding, value| {
 //         //                                 let offset = 6; //TODO: this offset was trial and error.
