@@ -9,7 +9,13 @@ use toml;
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Config {
     #[serde(default = "default_version")]
+    // version of config, increments on breaking changes
     pub version: i16,
+
+    // port the core will listen on
+    // TODO: needs to be moved somewhere else I suppose
+    #[serde(default = "default_port")]
+    pub port: u16,
 
     #[serde(default)]
     pub debug: DebugConfig,
@@ -87,6 +93,11 @@ pub struct AccountConfig {
 fn default_version() -> i16 {
     1
 }
+
+fn default_port() -> u16 {
+    3123
+}
+
 
 fn default_notmuch_config_path() -> String {
     let env_var = std::env::var("NOTMUCH_CONFIG");

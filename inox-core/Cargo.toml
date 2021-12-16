@@ -14,7 +14,7 @@ path = "src/main.rs"
 
 
 [dependencies]
-structopt = { version = "0.3.25", features = [ "paw" ] }
+structopt = "0.3.25"
 paw = "1.0"
 log = "*"
 env_logger ="*"
@@ -32,9 +32,17 @@ chrono = { version = "0.4", features = ["serde"] }
 md5 = "0.3.7"
 dirs = "1.0"
 pretty_env_logger = "0.4.0"
+futures = "^0.3.18"
+async-std = "*"
+async-trait = "*"
+strum = { version = "0.23", features = ["derive"] }
 
 jsonrpc-core = "18.0.0"
+jsonrpc-core-client = "18.0.0"
 jsonrpc-derive = "18.0.0"
+jsonrpc-tcp-server = "18.0.0"
+jsonrpc-pubsub = "18.0.0"
+jsonrpc-server-utils = "18.0.0"
 
 notmuch = "0.7.0"
 gmime = { git = "https://gitlab.gnome.org/World/Rust/gmime-rs"}
