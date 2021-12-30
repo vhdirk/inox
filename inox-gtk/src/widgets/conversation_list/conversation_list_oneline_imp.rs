@@ -211,7 +211,7 @@ impl ConversationList {
                 let selection = model.selection_in_range(position, n_items);
                 let (mut selection_iter, _) = gtk::BitsetIter::init_first(&selection).unwrap();
 
-                let mut thread_ids = vec![];
+                let mut conversation_ids = vec![];
 
                 while selection_iter.is_valid() {
                     let selection_val = selection_iter.value();
@@ -220,27 +220,27 @@ impl ConversationList {
                         .unwrap()
                         .downcast::<Thread>()
                         .unwrap();
-                    let thread_id = threadw.data().id().to_string();
-                    thread_ids.push(thread_id);
+                    let conversation_id = threadw.data().id().to_string();
+                    conversation_ids.push(conversation_id);
                     selection_iter.next();
                 }
 
-                match thread_ids.len() {
+                match conversation_ids.len() {
                     0 => {
                         sender
                             .send(Action::SelectThread(None))
                             .expect("Failed to send thread selected action");
                     }
                     1 => {
-                        debug!("Selected thread {:?}", thread_ids[0].clone());
+                        debug!("Selected thread {:?}", conversation_ids[0].clone());
 
                         sender
-                            .send(Action::SelectThread(Some(thread_ids[0].clone())))
+                            .send(Action::SelectThread(Some(conversation_ids[0].clone())))
                             .expect("Failed to send thread selected action");
                     }
                     _ => {
                         sender
-                            .send(Action::SelectThreads(thread_ids))
+                            .send(Action::SelectThreads(conversation_ids))
                             .expect("Failed to send thread selected action");
                     }
                 };

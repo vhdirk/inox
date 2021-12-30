@@ -1,4 +1,5 @@
 
+use inox_core::models::Contact;
 use crate::core::internet_address::InternetAddressAux;
 use gmime::InternetAddressExt;
 use glib::Sender;
@@ -16,7 +17,7 @@ use log::*;
 #[derive(Debug, Default)]
 pub struct ContactFlowBoxChild {
     pub sender: OnceCell<Sender<Action>>,
-    pub address: OnceCell<gmime::InternetAddress>,
+    pub contact: OnceCell<Contact>,
     pub address_type: OnceCell<gmime::AddressType>,
     pub displayed: String,
     pub source: String,
@@ -128,20 +129,20 @@ impl ContactFlowBoxChild {
         // any. Ideally, it would be just one label instance in
         // both cases, but we can't yet include CSS classes in
         // Pango markup. See Bug 766763.
-        let address = self.address.get().expect("address should be set");
+        let contact = self.contact.get().expect("contact should be set");
         let address_type = self.address_type.get().expect("address_type should be set");
 
-        if address.is_spoofed() {
-            let spoof_img = gtk::Image::from_icon_name(
-                Some("dialog-warning-symbolic")
-            );
-            inst.set_tooltip_text(
-                Some("This email address may have been forged")
-            );
-            self.address_parts.attach(&spoof_img, 0, 0, 1, 1);
+        // if address.is_spoofed() {
+        //     let spoof_img = gtk::Image::from_icon_name(
+        //         Some("dialog-warning-symbolic")
+        //     );
+        //     inst.set_tooltip_text(
+        //         Some("This email address may have been forged")
+        //     );
+        //     self.address_parts.attach(&spoof_img, 0, 0, 1, 1);
 
-            // get_style_context().add_class(SPOOF_CLASS);
-        }
+        //     // get_style_context().add_class(SPOOF_CLASS);
+        // }
 
         let primary = gtk::Label::new(None);
         primary.set_ellipsize(pango::EllipsizeMode::End);
@@ -175,8 +176,8 @@ impl ContactFlowBoxChild {
     //             // Display both the display name and the email address
     //             // so that the user has the full information at hand
 
-        debug!("address name: {:?}", &address.name().unwrap());
-        primary.set_text(&address.name().unwrap());
+        debug!("contact name: {:?}", &contact.name.as_ref().unwrap());
+        primary.set_text(&contact.name.as_ref().unwrap());
     //             this.displayed = new Geary.RFC822.MailboxAddress(
     //                 this.address.display_name, this.source.address
     //             );

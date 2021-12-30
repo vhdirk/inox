@@ -2,11 +2,13 @@ use inox_core::models::query::Query;
 
 #[derive(Debug)]
 pub enum Action {
+    CoreConnected,
+    CoreDisconnected,
     SelectTag(Option<String>),
     Search(String),
     Query(Query),
-    SelectThread(Option<String>),
-    SelectThreads(Vec<String>),
+    SelectConversation(Option<String>),
+    SelectConversations(Vec<String>),
 
     // Reload,
     // ViewShowLibrary,

@@ -1,14 +1,25 @@
+use crate::core::glib_rpc_client;
 use crate::core::Action;
 use crate::widgets::MainWindow;
+use futures::Future;
 use gdk::{self, prelude::*};
 use gio::{self, prelude::*};
-use glib::{subclass::prelude::*, Receiver, Sender, WeakRef};
+use glib::{clone, subclass::prelude::*, Receiver, Sender, WeakRef};
 use gtk::{self, prelude::*, subclass::prelude::*};
+use inox_core::models::Query;
 use inox_core::settings::Settings;
 use log::*;
 use once_cell::sync::OnceCell;
 use std::cell::RefCell;
+use std::pin::Pin;
 use std::rc::Rc;
+
+use inox_core::protocol::mail_service::*;
+
+pub struct RpcConnection {
+    pub socket_connection: gio::SocketConnection,
+    pub mail_client: MailServiceClient,
+}
 
 pub struct InoxApplication {
     pub sender: Sender<Action>,
@@ -16,6 +27,8 @@ pub struct InoxApplication {
 
     pub window: OnceCell<WeakRef<MainWindow>>,
     pub database: RefCell<Option<notmuch::Database>>,
+    pub socket_client: gio::SocketClient,
+    pub rpc: RefCell<Option<RpcConnection>>,
     // pub player: Player,
     // pub library: Library,
     // pub storefront: StoreFront,
@@ -31,9 +44,6 @@ impl ObjectSubclass for InoxApplication {
     fn new() -> Self {
         let (sender, recv) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let window = OnceCell::new();
-        // let player = Player::new(sender.clone());
-        // let library = Library::new(sender.clone());
-        // let storefront = StoreFront::new(sender.clone());
 
         Self {
             sender,
@@ -41,6 +51,8 @@ impl ObjectSubclass for InoxApplication {
             window,
             database: RefCell::new(None),
             settings: RefCell::new(None),
+            socket_client: gio::SocketClient::new(),
+            rpc: RefCell::new(None),
         }
     }
 }
@@ -61,7 +73,10 @@ impl ApplicationImpl for InoxApplication {
             &css_provider,
             gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
-        self.load_css(&css_provider, "resource:///com/github/vhdirk/Inox/gtk/inox.css");
+        self.load_css(
+            &css_provider,
+            "resource:///com/github/vhdirk/Inox/gtk/inox.css",
+        );
 
         self.parent_startup(app);
     }
@@ -84,8 +99,7 @@ impl ApplicationImpl for InoxApplication {
         let _ = self.window.set(window.downgrade());
         info!("Created application window.");
 
-        let db = app.init_database();
-        imp.database.borrow_mut().replace(db.clone());
+        app.setup_connection();
 
         // Setup action channel
         let receiver = self.receiver.borrow_mut().take().unwrap();
@@ -121,5 +135,70 @@ impl InoxApplication {
         });
         let file = gio::File::for_uri(resource_uri);
         css_provider.load_from_file(&file);
+    }
+
+    pub async fn connect_core(&self) -> Result<(), glib::Error> {
+
+        let address = gio::UnixSocketAddress::new(&self.settings.borrow().as_ref().unwrap().inox_config.socket_path);
+        let res = self
+            .socket_client
+            .connect_future(&address)
+            .await;
+
+        if let Ok(connection) = res {
+            let channel = glib_rpc_client::connect(connection.clone()).unwrap();
+            let mail_client: MailServiceClient = channel.clone().into();
+
+            let rpc = RpcConnection {
+                socket_connection: connection,
+                mail_client,
+            };
+
+            self.rpc.replace(Some(rpc));
+            Ok(())
+        } else {
+            Err(res.err().unwrap())
+        }
+    }
+
+    pub fn perform_search(&self, query: Query) {
+        let inst = self.instance();
+
+        let ctx = glib::MainContext::default();
+        ctx.with_thread_default(clone!(@weak inst => move || {
+            let ctx = glib::MainContext::default();
+            ctx.spawn_local(clone!(@weak inst => async move {
+                let this = Self::from_instance(&inst);
+
+                let query_client = this.rpc.borrow().as_ref().unwrap().mail_client.clone();
+                let conversations = query_client.search_conversations(query).await;
+
+                this.window
+            .get()
+            .unwrap()
+            .upgrade()
+            .unwrap()
+            .set_conversations(&conversations.unwrap());
+            }));
+        }));
+
+        // self.rpc.borrow().as_ref().unwrap().query_client.conversations(query);
+    }
+
+    pub fn open_conversation(&self, conversation_id: Option<String>) {
+        // let conversation = conversation_id.map(|id| {
+        //     self.open_database(notmuch::DatabaseMode::ReadOnly)
+        //         .unwrap()
+        //         .find_thread_by_id(&id)
+        //         .unwrap()
+        //         .unwrap()
+        // });
+
+        // imp.window
+        //     .get()
+        //     .unwrap()
+        //     .upgrade()
+        //     .unwrap()
+        //     .open_conversation(conversation);
     }
 }

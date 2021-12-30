@@ -1,4 +1,3 @@
-use crate::core::Message;
 use async_std::os::unix::net::UnixStream;
 use glib::subclass::prelude::ObjectSubclassExt;
 use gmime::traits::MessageExt;
@@ -25,7 +24,6 @@ use webkit2gtk::traits::{
 };
 
 use crate::core::Action;
-use crate::core::Thread;
 use crate::spawn;
 use crate::webextension::rpc::RawFdWrap;
 

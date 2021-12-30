@@ -7,6 +7,7 @@ use serde::{Serialize, Deserialize};
 pub struct Message {
     pub id: String,
     pub recipients: Vec<Contact>,
+    pub tags: Vec<String>,
 
     pub from_contacts: Vec<Contact>,
     pub to_contacts: Vec<Contact>,
@@ -16,7 +17,7 @@ pub struct Message {
 
     pub date: Option<DateTime<Utc>>,
     pub subject: Option<String>,
-    pub preview: Option<String>,
+    //pub preview: Option<String>,
 }
 
 pub struct MessageBody {

@@ -1,3 +1,4 @@
+use inox_core::models::Message;
 use crate::core::Action;
 use glib::Sender;
 
@@ -15,7 +16,7 @@ glib::wrapper! {
 }
 
 impl MessageRow {
-    pub fn new(message: &notmuch::Message, sender: Sender<Action>) -> Self {
+    pub fn new(message: &Message, sender: Sender<Action>) -> Self {
         let row: Self = glib::Object::new(&[]).expect("Failed to create MessageRow");
 
         let imp = imp::MessageRow::from_instance(&row);

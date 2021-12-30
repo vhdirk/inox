@@ -1,6 +1,5 @@
 use crate::handlers::state_metadata::StateMetadata;
 use jsonrpc_core::MetaIoHandler;
-use jsonrpc_tcp_server::RequestContext;
 use std::fs::DirBuilder;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
@@ -11,10 +10,8 @@ use gmime;
 use log::*;
 use pretty_env_logger;
 
-use jsonrpc_core::{IoHandler, Params, Value};
-use jsonrpc_pubsub::{PubSubHandler, Session, Subscriber, SubscriptionId};
-use jsonrpc_tcp_server::ServerBuilder;
-use structopt::clap::{App, Arg};
+use jsonrpc_ipc_server::{RequestContext, ServerBuilder};
+use jsonrpc_pubsub::{PubSubHandler, Session};
 use structopt::StructOpt;
 
 pub mod handlers;
@@ -22,11 +19,8 @@ pub mod models;
 pub mod protocol;
 pub mod settings;
 
-use handlers::conversation_handler::ConversationHandler;
-use protocol::conversation_service::*;
-
-use handlers::message_handler::MessageHandler;
-use protocol::message_service::*;
+use handlers::mail_handler::MailHandler;
+use protocol::mail_service::*;
 
 use settings::Settings;
 
@@ -73,6 +67,8 @@ fn default_config_path() -> PathBuf {
 }
 
 fn main() {
+    debug!("Starting Inox Core");
+
     init();
 
     let mut default_config = dirs::config_dir().unwrap();
@@ -84,35 +80,35 @@ fn main() {
         .unwrap();
 
     let args = CoreArgs::from_args();
-    let conf_location = args.config.unwrap_or(default_config_path());
+    let conf_path = args.config.unwrap_or_else(default_config_path);
 
-    debug!("Using config file {:?}", conf_location);
+    debug!("Using config file {:?}", conf_path);
 
     // load the settings
-    let conf_path: PathBuf = PathBuf::from(conf_location);
-    let settings = Arc::new(Settings::new(&conf_path.as_path()));
+    let settings = Arc::new(Settings::new(conf_path.as_path()));
 
     let metaio_handler = MetaIoHandler::default();
 
     let mut io = PubSubHandler::new(metaio_handler);
-    let conversation_handler = ConversationHandler::new(settings.clone());
-    io.extend_with(conversation_handler.to_delegate());
+    let mail_handler = MailHandler::default();
+    io.extend_with(mail_handler.to_delegate());
 
-    let message_handler = MessageHandler::new(settings.clone());
-    io.extend_with(message_handler.to_delegate());
-
-    let serve_address = SocketAddr::new(
-        IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-        settings.as_ref().inox_config.port,
-    );
+    let socket_settings = settings.clone();
+    let socket_path = socket_settings
+        .as_ref()
+        .inox_config
+        .socket_path
+        .to_str()
+        .unwrap();
 
     let server = ServerBuilder::new(io)
         .session_meta_extractor(move |context: &RequestContext| StateMetadata {
             session_: Some(Arc::new(Session::new(context.sender.clone()))),
             settings: Some(settings.clone()),
         })
-        .start(&serve_address)
-        .expect("Server must start with no issues");
+        .start(socket_path)
+        .expect("Server must start without issues");
 
+    debug!("Server listening on {}", &socket_path);
     server.wait();
 }

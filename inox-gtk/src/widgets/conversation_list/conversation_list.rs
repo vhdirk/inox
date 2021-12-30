@@ -1,3 +1,5 @@
+use crate::core::ConversationObject;
+use inox_core::models::Conversation;
 use gio::prelude::*;
 use glib::clone;
 use glib::subclass::prelude::*;
@@ -9,7 +11,6 @@ use log::*;
 use notmuch;
 
 use crate::core::Action;
-use crate::core::Thread;
 
 use super::conversation_list_imp as imp;
 
@@ -23,23 +24,23 @@ glib::wrapper! {
 // ConversationList implementation itself
 impl ConversationList {
     pub fn new(sender: Sender<Action>) -> Self {
-        let thread_list: Self = glib::Object::new(&[]).expect("Failed to create ConversationList");
-        let imp = imp::ConversationList::from_instance(&thread_list);
+        let list: Self = glib::Object::new(&[]).expect("Failed to create ConversationList");
+        let imp = imp::ConversationList::from_instance(&list);
 
         imp.sender
             .set(sender)
             .expect("Failed to set sender on ConversationList");
-        thread_list.set_vexpand(true);
-        thread_list.set_hexpand(true);
-        thread_list
+        list.set_vexpand(true);
+        list.set_hexpand(true);
+        list
     }
 
-    pub fn set_threads(&self, threads: notmuch::Threads) {
+    pub fn set_conversations(&self, conversations: &Vec<Conversation>) {
         let imp = imp::ConversationList::from_instance(self);
         let model = imp::create_liststore();
 
-        for thread in threads {
-            model.append(&Thread::new(thread));
+        for conversation in conversations {
+            model.append(&ConversationObject::new(conversation));
         }
 
         imp.selection_model.set_model(Some(&model));

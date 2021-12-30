@@ -11,17 +11,17 @@
         <property name="orientation">vertical</property>
         <property name="homogeneous">1</property>
         <child>
-          <object class="GtkPaned" id="outer_leaflet">
-       <!-- TODO: leaflets are not resizeable
+          <!-- <object class="GtkPaned" id="outer_leaflet">
+       TODO: leaflets are not resizeable -->
           <object class="AdwLeaflet" id="outer_leaflet">
             <property name="can-swipe-back">True</property>
-            <property name="can-swipe-forward">True</property> -->
+            <property name="can-swipe-forward">True</property>
             <child>
-              <object class="GtkPaned" id="inner_leaflet">
-          <!-- TODO: leaflets are not resizeable
+              <!-- <object class="GtkPaned" id="inner_leaflet">
+          TODO: leaflets are not resizeable -->
               <object class="AdwLeaflet" id="inner_leaflet">
                 <property name="can-swipe-back">True</property>
-                <property name="can-swipe-forward">True</property> -->
+                <property name="can-swipe-forward">True</property>
                     <child>
 
                       <object class="GtkBox">
@@ -194,7 +194,7 @@
                           </object>
                         </child>
                         <child>
-                          <object class="GtkBox" id="thread_list_box">
+                          <object class="GtkBox" id="conversation_list_box">
                             <property name="vexpand">1</property>
                             <property name="hexpand">0</property>
                             <property name="orientation">vertical</property>
@@ -212,7 +212,7 @@
               <object class="AdwLeafletPage">
                 <property name="navigatable">False</property>
                 <property name="child">
-                  <object class="GtkSeparator" id="threads_separator">
+                  <object class="GtkSeparator" id="conversations_separator">
                     <property name="visible">True</property>
                     <property name="orientation">vertical</property>
                     <style>
@@ -254,7 +254,7 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkBox" id="thread_view_box"></object>
+                  <object class="GtkBox" id="conversation_view_box"></object>
                 </child>
               </object>
             </child>
@@ -267,7 +267,7 @@
   <object class="GtkSizeGroup">
     <widgets>
       <widget name="inner_leaflet" />
-      <widget name="thread_view_box" />
+      <widget name="conversation_view_box" />
     </widgets>
   </object>
   <object class="GtkSizeGroup" id="tag_size_group">
@@ -282,22 +282,22 @@
       <widget name="tag_separator" />
     </widgets>
   </object>
-  <object class="GtkSizeGroup" id="threads_size_group">
+  <object class="GtkSizeGroup" id="conversations_size_group">
     <property name="mode">horizontal</property>
     <widgets>
-      <widget name="thread_list_box" />
+      <widget name="conversation_list_box" />
     </widgets>
   </object>
-  <object class="GtkSizeGroup" id="threads_separator_size_group">
+  <object class="GtkSizeGroup" id="conversations_separator_size_group">
     <property name="mode">horizontal</property>
     <widgets>
-      <widget name="threads_separator" />
+      <widget name="conversations_separator" />
     </widgets>
   </object>
-  <object class="GtkSizeGroup" id="thread_size_group">
+  <object class="GtkSizeGroup" id="conversation_size_group">
     <property name="mode">horizontal</property>
     <widgets>
-      <widget name="thread_view_box" />
+      <widget name="conversation_view_box" />
     </widgets>
   </object>
 </interface>

@@ -1,5 +1,6 @@
+use inox_core::models::Conversation;
 use crate::core::Action;
-use crate::core::Thread;
+use crate::core::ConversationObject;
 use chrono::naive::NaiveDateTime;
 use chrono::DateTime;
 use chrono::Utc;
@@ -14,14 +15,10 @@ use log::*;
 use once_cell::unsync::OnceCell;
 use std::cell::RefCell;
 
-pub fn create_liststore() -> gio::ListStore {
-    gio::ListStore::new(Thread::static_type())
-}
-
 #[derive(Debug, CompositeTemplate)]
-#[template(resource = "/com/github/vhdirk/Inox/gtk/thread_list_item.ui")]
+#[template(resource = "/com/github/vhdirk/Inox/gtk/conversation_list_item.ui")]
 pub struct ConversationListItem {
-    pub thread: RefCell<Option<Thread>>,
+    pub conversation: RefCell<Option<ConversationObject>>,
 
     #[template_child]
     pub authors_label: TemplateChild<gtk::Label>,
@@ -47,7 +44,7 @@ impl ObjectSubclass for ConversationListItem {
 
     fn new() -> Self {
         Self {
-            thread: RefCell::new(None),
+            conversation: RefCell::new(None),
             authors_label: TemplateChild::default(),
             subject_label: TemplateChild::default(),
             date_label: TemplateChild::default(),
@@ -78,17 +75,18 @@ impl BoxImpl for ConversationListItem {}
 
 impl ConversationListItem {
     pub fn update(&self) {
-        if let Some(thread) = self.thread.borrow().as_ref() {
-            self.authors_label
-                .set_text(&thread.data().authors().join(", "));
-            self.subject_label.set_text(&thread.data().subject());
+        if let Some(conversation) = self.conversation.borrow().as_ref() {
+            // TODO
+            // self.authors_label
+            //     .set_text(&conversation.authors.join(", "));
+            self.subject_label.set_text(&conversation.subject);
 
             self.date_label.set_text(&self.format_date());
 
             self.num_messages_label
-                .set_text(&format!("{}", thread.data().total_messages()));
+                .set_text(&format!("{}", conversation.total_messages));
 
-            if thread.is_unread() {
+            if conversation.is_unread() {
                 self.authors_label.style_context().add_class("inox-unread");
                 self.subject_label.style_context().add_class("inox-unread");
             }
@@ -96,9 +94,9 @@ impl ConversationListItem {
     }
 
     pub fn update_tags(&self) {
-        if let Some(thread) = self.thread.borrow().as_ref() {
+        if let Some(conversation) = self.conversation.borrow().as_ref() {
             let container = self.tags_container.get();
-            for tag in thread.data().tags() {
+            for tag in conversation.tags.iter() {
                 let tag_label = gtk::Label::new(Some(&tag));
                 container.append(&tag_label);
             }
@@ -109,15 +107,15 @@ impl ConversationListItem {
     }
 
     pub fn format_date(&self) -> String {
-        if let Some(thread) = self.thread.borrow().as_ref() {
-            let dt = DateTime::<Utc>::from_utc(
-                NaiveDateTime::from_timestamp(thread.data().newest_date(), 0),
-                Utc,
-            );
-            let ht = HumanTime::from(dt);
-            format!("{}", ht)
-        } else {
-            "".to_string()
+        if let Some(conversation) = self.conversation.borrow().as_ref() {
+            // let dt = DateTime::<Utc>::from_utc(
+            //     NaiveDateTime::from_timestamp(newest_date, 0),
+            //     Utc,
+            // );
+            let ht = HumanTime::from(conversation.newest_date);
+            return format!("{}", ht);
+
         }
+        "".to_string()
     }
 }

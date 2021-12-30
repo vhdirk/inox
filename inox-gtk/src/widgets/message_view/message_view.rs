@@ -1,5 +1,4 @@
-use crate::core::message::Message;
-use crate::core::thread::Thread;
+use inox_core::models::Message;
 use gio::prelude::*;
 use glib::clone;
 use glib::subclass::prelude::*;
@@ -18,7 +17,7 @@ glib::wrapper! {
 
 // MessageView implementation itself
 impl MessageView {
-    pub fn new(message: &notmuch::Message, sender: Sender<Action>) -> Self {
+    pub fn new(message: &Message, sender: Sender<Action>) -> Self {
         let view: Self = glib::Object::new(&[]).expect("Failed to create MessageView");
         let imp = imp::MessageView::from_instance(&view);
 

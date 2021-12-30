@@ -9,7 +9,7 @@ use log::*;
 use notmuch;
 
 use crate::core::Action;
-use crate::core::Thread;
+use crate::core::ConversationObject;
 
 use super::conversation_list_item_imp as imp;
 
@@ -25,9 +25,9 @@ impl ConversationListItem {
         glib::Object::new(&[]).expect("Failed to create ConversationListItem")
     }
 
-    pub fn set_thread(&self, thread: &Thread) {
+    pub fn set_conversation(&self, conversation: &ConversationObject) {
         let imp = imp::ConversationListItem::from_instance(self);
-        imp.thread.replace(Some(thread.clone()));
+        imp.conversation.replace(Some(conversation.clone()));
         imp.update();
     }
 }

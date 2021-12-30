@@ -1,10 +1,10 @@
-use crate::widgets::message_view::ContactFlowBoxChild;
-use std::cell::RefCell;
-use log::*;
 use crate::core::Action;
-use crate::core::Message;
+use crate::widgets::message_view::ContactFlowBoxChild;
 use crate::widgets::web_view::MessageWebView;
 use chrono_humanize::HumanTime;
+use inox_core::models::Message;
+use log::*;
+use std::cell::RefCell;
 
 use glib::prelude::*;
 use glib::subclass::prelude::*;
@@ -21,8 +21,6 @@ const EMPTY_FROM_LABEL: &str = "No sender";
 const SENT_CLASS: &str = "inox-sent";
 const STARRED_CLASS: &str = "inox-starred";
 const UNREAD_CLASS: &str = "inox-unread";
-
-
 
 // TODO: make configurable
 const MARK_READ_TIMEOUT_MSEC: u64 = 250;
@@ -196,35 +194,32 @@ impl ObjectImpl for MessageView {
 impl WidgetImpl for MessageView {}
 
 impl MessageView {
-    pub fn init(&self, message: &notmuch::Message, sender: Sender<Action>) {
-
+    pub fn init(&self, message: &Message, sender: Sender<Action>) {
         self.sender
             .set(sender)
             .expect("Failed to set sender on MessageView");
 
-        let message = Message::new(message).unwrap();
-        self.message
-            .set(message)
-            .expect("Failed to set message on MessageView");
+        // let message = Message::new(message).unwrap();
+        // self.message
+        //     .set(message)
+        //     .expect("Failed to set message on MessageView");
 
+        // let inst = self.instance();
 
-        let inst = self.instance();
-
-
-        if self.message.get().unwrap().is_unread(){
-            // TODO: should only be launched when email is actually opened
-            debug!("Starting unread timeout");
-            // mark the message as read if this view is open for `n` seconds
-            self.read_timeout_source_id
-                .replace(Some(glib::source::timeout_add_local_once(
-                    std::time::Duration::from_millis(MARK_READ_TIMEOUT_MSEC),
-                    clone!(@weak inst => move || {
-                        let this = Self::from_instance(&inst);
-                        this.read_timeout_source_id.replace(None);
-                        this.mark_read();
-                    }),
-                )));
-        }
+        // if self.message.get().unwrap().is_unread(){
+        //     // TODO: should only be launched when email is actually opened
+        //     debug!("Starting unread timeout");
+        //     // mark the message as read if this view is open for `n` seconds
+        //     self.read_timeout_source_id
+        //         .replace(Some(glib::source::timeout_add_local_once(
+        //             std::time::Duration::from_millis(MARK_READ_TIMEOUT_MSEC),
+        //             clone!(@weak inst => move || {
+        //                 let this = Self::from_instance(&inst);
+        //                 this.read_timeout_source_id.replace(None);
+        //                 this.mark_read();
+        //             }),
+        //         )));
+        // }
     }
 
     pub fn update_display(&self) {
@@ -250,11 +245,11 @@ impl MessageView {
 
         let msg = self.message.get().unwrap();
 
-        if msg.is_unread() {
-            style.add_class(UNREAD_CLASS);
-        } else {
-            style.remove_class(UNREAD_CLASS);
-        }
+        // if msg.is_unread() {
+        //     style.add_class(UNREAD_CLASS);
+        // } else {
+        //     style.remove_class(UNREAD_CLASS);
+        // }
 
         // if (msg.is_starred()) {
         //     style.add_class(STARRED_CLASS);
@@ -271,30 +266,30 @@ impl MessageView {
 
     pub fn fill_originator_addresses(&self) {
         if !self.address_flowbox_children.borrow().is_empty() {
-           return;
+            return;
         }
 
         let msg = self.message.get().unwrap();
 
         // Show any From header addresses
-        let from = msg.from();
+        let from = &msg.from_contacts;
 
         debug!("from: {:?}", &from);
 
-        if from.is_some() && from.as_ref().unwrap().length() > 0 {
-            let from = from.as_ref().unwrap();
-            for i in 0..from.length() {
-                let address = from.address(i).unwrap();
+        if from.len() > 0 {
+            for contact in from.iter() {
                 let child = ContactFlowBoxChild::new(
-                    &address,
+                    &contact,
                     gmime::AddressType::From,
                     self.sender.get().unwrap().clone(),
                 );
                 child.show();
                 //         this.searchable_addresses.add(child);
                 self.from.get().set_visible(true);
-                self.from.get().insert(&child, i);
-                self.address_flowbox_children.borrow_mut().push(child.upcast::<gtk::FlowBoxChild>());
+                self.from.get().insert(&child, -1);
+                self.address_flowbox_children
+                    .borrow_mut()
+                    .push(child.upcast::<gtk::FlowBoxChild>());
             }
         } else {
             let label = gtk::Label::new(Some(EMPTY_FROM_LABEL));
@@ -308,60 +303,55 @@ impl MessageView {
             self.address_flowbox_children.borrow_mut().push(child);
         }
 
-        let sender = msg.sender();
-        // Show the Sender header addresses if present, but only if
-        // not already in the From header.
-        if sender.is_some() && sender.as_ref().unwrap().length() > 0 {
-            let sender = sender.as_ref().unwrap();
-            for i in 0..sender.length() {
-                let address = sender.address(i).unwrap();
-                debug!("sender: {:?}", &address);
-                if from.is_some()
-                    && from.as_ref().unwrap().length() > 0
-                    && from.as_ref().unwrap().contains(&address)
-                {
-                    continue;
-                }
-                let child = ContactFlowBoxChild::new(
-                    &address,
-                    gmime::AddressType::Sender,
-                    self.sender.get().unwrap().clone(),
-                );
-                child.show();
-                //         self.searchable_addresses.add(child);
-                self.sender_header.get().show();
-                self.sender_header.get().set_visible(true);
-                self.sender_address.get().insert(&child, i);
-                self.address_flowbox_children.borrow_mut().push(child.upcast::<gtk::FlowBoxChild>());
-            }
-        }
+        // let sender = msg.sender_contacts();
+        // // Show the Sender header addresses if present, but only if
+        // // not already in the From header.
+        // if sender.as_ref().unwrap().length() > 0 {
+        //     let sender = sender.as_ref().unwrap();
+        //     for i in 0..sender.length() {
+        //         let address = sender.address(i).unwrap();
+        //         debug!("sender: {:?}", &address);
+        //         if from.is_some()
+        //             && from.as_ref().unwrap().length() > 0
+        //             && from.as_ref().unwrap().contains(&address)
+        //         {
+        //             continue;
+        //         }
+        //         let child = ContactFlowBoxChild::new(
+        //             &address,
+        //             gmime::AddressType::Sender,
+        //             self.sender.get().unwrap().clone(),
+        //         );
+        //         child.show();
+        //         //         self.searchable_addresses.add(child);
+        //         self.sender_header.get().show();
+        //         self.sender_header.get().set_visible(true);
+        //         self.sender_address.get().insert(&child, i);
+        //         self.address_flowbox_children.borrow_mut().push(child.upcast::<gtk::FlowBoxChild>());
+        //     }
+        // }
 
-        let reply_to = msg.reply_to();
+        let reply_to = &msg.reply_to_contacts;
         // Show any Reply-To header addresses if present, but only if
         // each is not already in the From header.
-        if reply_to.is_some() && reply_to.as_ref().unwrap().length() > 0 {
-            let reply_to = reply_to.as_ref().unwrap();
-            for i in 0..reply_to.length() {
-                let address = reply_to.address(i).unwrap();
-                if from.is_some()
-                    && from.as_ref().unwrap().length() > 0
-                    && from.as_ref().unwrap().contains(&address)
-                {
-                    continue;
-                }
-                let child = ContactFlowBoxChild::new(
-                    &address,
-                    gmime::AddressType::ReplyTo,
-                    self.sender.get().unwrap().clone(),
-                );
-                child.show();
-                //         self.searchable_addresses.add(child);
-                self.reply_to_header.get().show();
-                self.reply_to_addresses.get().set_visible(true);
-
-                self.reply_to_addresses.get().insert(&child, i);
-                self.address_flowbox_children.borrow_mut().push(child.upcast::<gtk::FlowBoxChild>());
+        for contact in reply_to.iter() {
+            if from.len() > 0 && from.contains(&contact) {
+                continue;
             }
+            let child = ContactFlowBoxChild::new(
+                &contact,
+                gmime::AddressType::ReplyTo,
+                self.sender.get().unwrap().clone(),
+            );
+            child.show();
+            //         self.searchable_addresses.add(child);
+            self.reply_to_header.get().show();
+            self.reply_to_addresses.get().set_visible(true);
+
+            self.reply_to_addresses.get().insert(&child, -1);
+            self.address_flowbox_children
+                .borrow_mut()
+                .push(child.upcast::<gtk::FlowBoxChild>());
         }
     }
 
@@ -369,30 +359,30 @@ impl MessageView {
 
     pub fn format_subject(&self) -> String {
         let msg = self.message.get().unwrap();
-        msg.subject()
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| "".to_string())
+        msg.subject.as_ref().unwrap().to_string()
     }
 
     pub fn format_originator_compact(&self) -> String {
         let msg = self.message.get().unwrap();
-        msg.from_names().join(", ")
+        // msg.from_names().join(", ")
+        "".to_string()
     }
 
     pub fn format_date(&self) -> String {
         let msg = self.message.get().unwrap();
-        msg.date().to_rfc2822()
+        msg.date.as_ref().unwrap().to_rfc2822()
     }
 
     pub fn format_date_compact(&self) -> String {
         let msg = self.message.get().unwrap();
-        let ht = HumanTime::from(msg.date());
+        let ht = "";// HumanTime::from(msg.date.as_ref().unwrap());
         format!("{}", ht)
     }
 
     pub fn format_body_compact(&self) -> String {
         let msg = self.message.get().unwrap();
-        msg.preview()
+        // msg.preview()
+        "".to_string()
     }
 
     /**
@@ -555,23 +545,22 @@ impl MessageView {
 
         self.show_placeholder_pane(None);
 
-        let body_text = if let Some(msg) = self.message.get() {
-
-            debug!("has html body? {:?}", msg.has_html_body());
-            if msg.has_html_body() {
-                msg.html_body(/*inline_image_replacer*/)
-            } else {
-                msg.plain_body(true /*inline_image_replacer*/)
-            }
-        } else {
-            None
-        };
+        // let body_text = if let Some(msg) = self.message.get() {
+        //     debug!("has html body? {:?}", msg.has_html_body());
+        //     if msg.has_html_body() {
+        //         msg.html_body(/*inline_image_replacer*/)
+        //     } else {
+        //         msg.plain_body(true /*inline_image_replacer*/)
+        //     }
+        // } else {
+        //     None
+        // };
 
         // load_cancelled.cancelled.connect(() => { web_view.stop_loading(); });
-        self.web_view
-            .get()
-            .unwrap()
-            .load_html(&body_text.unwrap_or_else(|| "".to_string()));
+        // self.web_view
+        //     .get()
+        //     .unwrap()
+        //     .load_html(&body_text.unwrap_or_else(|| "".to_string()));
     }
 
     pub fn show_placeholder_pane(&self, placeholder: Option<&gtk::Widget>) {

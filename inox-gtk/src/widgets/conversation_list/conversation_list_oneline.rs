@@ -9,7 +9,7 @@ use log::*;
 use notmuch;
 
 use crate::core::Action;
-// use crate::widgets::thread_list_cell_renderer::CellRendererThread;
+// use crate::widgets::conversation_list_cell_renderer::CellRendererThread;
 use crate::core::Thread;
 
 use super::conversation_list_imp as imp;
@@ -27,16 +27,16 @@ glib::wrapper! {
 // ConversationList implementation itself
 impl ConversationList {
     pub fn new(sender: Sender<Action>) -> Self {
-        let thread_list: Self = glib::Object::new(&[]).expect("Failed to create ConversationList");
-        let imp = imp::ConversationList::from_instance(&thread_list);
+        let conversation_list: Self = glib::Object::new(&[]).expect("Failed to create ConversationList");
+        let imp = imp::ConversationList::from_instance(&conversation_list);
 
         imp.sender
             .set(sender)
             .expect("Failed to set sender on ConversationList");
-        thread_list.set_vexpand(true);
-        thread_list.set_vexpand_set(true);
+        conversation_list.set_vexpand(true);
+        conversation_list.set_vexpand_set(true);
 
-        thread_list
+        conversation_list
     }
 
     pub fn set_threads(&self, threads: notmuch::Threads) {

@@ -1,3 +1,4 @@
+use inox_core::models::Conversation;
 use std::cell::RefCell;
 use std::sync::Arc;
 
@@ -19,7 +20,7 @@ use crate::core::Action;
 use crate::application::InoxApplication;
 
 // use crate::headerbar::HeaderBar;
-use crate::core::Thread;
+use crate::core::ConversationObject;
 
 use crate::widgets::conversation_view::ConversationView;
 use crate::widgets::conversation_list::ConversationList;
@@ -90,21 +91,20 @@ impl MainWindow {
     // //     let _app = window.application().unwrap();
     // // }
 
-    pub fn set_conversations(&self, conversation: &Vec<String>) {
+    pub fn set_conversations(&self, conversations: &Vec<Conversation>) {
         let imp = imp::MainWindow::from_instance(self);
-        let threads = query.search_threads().unwrap();
-        imp.conversation_list.get().unwrap().set_threads(threads);
+        imp.conversation_list.get().unwrap().set_conversations(conversations);
     }
 
-    pub fn open_thread(&self, thread: Option<notmuch::Thread>) {
+    pub fn open_conversation(&self, conversation: Option<&Conversation>) {
         let imp = imp::MainWindow::from_instance(self);
 
-        match thread {
-            Some(thread) => {
-                // self.update_titlebar(Some(&thread.subject()));
+        match conversation {
+            Some(conversation) => {
+                // self.update_titlebar(Some(&conversation.subject()));
 
                 let conversation_view = imp.conversation_view.get().unwrap();
-                conversation_view.load_thread(&thread);
+                conversation_view.load_conversation(&conversation);
             }
             None => {
                 // self.update_titlebar(None);

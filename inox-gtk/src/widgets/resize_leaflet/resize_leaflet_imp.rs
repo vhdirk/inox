@@ -1,9 +1,9 @@
-use gdk;
-use glib::{self, prelude::*, subclass::prelude::*};
 use adw::{self, prelude::*, subclass::prelude::*};
+use gdk;
 use glib::object::InterfaceRef;
 use glib::subclass::signal::Signal;
 use glib::Interface;
+use glib::{self, prelude::*, subclass::prelude::*};
 use glib::{clone, Sender};
 use glib::{
     ParamFlags, ParamSpec, ParamSpecBoolean, ParamSpecBoxed, ParamSpecEnum, ParamSpecObject,
@@ -18,8 +18,6 @@ use std::cell::RefCell;
 use std::cmp;
 use std::fmt;
 
-use crate::core::Action;
-use crate::core::Thread;
 use crate::widgets::resize_leaflet::ResizeLeafletPage;
 
 use super::ShadowHelper;
@@ -34,7 +32,7 @@ pub struct ModeTransition {
     pub current_pos: f64,
     pub start_progress: f64,
     pub end_progress: f64,
-    pub animation: adw::Animation,
+    pub animation: Option<adw::Animation>,
 }
 
 impl Default for ModeTransition {
@@ -44,7 +42,7 @@ impl Default for ModeTransition {
             current_pos: 1.0,
             start_progress: 0.0,
             end_progress: 1.0,
-            animation: adw::builders::AnimationBuilder::new().build(),
+            animation: None,
         }
     }
 }
@@ -125,7 +123,6 @@ impl ObjectSubclass for ResizeLeaflet {
     type Type = super::ResizeLeaflet;
     type ParentType = gtk::Widget;
     type Interfaces = (gtk::Orientable, gtk::Buildable, adw::Swipeable);
-
 
     fn class_init(klass: &mut Self::Class) {
         klass.set_layout_manager_type::<gtk::BinLayout>();
@@ -396,7 +393,6 @@ impl ObjectImpl for ResizeLeaflet {
     }
 
     fn constructed(&self, obj: &Self::Type) {
-
         let controller = gtk::GestureClick::new();
         controller.set_button(0);
 
@@ -427,7 +423,6 @@ impl ObjectImpl for ResizeLeaflet {
         }));
 
         self.tracker.replace(Some(tracker));
-
 
         //   self->shadow_helper = adw_shadow_helper_new (widget);
 
@@ -616,7 +611,7 @@ impl WidgetImpl for ResizeLeaflet {
         self.set_folded(folded);
 
         // Allocate size to the children.
-        if (folded) {
+        if folded {
             self.size_allocate_folded(width, height);
         } else {
             self.size_allocate_unfolded(width, height);
@@ -652,8 +647,9 @@ impl WidgetImpl for ResizeLeaflet {
                 .mode_transition
                 .borrow()
                 .animation
-                .state()
-                .eq(&adw::AnimationState::Playing);
+                .as_ref()
+                .map(|animation| animation.state().eq(&adw::AnimationState::Playing))
+                .unwrap_or(false);
 
         if !is_transition
             || *self.transition_type.borrow() == adw::LeafletTransitionType::Slide
@@ -724,7 +720,6 @@ impl WidgetImpl for ResizeLeaflet {
             if let Some(child) = (page).child().as_ref() {
                 widget.snapshot_child(child, snapshot);
             }
-
         }
 
         (*self.shadow_helper.borrow()).snapshot(snapshot);
@@ -752,16 +747,14 @@ impl ResizeLeaflet {
 
     pub fn children_ref(&self, reversed: bool) -> Vec<ResizeLeafletPage> {
         if reversed {
-            self
-                .children
+            self.children
                 .borrow()
                 .iter()
                 .rev()
                 .cloned()
                 .collect::<Vec<ResizeLeafletPage>>()
         } else {
-            self
-                .children
+            self.children
                 .borrow()
                 .iter()
                 .cloned()
@@ -783,11 +776,14 @@ impl ResizeLeaflet {
         None
     }
 
-    pub fn on_back_forward_button_pressed(&self, n_press: i32, x: f64, y: f64) {
+    pub fn on_back_forward_button_pressed(&self, n_press: i32, x: f64, y: f64) {}
 
+    pub fn on_tracker_prepare(
+        &self,
+        tracker: &adw::SwipeTracker,
+        direction: adw::NavigationDirection,
+    ) {
     }
-
-    pub fn on_tracker_prepare(&self, tracker: &adw::SwipeTracker, direction: adw::NavigationDirection) {}
     pub fn on_tracker_update_swipe(&self, tracker: &adw::SwipeTracker, progress: f64) {}
     pub fn on_tracker_end_swipe(&self, tracker: &adw::SwipeTracker, velocity: f64, to: f64) {}
 }

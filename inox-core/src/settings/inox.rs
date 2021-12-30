@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::prelude::*;
+use std::path::PathBuf;
 
 use serde_derive::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -14,8 +15,8 @@ pub struct Config {
 
     // port the core will listen on
     // TODO: needs to be moved somewhere else I suppose
-    #[serde(default = "default_port")]
-    pub port: u16,
+    #[serde(default = "default_socket_path")]
+    pub socket_path: PathBuf,
 
     #[serde(default)]
     pub debug: DebugConfig,
@@ -94,8 +95,8 @@ fn default_version() -> i16 {
     1
 }
 
-fn default_port() -> u16 {
-    3123
+fn default_socket_path() -> PathBuf {
+    "/tmp/inox.ipc".into()
 }
 
 

@@ -13,7 +13,7 @@ use glib::clone::Upgrade;
 use glib::prelude::*;
 use glib::subclass::prelude::*;
 use glib::translate::*;
-use glib::{Receiver, Sender};
+use glib::{clone, Receiver, Sender};
 use gtk::prelude::*;
 use gtk::subclass::application::GtkApplicationImpl;
 use gtk::subclass::prelude::*;
@@ -21,9 +21,8 @@ use log::*;
 
 use crate::constants;
 use crate::widgets::MainWindow;
-use crate::core::Thread;
 use crate::core::Action;
-use inox_core::models::query::{Query, Sort};
+use inox_core::models::query::{Query, Sort, Exclude};
 use inox_core::settings::Settings;
 
 use super::application_imp as imp;
@@ -68,6 +67,30 @@ impl InoxApplication {
         app.run_with_args(&args);
     }
 
+    pub fn setup_connection(&self) {
+        debug!("Setting up connection");
+        let inst = self.clone();
+
+        let ctx = glib::MainContext::default();
+        ctx.with_thread_default(clone!(@weak inst => move || {
+            let ctx = glib::MainContext::default();
+            ctx.spawn_local(clone!(@weak inst => async move {
+                let imp = imp::InoxApplication::from_instance(&inst);
+                match imp.connect_core().await {
+                    Ok(_) => {
+                        info!("Connected to core");
+                        // TODO: this should probably be a glib signal
+                        imp.sender.send(Action::CoreConnected).unwrap();
+                    }
+                    Err(err) => {
+                        error!("Failed to connect to core: {}", err);
+                    }
+                };
+            }));
+        }));
+
+    }
+
     pub fn create_window(&self) -> MainWindow {
         let imp = imp::InoxApplication::from_instance(self);
         let window = MainWindow::new(imp.sender.clone(), self.clone());
@@ -84,7 +107,6 @@ impl InoxApplication {
         // let builder = gtk::Builder::new_from_resource("/de/haeckerfelix/Shortwave/gtk/shortcuts.ui");
         // get_widget!(builder, gtk::ShortcutsWindow, shortcuts);
         // window.set_help_overlay(Some(&shortcuts));
-        imp.sender.send(Action::Search("*".to_string())).unwrap();
         window.present();
 
         window
@@ -96,6 +118,12 @@ impl InoxApplication {
         debug!("processing action {:?}", action);
 
         match action {
+            Action::CoreConnected => {
+                imp.sender.send(Action::Search("*".to_string())).unwrap()
+            },
+            Action::CoreDisconnected => {
+                // TODO
+            },
             Action::SelectTag(tag) => {
                 let search = match tag {
                     Some(val) => format!("tag:\"{}\"", val),
@@ -110,13 +138,13 @@ impl InoxApplication {
                         query: search,
                         sort: Sort::NewestFirst,
                         tags_exclude: vec![],
-                        omit_excluded: false,
+                        omit_excluded: Exclude::False,
                     }
                 ))
                 .unwrap(),
             Action::Query(query) => self.perform_search(&query),
-            Action::SelectThread(thread_id) => self.open_thread(thread_id),
-            Action::SelectThreads(thread_ids) => self.open_threads(thread_ids),
+            Action::SelectConversation(conversation_id) => self.open_conversation(conversation_id),
+            Action::SelectConversations(conversation_ids) => self.open_conversations(conversation_ids),
 
             // Action::ViewShowDiscover => imp.window.borrow().as_ref().unwrap().set_view(View::Discover),
             // Action::ViewShowLibrary => imp.window.borrow().as_ref().unwrap().set_view(View::Library),
@@ -153,38 +181,22 @@ impl InoxApplication {
 
     fn perform_search(&self, query: &Query) {
         let imp = imp::InoxApplication::from_instance(self);
-        imp.window
-            .get()
-            .unwrap()
-            .upgrade()
-            .unwrap()
-            .set_conversations(query);
+        imp.perform_search(query.clone())
     }
 
-    fn open_thread(&self, thread_id: Option<String>) {
+    fn open_conversation(&self, conversation_id: Option<String>) {
         let imp = imp::InoxApplication::from_instance(self);
-
-        let thread = thread_id.map(|id| {
-            self.open_database(notmuch::DatabaseMode::ReadOnly)
-                .unwrap().find_thread_by_id(&id).unwrap().unwrap()
-        });
-
-        imp.window
-            .get()
-            .unwrap()
-            .upgrade()
-            .unwrap()
-            .open_thread(thread);
+        imp.open_conversation(conversation_id)
     }
 
-    fn open_threads(&self, thread_ids: Vec<String>) {
+    fn open_conversations(&self, conversation_ids: Vec<String>) {
         // let imp = imp::InoxApplication::from_instance(self);
         // imp.window
         //     .get()
         //     .unwrap()
         //     .upgrade()
         //     .unwrap()
-        //     .open_thread(thread);
+        //     .open_conversations(conversation_ids);
     }
 }
 

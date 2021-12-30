@@ -1,14 +1,15 @@
+use inox_core::models::Conversation;
 use gio::prelude::*;
 use glib::clone;
 use glib::subclass::prelude::*;
 use glib::Sender;
 use gtk::prelude::*;
-use crate::core::Thread;
 
 use notmuch;
 
 use crate::widgets::MessageList;
 use crate::core::Action;
+use crate::core::ConversationObject;
 
 use super::conversation_view_imp as imp;
 
@@ -50,16 +51,16 @@ impl ConversationView {
         let imp = imp::ConversationView::from_instance(self);
     }
 
-    pub fn load_thread(&self, thread: &notmuch::Thread) {
+    pub fn load_conversation(&self, conversation: &Conversation) {
         let imp = imp::ConversationView::from_instance(self);
         // self.show_loading();
 
-        let message_list = MessageList::new(thread, imp.sender.get().unwrap().clone());
+        // let message_list = MessageList::new(thread, imp.sender.get().unwrap().clone());
 
-        // insert the new view
-        imp.set_message_list(&message_list);
+        // // insert the new view
+        // imp.set_message_list(&message_list);
 
-        imp.set_visible_child(&imp.thread_page.get());
+        // imp.set_visible_child(&imp.thread_page.get());
 
         // let model = imp::create_liststore();
         // let selection_model = SingleSelection::new(Some(&model));

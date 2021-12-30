@@ -32,7 +32,7 @@ chrono = { version = "0.4", features = ["serde"] }
 md5 = "0.3.7"
 dirs = "1.0"
 pretty_env_logger = "0.4.0"
-futures = "^0.3.18"
+futures = "^0.3.17"
 async-std = "*"
 async-trait = "*"
 strum = { version = "0.23", features = ["derive"] }
@@ -41,6 +41,7 @@ jsonrpc-core = "18.0.0"
 jsonrpc-core-client = "18.0.0"
 jsonrpc-derive = "18.0.0"
 jsonrpc-tcp-server = "18.0.0"
+jsonrpc-ipc-server = "18.0.0"
 jsonrpc-pubsub = "18.0.0"
 jsonrpc-server-utils = "18.0.0"
 

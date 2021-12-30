@@ -1,3 +1,4 @@
+use inox_core::models::Contact;
 use super::contact_flow_box_child_imp as imp;
 use crate::core::Action;
 use glib;
@@ -12,7 +13,7 @@ glib::wrapper! {
 }
 
 impl ContactFlowBoxChild {
-    pub fn new(address: &gmime::InternetAddress, address_type: gmime::AddressType, sender: Sender<Action>) -> Self{
+    pub fn new(contact: &Contact, address_type: gmime::AddressType, sender: Sender<Action>) -> Self{
         let child: Self = glib::Object::new(&[]).expect("Failed to create ContactFlowBoxChild");
 
         let imp = imp::ContactFlowBoxChild::from_instance(&child);
@@ -20,9 +21,9 @@ impl ContactFlowBoxChild {
             .set(sender)
             .expect("Failed to set sender on ContactFlowBoxChild");
 
-        imp.address
-            .set(address.clone())
-            .expect("Failed to set address on ContactFlowBoxChild");
+        imp.contact
+            .set(contact.clone())
+            .expect("Failed to set contact on ContactFlowBoxChild");
 
         imp.address_type
             .set(address_type)

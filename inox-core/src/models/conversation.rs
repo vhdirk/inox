@@ -10,11 +10,11 @@ pub struct Conversation {
     pub matched_messages: i32,
     pub tags: Vec<String>,
 
-    pub subject: Option<String>,
-    pub authors: Vec<Contact>,
-    pub oldest_date: Option<DateTime<Utc>>,
+    pub subject: String,
+    pub authors: Vec<String>,
 
-    pub newest_date: Option<DateTime<Utc>>,
+    pub oldest_date: DateTime<Utc>,
+    pub newest_date: DateTime<Utc>,
 
     // TODO
     pub preview: Option<String>,

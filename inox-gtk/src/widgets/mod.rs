@@ -1,6 +1,6 @@
 mod about_dialog;
-pub mod thread_list;
-pub mod thread_view;
+pub mod conversation_list;
+pub mod conversation_view;
 pub mod placeholder_pane;
 pub mod message_view;
 pub mod message_list;
@@ -12,8 +12,8 @@ pub mod resize_leaflet;
 pub use self::about_dialog::about_dialog;
 
 pub use expander_row::ExpanderRow;
-pub use thread_view::ThreadView;
-pub use thread_list::ThreadList;
+pub use conversation_view::ConversationView;
+pub use conversation_list::ConversationList;
 pub use message_list::MessageList;
 pub use message_view::MessageView;
 

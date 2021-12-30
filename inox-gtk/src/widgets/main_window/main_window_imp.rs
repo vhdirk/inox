@@ -102,7 +102,7 @@ impl MainWindow {
         self.conversation_list_box.show();
         self.conversation_list
             .set(conversation_list)
-            .expect("Threads list box was not empty");
+            .expect("Conversation list box was not empty");
         // // conversation_list.setup_signals();
 
         let conversation_view = ConversationView::new(self.sender.get().unwrap().clone());
@@ -111,7 +111,7 @@ impl MainWindow {
         self.conversation_view_box.show();
         self.conversation_view
             .set(conversation_view)
-            .expect("Thread view box was not empty");
+            .expect("Conversation view box was not empty");
 
 
         let inst = self.instance();

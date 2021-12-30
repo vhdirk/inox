@@ -3,15 +3,15 @@
   <gresource prefix="/com/github/vhdirk/Inox/">
     <file compressed="true" preprocess="xml-stripblanks">gtk/main_window.ui</file>
     <file compressed="true" preprocess="xml-stripblanks">gtk/placeholder_pane.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">gtk/thread_view.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">gtk/conversation_view.ui</file>
     <file compressed="true" preprocess="xml-stripblanks">gtk/menus.ui</file>
     <file compressed="true" preprocess="xml-stripblanks">gtk/message_view.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">gtk/thread_list_item.ui</file>
+    <file compressed="true" preprocess="xml-stripblanks">gtk/conversation_list_item.ui</file>
     <file compressed="true">gtk/inox.css</file>
 
     <file compressed="true">html/inox-web-view.css</file>
 
-    <file compressed="true">html/thread_view.html</file>
-    <file compressed="true">html/thread_view.css</file>
+    <file compressed="true">html/conversation_view.html</file>
+    <file compressed="true">html/conversation_view.css</file>
   </gresource>
 </gresources>

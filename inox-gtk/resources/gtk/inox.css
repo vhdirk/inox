@@ -78,9 +78,9 @@ row.geary-folder-popover-list-row > label {
   color: @theme_text_color;
 } */
 
-/* InoxThreadList */
+/* InoxConversationList */
 
-.thread-list-item .inox-unread {
+.conversation-list-item .inox-unread {
   font-weight: bold;
 }
 

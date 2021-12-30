@@ -1,3 +1,4 @@
+use inox_core::models::Message;
 use crate::core::Action;
 use crate::widgets::MessageRow;
 use crate::widgets::expander_row::{ExpanderRowExt, ExpanderRow};
@@ -13,7 +14,7 @@ use std::cell::RefCell;
 pub struct MessageList {
     pub list_box: gtk::ListBox,
     pub rows: RefCell<Vec<ExpanderRow>>,
-    pub thread: OnceCell<notmuch::Thread>,
+    pub messages: OnceCell<Vec<Message>>,
     pub sender: OnceCell<Sender<Action>>,
 
     pub row_activated_handler_id: RefCell<Option<glib::SignalHandlerId>>,
@@ -29,7 +30,7 @@ impl ObjectSubclass for MessageList {
         Self {
             list_box: gtk::ListBox::new(),
             rows: RefCell::new(vec![]),
-            thread: OnceCell::new(),
+            messages: OnceCell::new(),
             sender: OnceCell::new(),
             row_activated_handler_id: RefCell::new(None),
         }
@@ -93,16 +94,13 @@ impl MessageList {
         inst.style_context().add_class("background");
         inst.style_context().add_class("messages-list");
 
-        if let Some(thread) = self.thread.get().as_ref() {
-           let messages = thread.messages();
-            for message in messages {
-                self.add_message(&message);
-            }
+        for message in self.messages.get().as_ref().unwrap().iter() {
+            self.add_message(message);
         }
 
     }
 
-    pub fn add_message(&self, message: &notmuch::Message) {
+    pub fn add_message(&self, message: &Message) {
         let message_row = MessageRow::new(message, self.sender.get().unwrap().clone());
         self.list_box.append(&message_row);
         self.rows

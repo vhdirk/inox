@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <template class="InoxThreadListItem" parent="GtkBox">
+  <template class="InoxConversationListItem" parent="GtkBox">
     <property name="visible">True</property>
     <!-- <property name="can_focus">False</property> -->
     <property name="orientation">horizontal</property>
@@ -73,7 +73,7 @@
       </object>
     </child>
     <style>
-      <class name="thread-list-item" />
+      <class name="conversation-list-item" />
     </style>
   </template>
 </interface>

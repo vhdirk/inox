@@ -302,36 +302,36 @@ where
 //     }
 // }
 
-pub fn poll_read_buf<T: AsyncRead, B: BufMut>(
-    io: Pin<&mut T>,
-    cx: &mut Context<'_>,
-    buf: &mut B,
-) -> Poll<io::Result<usize>> {
-    if !buf.has_remaining_mut() {
-        return Poll::Ready(Ok(0));
-    }
+// pub fn poll_read_buf<T: AsyncRead, B: BufMut>(
+//     io: Pin<&mut T>,
+//     cx: &mut Context<'_>,
+//     buf: &mut B,
+// ) -> Poll<io::Result<usize>> {
+//     if !buf.has_remaining_mut() {
+//         return Poll::Ready(Ok(0));
+//     }
 
-    let n = {
-        let dst = buf.chunk_mut();
-        let dst = unsafe { &mut *(dst as *mut _ as *mut [MaybeUninit<u8>]) };
-        let mut buf = ReadBuf::uninit(dst);
-        let ptr = buf.filled().as_ptr();
+//     let n = {
+//         let dst = buf.chunk_mut();
+//         let dst = unsafe { &mut *(dst as *mut _ as *mut [MaybeUninit<u8>]) };
+//         let mut buf = ReadBuf::uninit(dst);
+//         let ptr = buf.filled().as_ptr();
 
-        ready!(io.poll_read(cx, buf.initialized_mut())?);
+//         ready!(io.poll_read(cx, buf.initialized_mut())?);
 
-        // Ensure the pointer does not change from under us
-        assert_eq!(ptr, buf.filled().as_ptr());
-        buf.filled().len()
-    };
+//         // Ensure the pointer does not change from under us
+//         assert_eq!(ptr, buf.filled().as_ptr());
+//         buf.filled().len()
+//     };
 
-    // Safety: This is guaranteed to be the number of initialized (and read)
-    // bytes due to the invariants provided by `ReadBuf::filled`.
-    unsafe {
-        buf.advance_mut(n);
-    }
+//     // Safety: This is guaranteed to be the number of initialized (and read)
+//     // bytes due to the invariants provided by `ReadBuf::filled`.
+//     unsafe {
+//         buf.advance_mut(n);
+//     }
 
-    Poll::Ready(Ok(n))
-}
+//     Poll::Ready(Ok(n))
+// }
 
 // pub fn poll_write_buf<T: AsyncWrite, B: Buf>(
 //     io: Pin<&mut T>,

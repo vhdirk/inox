@@ -1,5 +1,5 @@
 use crate::core::Action;
-use crate::core::Thread;
+use crate::core::ConversationObject;
 use glib::subclass::prelude::*;
 use glib::{clone, Sender};
 use gtk;
@@ -13,7 +13,7 @@ use log::*;
 use super::ConversationListItem;
 
 pub fn create_liststore() -> gio::ListStore {
-    gio::ListStore::new(Thread::static_type())
+    gio::ListStore::new(ConversationObject::static_type())
 }
 
 #[derive(Debug)]
@@ -25,10 +25,10 @@ pub struct ConversationList {
 
     // pub filter: gtk::TreeModelFilter,
     // idle_handle: RefCell<Option<glib::SourceId>>,
-    // thread_list: RefCell<Option<Threads>>,
+    // Conversation_list: RefCell<Option<Conversations>>,
 
-    // num_threads: u32,
-    // num_threads_loaded: u32
+    // num_Conversations: u32,
+    // num_Conversations_loaded: u32
     pub sender: OnceCell<Sender<Action>>,
 }
 
@@ -39,7 +39,7 @@ impl ObjectSubclass for ConversationList {
     type ParentType = gtk::Widget;
 
     fn new() -> Self {
-        let model = gio::ListStore::new(Thread::static_type());
+        let model = gio::ListStore::new(ConversationObject::static_type());
         let selection_model = gtk::SingleSelection::new(Some(&model));
         let column_view = gtk::ColumnView::new(Some(&selection_model));
         let scrolled_window = gtk::ScrolledWindow::builder()
@@ -92,11 +92,11 @@ impl ConversationList {
         });
 
         factory.connect_bind(move |_, entry| {
-            let thread = entry
+            let conversation = entry
                 .item()
                 .expect("The item has to exist.")
-                .downcast::<Thread>()
-                .expect("The item has to be an `Thread`.");
+                .downcast::<ConversationObject>()
+                .expect("The item has to be an `ConversationObject`.");
 
             let item = entry
                 .child()
@@ -104,7 +104,7 @@ impl ConversationList {
                 .downcast::<ConversationListItem>()
                 .expect("The child has to be a `ConversationListItem`.");
 
-            item.set_thread(&thread);
+            item.set_conversation(&conversation);
         });
 
         let column = gtk::ColumnViewColumn::builder()
@@ -127,37 +127,36 @@ impl ConversationList {
                 let selection = model.selection_in_range(position, n_items);
                 let (mut selection_iter, _) = gtk::BitsetIter::init_first(&selection).unwrap();
 
-                let mut thread_ids = vec![];
+                let mut conversation_ids = vec![];
 
                 while selection_iter.is_valid() {
                     let selection_val = selection_iter.value();
-                    let threadw = model
+                    let conversation_object = model
                         .item(selection_val)
                         .unwrap()
-                        .downcast::<Thread>()
+                        .downcast::<ConversationObject>()
                         .unwrap();
-                    let thread_id = threadw.data().id().to_string();
-                    thread_ids.push(thread_id);
+                    conversation_ids.push(conversation_object.id.clone());
                     selection_iter.next();
                 }
 
-                match thread_ids.len() {
+                match conversation_ids.len() {
                     0 => {
                         sender
-                            .send(Action::SelectThread(None))
-                            .expect("Failed to send thread selected action");
+                            .send(Action::SelectConversation(None))
+                            .expect("Failed to send SelectConversation action");
                     }
                     1 => {
-                        debug!("Selected thread {:?}", thread_ids[0].clone());
+                        debug!("Selected conversation {:?}", conversation_ids[0].clone());
 
                         sender
-                            .send(Action::SelectThread(Some(thread_ids[0].clone())))
-                            .expect("Failed to send thread selected action");
+                            .send(Action::SelectConversation(Some(conversation_ids[0].clone())))
+                            .expect("Failed to send SelectConversation action");
                     }
                     _ => {
                         sender
-                            .send(Action::SelectThreads(thread_ids))
-                            .expect("Failed to send thread selected action");
+                            .send(Action::SelectConversations(conversation_ids))
+                            .expect("Failed to send SelectConversations action");
                     }
                 };
             }

@@ -1,6 +1,6 @@
 use crate::core::Action;
 use crate::widgets::placeholder_pane::PlaceholderPane;
-// use crate::widgets::thread_view::message_list::MessageList;
+// use crate::widgets::conversation_view::message_list::MessageList;
 use crate::widgets::MessageList;
 use glib::prelude::*;
 use glib::subclass::prelude::*;
@@ -10,7 +10,7 @@ use once_cell::unsync::OnceCell;
 use std::cell::RefCell;
 
 #[derive(Debug, Default, CompositeTemplate)]
-#[template(resource = "/com/github/vhdirk/Inox/gtk/thread_view.ui")]
+#[template(resource = "/com/github/vhdirk/Inox/gtk/conversation_view.ui")]
 pub struct ConversationView {
     #[template_child]
     pub stack: TemplateChild<gtk::Stack>,
@@ -18,11 +18,11 @@ pub struct ConversationView {
     #[template_child]
     pub loading_page: TemplateChild<gtk::Spinner>,
     #[template_child]
-    pub no_threads_page: TemplateChild<gtk::Grid>,
+    pub no_conversations_page: TemplateChild<gtk::Grid>,
     #[template_child]
-    pub thread_page: TemplateChild<gtk::Grid>,
+    pub conversation_page: TemplateChild<gtk::Grid>,
     #[template_child]
-    pub multiple_threads_page: TemplateChild<gtk::Grid>,
+    pub multiple_conversations_page: TemplateChild<gtk::Grid>,
     #[template_child]
     pub empty_tag_page: TemplateChild<gtk::Grid>,
     #[template_child]
@@ -31,22 +31,22 @@ pub struct ConversationView {
     pub composer_page: TemplateChild<gtk::Grid>,
 
     #[template_child]
-    pub thread_find_bar: TemplateChild<gtk::SearchBar>,
+    pub conversation_find_bar: TemplateChild<gtk::SearchBar>,
     #[template_child]
-    pub thread_find_entry: TemplateChild<gtk::SearchEntry>,
-    // private Components.EntryUndo thread_find_undo,
+    pub conversation_find_entry: TemplateChild<gtk::SearchEntry>,
+    // private Components.EntryUndo conversation_find_undo,
     #[template_child]
-    pub thread_find_next: TemplateChild<gtk::Button>,
+    pub conversation_find_next: TemplateChild<gtk::Button>,
     #[template_child]
-    pub thread_find_prev: TemplateChild<gtk::Button>,
+    pub conversation_find_prev: TemplateChild<gtk::Button>,
 
-    pub no_threads_placeholder: PlaceholderPane,
-    pub multi_threads_placeholder: PlaceholderPane,
+    pub no_conversations_placeholder: PlaceholderPane,
+    pub multi_conversations_placeholder: PlaceholderPane,
     pub empty_tag_placeholder: PlaceholderPane,
     pub empty_search_placeholder: PlaceholderPane,
 
     pub message_list: RefCell<Option<MessageList>>,
-    pub thread_scroller: gtk::ScrolledWindow,
+    pub conversation_scroller: gtk::ScrolledWindow,
     //pub composer:
     pub sender: OnceCell<Sender<Action>>,
 }
@@ -57,12 +57,12 @@ impl ConversationView {
 
         if current.is_some()
             && self
-                .thread_page
+                .conversation_page
                 .get()
                 .upcast::<gtk::Widget>()
                 .eq(current.as_ref().unwrap())
         {
-            if self.thread_page.get().upcast::<gtk::Widget>().eq(widget) {
+            if self.conversation_page.get().upcast::<gtk::Widget>().eq(widget) {
                 // By removing the current list, any load it is currently
                 // performing is also cancelled, which is important to
                 // avoid a possible crit warning when switching folders,
@@ -98,12 +98,12 @@ impl ConversationView {
         // viewport.show();
         // viewport.set_child(Some(list));
 
-        self.thread_scroller.set_child(Some(list));
+        self.conversation_scroller.set_child(Some(list));
 
 
     }
 
-    // Remove any existing thread list, cancelling its loading
+    // Remove any existing conversation list, cancelling its loading
     // remove_current_list
     pub fn remove_message_list(&self) {
         // do not unparent the list from the scrolled window. It does that by itself
@@ -116,15 +116,15 @@ impl ConversationView {
         // }
 
         // if (self.current_list != null) {
-        //     self.current_list.cancel_thread_load();
-        //     self.thread_removed(self.current_list);
+        //     self.current_list.cancel_conversation_load();
+        //     self.conversation_removed(self.current_list);
         //     this.current_list = null;
         // }
 
-        // var old_scroller = this.thread_scroller;
+        // var old_scroller = this.conversation_scroller;
         // // XXX GTK+ Bug 778190 workaround
-        // this.thread_page.remove(old_scroller);
-        // new_thread_scroller();
+        // this.conversation_page.remove(old_scroller);
+        // new_conversation_scroller();
         // return old_scroller;
     }
 }
@@ -137,7 +137,7 @@ impl ObjectSubclass for ConversationView {
 
     fn new() -> Self {
         // let model = gio::ListStore::new(Thread::static_type());
-        let thread_scroller = gtk::ScrolledWindow::builder()
+        let conversation_scroller = gtk::ScrolledWindow::builder()
             .vexpand(true)
             .hexpand(true)
             .hscrollbar_policy(gtk::PolicyType::Never)
@@ -147,41 +147,41 @@ impl ObjectSubclass for ConversationView {
             stack: TemplateChild::default(),
 
             loading_page: TemplateChild::default(),
-            no_threads_page: TemplateChild::default(),
-            thread_page: TemplateChild::default(),
-            multiple_threads_page: TemplateChild::default(),
+            no_conversations_page: TemplateChild::default(),
+            conversation_page: TemplateChild::default(),
+            multiple_conversations_page: TemplateChild::default(),
             empty_tag_page: TemplateChild::default(),
             empty_search_page: TemplateChild::default(),
             composer_page: TemplateChild::default(),
 
-            thread_find_bar: TemplateChild::default(),
-            thread_find_entry: TemplateChild::default(),
-            thread_find_next: TemplateChild::default(),
-            thread_find_prev: TemplateChild::default(),
+            conversation_find_bar: TemplateChild::default(),
+            conversation_find_entry: TemplateChild::default(),
+            conversation_find_next: TemplateChild::default(),
+            conversation_find_prev: TemplateChild::default(),
 
-            no_threads_placeholder: PlaceholderPane::new(
+            no_conversations_placeholder: PlaceholderPane::new(
                 "folder-symbolic",
-                "No threads selected",
-                "Selecting a thread from the list will display it here",
+                "No conversations selected",
+                "Selecting a conversation from the list will display it here",
             ),
-            multi_threads_placeholder: PlaceholderPane::new(
+            multi_conversations_placeholder: PlaceholderPane::new(
                 "folder-symbolic",
-                "Multiple threads selected",
-                "Choosing an action will apply to all selected threads",
+                "Multiple conversations selected",
+                "Choosing an action will apply to all selected conversations",
             ),
             empty_tag_placeholder: PlaceholderPane::new(
                 "folder-symbolic",
-                "No threads found",
-                "This tag has not been applied to any threads",
+                "No conversations found",
+                "This tag has not been applied to any conversations",
             ),
             empty_search_placeholder: PlaceholderPane::new(
                 "folder-symbolic",
-                "No threads found",
+                "No conversations found",
                 "Your search returned no results, try refining your search terms",
             ),
 
             message_list: RefCell::new(None),
-            thread_scroller,
+            conversation_scroller,
             sender: OnceCell::new(),
         }
     }
@@ -199,29 +199,29 @@ impl ObjectSubclass for ConversationView {
 
 impl ObjectImpl for ConversationView {
     fn constructed(&self, obj: &Self::Type) {
-        self.no_threads_placeholder
-            .set_parent(&self.no_threads_page.get());
-        self.multi_threads_placeholder
-            .set_parent(&self.multiple_threads_page.get());
+        self.no_conversations_placeholder
+            .set_parent(&self.no_conversations_page.get());
+        self.multi_conversations_placeholder
+            .set_parent(&self.multiple_conversations_page.get());
         self.empty_tag_placeholder
             .set_parent(&self.empty_tag_page.get());
         self.empty_search_placeholder
             .set_parent(&self.empty_search_page.get());
 
-        self.thread_scroller.set_parent(&self.thread_page.get());
+        self.conversation_scroller.set_parent(&self.conversation_page.get());
         self.parent_constructed(obj);
 
-        self.thread_scroller.show();
+        self.conversation_scroller.show();
     }
 
     fn dispose(&self, _obj: &Self::Type) {
-        self.no_threads_placeholder.unparent();
-        self.multi_threads_placeholder.unparent();
+        self.no_conversations_placeholder.unparent();
+        self.multi_conversations_placeholder.unparent();
         self.empty_tag_placeholder.unparent();
         self.empty_search_placeholder.unparent();
 
         self.remove_message_list();
-        self.thread_scroller.unparent();
+        self.conversation_scroller.unparent();
     }
 }
 impl WidgetImpl for ConversationView {}

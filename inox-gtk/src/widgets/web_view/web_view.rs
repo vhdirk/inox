@@ -25,9 +25,6 @@ use webkit2gtk::traits::{
     WebViewExt as WebKitWebViewExt,
 };
 
-use crate::core::Action;
-use crate::core::Message;
-use crate::core::Thread;
 use crate::spawn;
 use crate::webextension::rpc::RawFdWrap;
 
@@ -203,74 +200,6 @@ impl WebView {
     //         }
     //     }
     // }
-
-    async fn add_message<T: MessageExt>(&mut self, message: &T) {
-        let imp = imp::WebView::from_instance(self);
-
-
-        // client.add_message(message);
-    }
-
-    async fn render_messages(&mut self, thread: Thread) {
-        debug!("render: html loaded, building messages..");
-
-        // for message in thread.messages() {
-        //     self.add_message(&message).await;
-        // }
-
-        // /* set message state vector */
-        // state.clear ();
-        // focused_message.clear ();
-
-        // if (mthread) {
-        //   for (auto &m : mthread->messages) {
-        //     add_message (m);
-        //   }
-
-        //   client->update_state ();
-        //   update_all_indent_states ();
-
-        //   /* focus oldest unread message */
-        //   if (!edit_mode) {
-        //     for (auto &m : mthread->messages_by_time ()) {
-        //       if (m->has_tag ("unread")) {
-        //         focused_message = m;
-        //         break;
-        //       }
-        //     }
-        //   }
-
-        //   if (!focused_message) {
-        //     LOG (debug) << "tv: no message focused, focusing newest message.";
-        //     focused_message = *max_element (
-        //         mthread->messages.begin (),
-        //         mthread->messages.end (),
-        //         [](refptr<Message> &a, refptr<Message> &b)
-        //           {
-        //             return ( a->time < b->time );
-        //           });
-        //   }
-
-        //   expand (focused_message);
-        //   focus_message (focused_message);
-
-        //   ready = true;
-        //   emit_ready ();
-
-        //   if (!edit_mode && !unread_setup) {
-        //     unread_setup = true;
-
-        //     if (unread_delay > 0) {
-        //       Glib::signal_timeout ().connect (
-        //           sigc::mem_fun (this, &WebView::unread_check), std::max (80., (unread_delay * 1000.) / 2));
-        //     } else {
-        //       unread_check ();
-        //     }
-        //   }
-        // } else {
-        //   LOG (debug) << "tv: no message thread.";
-        // }
-    }
 
     fn decide_policy(
         &mut self,
