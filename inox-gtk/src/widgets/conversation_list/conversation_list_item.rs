@@ -6,7 +6,6 @@ use gtk::prelude::*;
 use gtk::SingleSelection;
 use gtk::{Application, SignalListItemFactory};
 use log::*;
-use notmuch;
 
 use crate::core::Action;
 use crate::core::ConversationObject;

@@ -4,7 +4,6 @@ use glib::clone;
 use glib::subclass::prelude::*;
 use glib::Sender;
 use gtk::prelude::*;
-use notmuch;
 
 use super::message_view_imp as imp;
 use crate::core::Action;

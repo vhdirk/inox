@@ -79,16 +79,15 @@ impl InoxApplication {
                 match imp.connect_core().await {
                     Ok(_) => {
                         info!("Connected to core");
-                        // TODO: this should probably be a glib signal
-                        imp.sender.send(Action::CoreConnected).unwrap();
+                        inst.emit_by_name::<()>("core-connected", &[&true.to_value()]);
                     }
                     Err(err) => {
+                        inst.emit_by_name::<()>("core-connected", &[&false.to_value()]);
                         error!("Failed to connect to core: {}", err);
                     }
                 };
             }));
         }));
-
     }
 
     pub fn create_window(&self) -> MainWindow {
@@ -118,12 +117,6 @@ impl InoxApplication {
         debug!("processing action {:?}", action);
 
         match action {
-            Action::CoreConnected => {
-                imp.sender.send(Action::Search("*".to_string())).unwrap()
-            },
-            Action::CoreDisconnected => {
-                // TODO
-            },
             Action::SelectTag(tag) => {
                 let search = match tag {
                     Some(val) => format!("tag:\"{}\"", val),

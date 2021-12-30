@@ -5,8 +5,6 @@ use glib::subclass::prelude::*;
 use glib::Sender;
 use gtk::prelude::*;
 
-use notmuch;
-
 use crate::widgets::MessageList;
 use crate::core::Action;
 use crate::core::ConversationObject;

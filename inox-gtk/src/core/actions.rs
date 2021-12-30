@@ -2,8 +2,6 @@ use inox_core::models::query::Query;
 
 #[derive(Debug)]
 pub enum Action {
-    CoreConnected,
-    CoreDisconnected,
     SelectTag(Option<String>),
     Search(String),
     Query(Query),

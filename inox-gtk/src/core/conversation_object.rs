@@ -8,8 +8,6 @@ use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
 
-use notmuch;
-
 mod imp {
     use glib::subclass::prelude::*;
     use glib::Value;

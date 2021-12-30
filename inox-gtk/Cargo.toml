@@ -90,7 +90,6 @@ failure = "0.1.1"
 failure_derive = "0.1.1"
 md5 = "0.3.7"
 
-notmuch = "*"
 gmime = { git = "https://gitlab.gnome.org/World/Rust/gmime-rs"}
 
 inox-core = { path = "../inox-core" }

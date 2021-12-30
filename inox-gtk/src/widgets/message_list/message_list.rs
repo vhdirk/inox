@@ -4,8 +4,6 @@ use gtk::prelude::*;
 use glib::subclass::prelude::*;
 use glib::Sender;
 
-use notmuch;
-
 use crate::core::Action;
 
 

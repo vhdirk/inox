@@ -1,20 +1,24 @@
-use crate::core::glib_rpc_client;
-use crate::core::Action;
-use crate::widgets::MainWindow;
-use futures::Future;
-use gdk::{self, prelude::*};
-use gio::{self, prelude::*};
-use glib::{clone, subclass::prelude::*, Receiver, Sender, WeakRef};
-use gtk::{self, prelude::*, subclass::prelude::*};
-use inox_core::models::Query;
-use inox_core::settings::Settings;
-use log::*;
-use once_cell::sync::OnceCell;
 use std::cell::RefCell;
 use std::pin::Pin;
 use std::rc::Rc;
 
+use futures::Future;
+use log::*;
+use once_cell::sync::{Lazy, OnceCell};
+
+use gdk::{self, prelude::*};
+use gio::{self, prelude::*};
+use glib::subclass::Signal;
+use glib::{clone, subclass::prelude::*, Receiver, Sender, WeakRef};
+use gtk::{self, prelude::*, subclass::prelude::*};
+
+use inox_core::models::Query;
 use inox_core::protocol::mail_service::*;
+use inox_core::settings::Settings;
+
+use crate::core::glib_rpc_client;
+use crate::core::Action;
+use crate::widgets::MainWindow;
 
 pub struct RpcConnection {
     pub socket_connection: gio::SocketConnection,
@@ -26,12 +30,8 @@ pub struct InoxApplication {
     pub receiver: RefCell<Option<Receiver<Action>>>,
 
     pub window: OnceCell<WeakRef<MainWindow>>,
-    pub database: RefCell<Option<notmuch::Database>>,
     pub socket_client: gio::SocketClient,
     pub rpc: RefCell<Option<RpcConnection>>,
-    // pub player: Player,
-    // pub library: Library,
-    // pub storefront: StoreFront,
     pub settings: RefCell<Option<Rc<Settings>>>,
 }
 
@@ -49,7 +49,6 @@ impl ObjectSubclass for InoxApplication {
             sender,
             receiver: RefCell::new(Some(recv)),
             window,
-            database: RefCell::new(None),
             settings: RefCell::new(None),
             socket_client: gio::SocketClient::new(),
             rpc: RefCell::new(None),
@@ -58,7 +57,22 @@ impl ObjectSubclass for InoxApplication {
 }
 
 // Implement GLib.Object for InoxApplication
-impl ObjectImpl for InoxApplication {}
+impl ObjectImpl for InoxApplication {
+    fn signals() -> &'static [Signal] {
+        static SIGNALS: Lazy<Vec<Signal>> = Lazy::new(|| {
+            vec![Signal::builder(
+                // Signal name
+                "core-connected",
+                // Types of the values which will be sent to the signal handler
+                &[bool::static_type().into()],
+                // Type of the value the signal handler sends back
+                <()>::static_type().into(),
+            )
+            .build()]
+        });
+        SIGNALS.as_ref()
+    }
+}
 
 // Implement Gtk.Application for InoxApplication
 impl GtkApplicationImpl for InoxApplication {}
@@ -83,7 +97,7 @@ impl ApplicationImpl for InoxApplication {
 
     fn activate(&self, app: &Self::Type) {
         debug!("gio::Application -> activate()");
-        let mut imp = InoxApplication::from_instance(app);
+        let mut this = InoxApplication::from_instance(app);
 
         // If the window already exists,
         // present it instead creating a new one again.
@@ -105,6 +119,19 @@ impl ApplicationImpl for InoxApplication {
         let receiver = self.receiver.borrow_mut().take().unwrap();
         let capp = app.clone();
         receiver.attach(None, move |action| capp.process_action(action));
+
+        let capp = app.clone();
+        app.connect_local("core-connected", false, move |args| {
+            let this = InoxApplication::from_instance(&capp);
+            let connected = args[1]
+                .get::<bool>()
+                .expect("The value needs to be of type `bool`.");
+
+            if connected {
+                this.sender.send(Action::Search("*".to_string())).unwrap();
+            }
+            None
+        });
 
         // Setup settings signal (we get notified when a key gets changed)
         // self.settings.connect_changed(clone!(@strong self.sender as sender => move |_, key_str| {
@@ -138,12 +165,16 @@ impl InoxApplication {
     }
 
     pub async fn connect_core(&self) -> Result<(), glib::Error> {
-
-        let address = gio::UnixSocketAddress::new(&self.settings.borrow().as_ref().unwrap().inox_config.socket_path);
-        let res = self
-            .socket_client
-            .connect_future(&address)
-            .await;
+        let address = gio::UnixSocketAddress::new(
+            &self
+                .settings
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .inox_config
+                .socket_path,
+        );
+        let res = self.socket_client.connect_future(&address).await;
 
         if let Ok(connection) = res {
             let channel = glib_rpc_client::connect(connection.clone()).unwrap();
