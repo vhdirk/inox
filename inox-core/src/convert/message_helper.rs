@@ -1,11 +1,8 @@
 use gmime::InternetAddressExt;
 use gmime::InternetAddressListExt;
 use gmime::traits::ContentDispositionExt;
-use crate::core::mime::MultipartSubtype;
-use crate::core::util::EmptyOrWhitespace;
-use crate::core::util::ReduceWhiteSpace;
+
 use chrono::Utc;
-use glib::subclass::boxed::BoxedType;
 use gmime::traits::ContentTypeExt;
 use gmime::traits::StreamFilterExt;
 use serde::{Deserialize, Serialize};
@@ -21,7 +18,6 @@ use log::*;
 
 use chrono::{DateTime, NaiveDateTime};
 
-use glib;
 use glib::prelude::*;
 use gmime;
 use gmime::traits::{
@@ -30,6 +26,9 @@ use gmime::traits::{
 };
 use gmime::MessageExtManual;
 use notmuch;
+
+use crate::util::{EmptyOrWhitespace, ReduceWhiteSpace};
+use crate::mime::{MultipartSubtype};
 
 const MAX_PREVIEW_BYTES: usize = 128;
 const UTF8_CHARSET: &str = "UTF-8";
@@ -46,20 +45,13 @@ pub enum TextFormat {
 }
 
 #[derive(Clone, Debug)]
-pub struct Message {
+pub struct MessageHelper {
     notmuch_message: notmuch::Message,
     gmime_message: gmime::Message,
 }
 
-impl Deref for Message {
-    type Target = gmime::Message;
 
-    fn deref(&self) -> &Self::Target {
-        &self.gmime_message
-    }
-}
-
-impl Message {
+impl MessageHelper {
     pub fn new(message: &notmuch::Message) -> Result<Self, glib::Error> {
         // create a stream to read from the file descriptor
         // TODO: proper error handling
@@ -426,7 +418,7 @@ impl Message {
 
             buf.join("")
         } else {
-            use crate::core::util::html_to_text;
+            use crate::util::html_to_text;
 
             html_to_text(text, Some(false), None)
         };

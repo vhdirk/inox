@@ -6,9 +6,11 @@ use crate::models::query::Exclude;
 use crate::models::{self, Conversation, Message, Query, Sort};
 use crate::protocol::MailService;
 use crate::settings::Settings;
+use crate::convert::message_helper::MessageHelper;
 use async_std::path::PathBuf;
 use jsonrpc_core::BoxFuture;
 use std::result::Result;
+use log::*;
 
 #[derive(Default)]
 pub struct MailHandler {}
@@ -35,24 +37,34 @@ impl Into<notmuch::Exclude> for Exclude {
     }
 }
 
-// impl From<&notmuch::Message> for Message {
-//     fn from(msg: &notmuch::Message) -> Message {
-//         Message {
-//             id: msg.id().to_string(),
-//             tags: msg.tags().collect(),
+impl From<&notmuch::Message> for Message {
+    fn from(msg: &notmuch::Message) -> Message {
 
-//             // recipients:
-//             // from_contacts:
-//             // to_contacts:
-//             // cc_contacts:
-//             // bcc_contacts:
-//             // reply_to_contacts:
+        let helper = MessageHelper::new(msg);
 
-//             // date: msg.date(),
-//             subject: msg.subject().to_string(),
-//         }
-//     }
-// }
+        Message {
+            id: msg.id().to_string(),
+            tags: msg.tags().collect(),
+
+            from_contacts: vec![],
+            to_contacts: vec![],
+            cc_contacts: vec![],
+            bcc_contacts: vec![],
+            reply_to_contacts: vec![],
+
+
+            // recipients:
+            // from_contacts:
+            // to_contacts:
+            // cc_contacts:
+            // bcc_contacts:
+            // reply_to_contacts:
+
+            date: None, // date: msg.date(),
+            subject: None, //msg.subject().to_string(),
+        }
+    }
+}
 
 impl From<notmuch::Thread> for Conversation {
     fn from(thread: notmuch::Thread) -> Conversation {
@@ -97,7 +109,7 @@ impl MailHandler {
 impl MailService for MailHandler {
     type Metadata = StateMetadata;
 
-    fn count_messages(
+    fn query_count_messages(
         &self,
         state: Self::Metadata,
         query: Query,
@@ -126,7 +138,7 @@ impl MailService for MailHandler {
         })
     }
 
-    fn search_messages(
+    fn query_search_messages(
         &self,
         state: Self::Metadata,
         query: Query,
@@ -142,7 +154,7 @@ impl MailService for MailHandler {
         })
     }
 
-    fn count_conversations(
+    fn query_count_conversations(
         &self,
         state: Self::Metadata,
         query: Query,
@@ -158,11 +170,15 @@ impl MailService for MailHandler {
         })
     }
 
-    fn search_conversations(
+    // TODO: pagination?
+    fn query_search_conversations(
         &self,
         state: Self::Metadata,
         query: Query,
     ) -> BoxFuture<Result<Vec<Conversation>, jsonrpc_core::Error>> {
+
+        debug!("query_search_conversations: {:?} {:?}", state, query);
+
         Box::pin(async move {
             let db = state.open_database(notmuch::DatabaseMode::ReadOnly).await;
 
@@ -191,7 +207,7 @@ impl MailService for MailHandler {
         })
     }
 
-    fn get_message(
+    fn message_get(
         &self,
         state: Self::Metadata,
         message_id: String,
@@ -209,6 +225,8 @@ impl MailService for MailHandler {
                 // TODO
                 return Err(jsonrpc_core::Error::internal_error());
             }
+
+
             // msg.map(|msg| {
             //     msg.
             // });
@@ -217,20 +235,35 @@ impl MailService for MailHandler {
         })
     }
 
-    fn body(
+    fn message_body(
         &self,
         state: Self::Metadata,
         message_id: String,
         html: bool,
-    ) -> BoxFuture<Result<String, jsonrpc_core::Error>> {
-        Box::pin(async move { Ok("".to_string()) })
+    ) -> BoxFuture<Result<Option<String>, jsonrpc_core::Error>> {
+        Box::pin(async move { Ok(None) })
     }
 
-    fn get_conversation(
+    fn message_replies(&self, state: Self::Metadata, message_id: String) -> BoxFuture<Result<Vec<Message>, jsonrpc_core::Error>> {
+        Box::pin(async move { Ok(vec![]) })
+    }
+
+    fn conversation_toplevel_messages(&self, state: Self::Metadata, conversation_id: String) -> BoxFuture<Result<Vec<Message>, jsonrpc_core::Error>> {
+        Box::pin(async move { Ok(vec![]) })
+    }
+
+
+    fn conversation_messages(&self, state: Self::Metadata, conversation_id: String) -> BoxFuture<Result<Vec<Message>, jsonrpc_core::Error>> {
+        Box::pin(async move { Ok(vec![]) })
+    }
+
+    fn conversation_get(
         &self,
         state: Self::Metadata,
-        id: String,
-    ) -> BoxFuture<Result<u64, jsonrpc_core::Error>> {
-        Box::pin(async move { Ok(0) })
+        conversation_id: String,
+    ) -> BoxFuture<Result<Option<Conversation>, jsonrpc_core::Error>> {
+        Box::pin(async move { Ok(None) })
     }
+
+
 }

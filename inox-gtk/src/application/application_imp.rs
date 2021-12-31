@@ -202,7 +202,7 @@ impl InoxApplication {
                 let this = Self::from_instance(&inst);
 
                 let query_client = this.rpc.borrow().as_ref().unwrap().mail_client.clone();
-                let conversations = query_client.search_conversations(query).await;
+                let conversations = query_client.query_search_conversations(query).await;
 
                 this.window
             .get()

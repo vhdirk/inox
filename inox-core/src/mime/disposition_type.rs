@@ -1,4 +1,4 @@
-use crate::core::util::EmptyOrWhitespace;
+use crate::util::EmptyOrWhitespace;
 use gmime;
 
 pub enum DispositionType {

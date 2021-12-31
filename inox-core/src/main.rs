@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use dirs;
 use gmime;
+use notmuch;
 use log::*;
 use pretty_env_logger;
 
@@ -18,6 +19,9 @@ pub mod handlers;
 pub mod models;
 pub mod protocol;
 pub mod settings;
+pub mod convert;
+pub mod util;
+pub mod mime;
 
 use handlers::mail_handler::MailHandler;
 use protocol::mail_service::*;
