@@ -1,3 +1,5 @@
+#![feature(iter_advance_by)]
+
 use crate::handlers::state_metadata::StateMetadata;
 use jsonrpc_core::MetaIoHandler;
 use std::fs::DirBuilder;

@@ -130,8 +130,10 @@ impl InoxApplication {
                     Query {
                         query: search,
                         sort: Sort::NewestFirst,
-                        tags_exclude: vec![],
-                        omit_excluded: Exclude::False,
+                        exclude_tags: vec![],
+                        exclude: Exclude::False,
+                        limit: None,
+                        offset: None,
                     }
                 ))
                 .unwrap(),

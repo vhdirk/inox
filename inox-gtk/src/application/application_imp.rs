@@ -209,7 +209,7 @@ impl InoxApplication {
             .unwrap()
             .upgrade()
             .unwrap()
-            .set_conversations(&conversations.unwrap());
+            .set_conversations(&conversations.unwrap().conversations);
             }));
         }));
 

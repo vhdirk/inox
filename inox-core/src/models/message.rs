@@ -6,7 +6,7 @@ use serde::{Serialize, Deserialize};
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Message {
     pub id: String,
-    pub recipients: Vec<Contact>,
+    // pub recipients: Vec<Contact>,
     pub tags: Vec<String>,
 
     pub from_contacts: Vec<Contact>,

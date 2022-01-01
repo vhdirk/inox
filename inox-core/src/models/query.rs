@@ -22,6 +22,10 @@ pub enum Exclude {
 pub struct Query {
     pub query: String,
     pub sort: Sort,
-    pub tags_exclude: Vec<String>,
-    pub omit_excluded: Exclude
+    pub exclude_tags: Vec<String>,
+    pub exclude: Exclude,
+    pub limit: Option<u32>,
+    pub offset: Option<u32>
 }
+
+

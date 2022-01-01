@@ -4,6 +4,6 @@ pub mod contact;
 pub mod query;
 
 pub use message::{Message, MessageBody};
-pub use conversation::Conversation;
+pub use conversation::{Conversation, QuerySearchConversations};
 pub use contact::Contact;
 pub use query::{Sort, Query};

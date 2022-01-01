@@ -1,3 +1,4 @@
+use crate::models::QuerySearchConversations;
 use chrono::NaiveDateTime;
 use chrono::Utc;
 use chrono::DateTime;
@@ -83,8 +84,8 @@ impl From<notmuch::Thread> for Conversation {
                 Utc,
             ),
             preview: None,
-            total_messages: thread.total_messages(),
-            matched_messages: thread.matched_messages(),
+            total_messages: thread.total_messages() as u32,
+            matched_messages: thread.matched_messages() as u32,
         }
     }
 }
@@ -97,10 +98,10 @@ impl MailHandler {
         let res = db.create_query(&query.query);
         res.map(move |q| {
             q.set_sort(query.sort.clone().into());
-            for tag in query.tags_exclude.iter() {
+            for tag in query.exclude_tags.iter() {
                 q.add_tag_exclude(tag);
             }
-            q.set_omit_excluded(query.omit_excluded.clone().into());
+            q.set_omit_excluded(query.exclude.clone().into());
             q
         })
     }
@@ -108,35 +109,6 @@ impl MailHandler {
 
 impl MailService for MailHandler {
     type Metadata = StateMetadata;
-
-    fn query_count_messages(
-        &self,
-        state: Self::Metadata,
-        query: Query,
-    ) -> BoxFuture<Result<u32, jsonrpc_core::Error>> {
-        Box::pin(async move {
-            let db = state.open_database(notmuch::DatabaseMode::ReadOnly).await;
-
-            if db.is_err() {
-                // TODO
-                return Err(jsonrpc_core::Error::internal_error());
-            }
-
-            let dbquery = db.unwrap().create_query(&query.query);
-
-            if dbquery.is_err() {
-                // TODO
-                return Err(jsonrpc_core::Error::internal_error());
-            }
-            let count = dbquery.unwrap().count_messages();
-
-            if count.is_err() {
-                // TODO
-                return Err(jsonrpc_core::Error::internal_error());
-            }
-            Ok(count.unwrap())
-        })
-    }
 
     fn query_search_messages(
         &self,
@@ -154,28 +126,12 @@ impl MailService for MailHandler {
         })
     }
 
-    fn query_count_conversations(
-        &self,
-        state: Self::Metadata,
-        query: Query,
-    ) -> BoxFuture<Result<u32, jsonrpc_core::Error>> {
-        Box::pin(async move {
-            let db = state.open_database(notmuch::DatabaseMode::ReadOnly).await;
-
-            if db.is_err() {
-                // TODO
-                return Err(jsonrpc_core::Error::internal_error());
-            }
-            Ok(0)
-        })
-    }
-
     // TODO: pagination?
     fn query_search_conversations(
         &self,
         state: Self::Metadata,
         query: Query,
-    ) -> BoxFuture<Result<Vec<Conversation>, jsonrpc_core::Error>> {
+    ) -> BoxFuture<Result<QuerySearchConversations, jsonrpc_core::Error>> {
 
         debug!("query_search_conversations: {:?} {:?}", state, query);
 
@@ -193,17 +149,46 @@ impl MailService for MailHandler {
                 // TODO
                 return Err(jsonrpc_core::Error::internal_error());
             }
-            let threads = q.unwrap().search_threads();
+
+            let q = q.unwrap();
+            let count = q.count_messages();
+            if count.is_err() {
+                // TODO
+                return Err(jsonrpc_core::Error::internal_error());
+            }
+
+            let threads = q.search_threads();
             if threads.is_err() {
                 // TODO
                 return Err(jsonrpc_core::Error::internal_error());
             }
             let mut conversations = vec![];
-            for thread in threads.unwrap() {
+
+            let mut threads = threads.unwrap();
+
+            for (i, thread) in threads.enumerate() {
+                // skip messages until we reach offset
+                if let Some(offset) = query.offset {
+                    if i < (offset as usize) {
+                        continue;
+                    }
+                }
+
                 conversations.push(thread.into());
+
+                // stop if we have enough results
+                if let Some(limit) = query.limit {
+                    let offset = query.offset.unwrap_or(0);
+                    if i < ((offset + limit) as usize) {
+                        break;
+                    }
+                }
             }
 
-            Ok(conversations)
+            Ok(QuerySearchConversations{
+                conversations,
+                total: count.unwrap(),
+            })
         })
     }
 
