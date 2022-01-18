@@ -1,3 +1,4 @@
+use inox_core::models::Conversation;
 use std::cell::RefCell;
 use std::pin::Pin;
 use std::rc::Rc;
@@ -31,7 +32,7 @@ pub struct InoxApplication {
 
     pub window: OnceCell<WeakRef<MainWindow>>,
     pub socket_client: gio::SocketClient,
-    pub rpc: RefCell<Option<RpcConnection>>,
+    pub rpc_connection: RefCell<Option<RpcConnection>>,
     pub settings: RefCell<Option<Rc<Settings>>>,
 }
 
@@ -51,7 +52,7 @@ impl ObjectSubclass for InoxApplication {
             window,
             settings: RefCell::new(None),
             socket_client: gio::SocketClient::new(),
-            rpc: RefCell::new(None),
+            rpc_connection: RefCell::new(None),
         }
     }
 }
@@ -180,12 +181,12 @@ impl InoxApplication {
             let channel = glib_rpc_client::connect(connection.clone()).unwrap();
             let mail_client: MailServiceClient = channel.clone().into();
 
-            let rpc = RpcConnection {
+            let rpc_connection = RpcConnection {
                 socket_connection: connection,
                 mail_client,
             };
 
-            self.rpc.replace(Some(rpc));
+            self.rpc_connection.replace(Some(rpc_connection));
             Ok(())
         } else {
             Err(res.err().unwrap())
@@ -201,8 +202,8 @@ impl InoxApplication {
             ctx.spawn_local(clone!(@weak inst => async move {
                 let this = Self::from_instance(&inst);
 
-                let query_client = this.rpc.borrow().as_ref().unwrap().mail_client.clone();
-                let conversations = query_client.query_search_conversations(query).await;
+                let mail_client = this.rpc_connection.borrow().as_ref().unwrap().mail_client.clone();
+                let conversations = mail_client.query_search_conversations(query).await;
 
                 this.window
             .get()
@@ -216,7 +217,36 @@ impl InoxApplication {
         // self.rpc.borrow().as_ref().unwrap().query_client.conversations(query);
     }
 
-    pub fn open_conversation(&self, conversation_id: Option<String>) {
+    pub fn open_conversation(&self, conversation: Option<Conversation>) {
+
+        let inst = self.instance();
+
+        let ctx = glib::MainContext::default();
+        ctx.with_thread_default(clone!(@weak inst => move || {
+            let ctx = glib::MainContext::default();
+            ctx.spawn_local(clone!(@weak inst => async move {
+                let this = Self::from_instance(&inst);
+
+                let messages = if let Some(conversation) = conversation.as_ref() {
+                    let mail_client = this.rpc_connection.borrow().as_ref().unwrap().mail_client.clone();
+                    mail_client.conversation_messages(conversation.id.clone()).await.unwrap()
+                } else {
+                    vec![]
+                };
+
+
+                this.window
+                    .get()
+                    .unwrap()
+                    .upgrade()
+                    .unwrap()
+                    .open_conversation(conversation, messages);
+
+
+
+            }));
+        }));
+
         // let conversation = conversation_id.map(|id| {
         //     self.open_database(notmuch::DatabaseMode::ReadOnly)
         //         .unwrap()
@@ -225,11 +255,5 @@ impl InoxApplication {
         //         .unwrap()
         // });
 
-        // imp.window
-        //     .get()
-        //     .unwrap()
-        //     .upgrade()
-        //     .unwrap()
-        //     .open_conversation(conversation);
     }
 }

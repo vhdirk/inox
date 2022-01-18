@@ -200,9 +200,9 @@ impl MessageView {
             .expect("Failed to set sender on MessageView");
 
         // let message = Message::new(message).unwrap();
-        // self.message
-        //     .set(message)
-        //     .expect("Failed to set message on MessageView");
+        self.message
+            .set(message.clone())
+            .expect("Failed to set message on MessageView");
 
         // let inst = self.instance();
 
@@ -359,7 +359,7 @@ impl MessageView {
 
     pub fn format_subject(&self) -> String {
         let msg = self.message.get().unwrap();
-        msg.subject.as_ref().unwrap().to_string()
+        msg.subject.as_ref().unwrap_or(&"".to_string()).to_string()
     }
 
     pub fn format_originator_compact(&self) -> String {
@@ -370,12 +370,12 @@ impl MessageView {
 
     pub fn format_date(&self) -> String {
         let msg = self.message.get().unwrap();
-        msg.date.as_ref().unwrap().to_rfc2822()
+        msg.date.to_rfc2822()
     }
 
     pub fn format_date_compact(&self) -> String {
         let msg = self.message.get().unwrap();
-        let ht = "";// HumanTime::from(msg.date.as_ref().unwrap());
+        let ht = HumanTime::from(msg.date);
         format!("{}", ht)
     }
 

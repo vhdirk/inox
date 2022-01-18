@@ -17,6 +17,7 @@ use jsonrpc_ipc_server::{RequestContext, ServerBuilder};
 use jsonrpc_pubsub::{PubSubHandler, Session};
 use structopt::StructOpt;
 
+pub mod database;
 pub mod handlers;
 pub mod models;
 pub mod protocol;

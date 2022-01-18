@@ -1,4 +1,5 @@
 #![allow(new_without_default)]
+use inox_core::models::Conversation;
 use gio::ApplicationFlags;
 use once_cell::unsync::OnceCell;
 use std;
@@ -138,8 +139,8 @@ impl InoxApplication {
                 ))
                 .unwrap(),
             Action::Query(query) => self.perform_search(&query),
-            Action::SelectConversation(conversation_id) => self.open_conversation(conversation_id),
-            Action::SelectConversations(conversation_ids) => self.open_conversations(conversation_ids),
+            Action::SelectConversation(conversation) => self.open_conversation(conversation),
+            Action::SelectConversations(conversations) => self.open_conversations(conversations),
 
             // Action::ViewShowDiscover => imp.window.borrow().as_ref().unwrap().set_view(View::Discover),
             // Action::ViewShowLibrary => imp.window.borrow().as_ref().unwrap().set_view(View::Library),
@@ -179,12 +180,12 @@ impl InoxApplication {
         imp.perform_search(query.clone())
     }
 
-    fn open_conversation(&self, conversation_id: Option<String>) {
+    fn open_conversation(&self, conversation: Option<Conversation>) {
         let imp = imp::InoxApplication::from_instance(self);
-        imp.open_conversation(conversation_id)
+        imp.open_conversation(conversation)
     }
 
-    fn open_conversations(&self, conversation_ids: Vec<String>) {
+    fn open_conversations(&self, conversation_ids: Vec<Conversation>) {
         // let imp = imp::InoxApplication::from_instance(self);
         // imp.window
         //     .get()

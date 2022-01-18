@@ -1,3 +1,4 @@
+use inox_core::models::Message;
 use inox_core::models::Conversation;
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -96,7 +97,7 @@ impl MainWindow {
         imp.conversation_list.get().unwrap().set_conversations(conversations);
     }
 
-    pub fn open_conversation(&self, conversation: Option<&Conversation>) {
+    pub fn open_conversation(&self, conversation: Option<Conversation>, messages: Vec<Message>) {
         let imp = imp::MainWindow::from_instance(self);
 
         match conversation {
@@ -104,7 +105,7 @@ impl MainWindow {
                 // self.update_titlebar(Some(&conversation.subject()));
 
                 let conversation_view = imp.conversation_view.get().unwrap();
-                conversation_view.load_conversation(&conversation);
+                conversation_view.load_messages(&conversation, messages);
             }
             None => {
                 // self.update_titlebar(None);

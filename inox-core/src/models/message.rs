@@ -15,7 +15,7 @@ pub struct Message {
     pub bcc_contacts: Vec<Contact>,
     pub reply_to_contacts: Vec<Contact>,
 
-    pub date: Option<DateTime<Utc>>,
+    pub date: DateTime<Utc>,
     pub subject: Option<String>,
     //pub preview: Option<String>,
 }

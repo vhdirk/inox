@@ -9,7 +9,7 @@ name = "inox_core"
 path = "src/lib.rs"
 
 [[bin]]
-name = "inox_core"
+name = "inox-core"
 path = "src/main.rs"
 
 

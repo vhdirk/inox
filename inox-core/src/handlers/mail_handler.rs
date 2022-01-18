@@ -1,17 +1,18 @@
-use crate::models::QuerySearchConversations;
-use chrono::NaiveDateTime;
-use chrono::Utc;
-use chrono::DateTime;
+use crate::convert::message_helper::MessageHelper;
+use crate::database::DatabaseExt;
 use crate::handlers::state_metadata::StateMetadata;
 use crate::models::query::Exclude;
+use crate::models::QuerySearchConversations;
 use crate::models::{self, Conversation, Message, Query, Sort};
 use crate::protocol::MailService;
 use crate::settings::Settings;
-use crate::convert::message_helper::MessageHelper;
 use async_std::path::PathBuf;
+use chrono::DateTime;
+use chrono::NaiveDateTime;
+use chrono::Utc;
 use jsonrpc_core::BoxFuture;
-use std::result::Result;
 use log::*;
+use std::result::Result;
 
 #[derive(Default)]
 pub struct MailHandler {}
@@ -38,31 +39,22 @@ impl Into<notmuch::Exclude> for Exclude {
     }
 }
 
-impl From<&notmuch::Message> for Message {
-    fn from(msg: &notmuch::Message) -> Message {
-
-        let helper = MessageHelper::new(msg);
+impl From<notmuch::Message> for Message {
+    fn from(msg: notmuch::Message) -> Message {
+        let helper = MessageHelper::new(&msg).unwrap();
 
         Message {
             id: msg.id().to_string(),
             tags: msg.tags().collect(),
 
-            from_contacts: vec![],
-            to_contacts: vec![],
-            cc_contacts: vec![],
-            bcc_contacts: vec![],
-            reply_to_contacts: vec![],
+            from_contacts: helper.from_contacts(),
+            to_contacts: helper.to_contacts(),
+            cc_contacts: helper.cc_contacts(),
+            bcc_contacts: helper.bcc_contacts(),
+            reply_to_contacts: helper.reply_to_contacts(),
 
-
-            // recipients:
-            // from_contacts:
-            // to_contacts:
-            // cc_contacts:
-            // bcc_contacts:
-            // reply_to_contacts:
-
-            date: None, // date: msg.date(),
-            subject: None, //msg.subject().to_string(),
+            date: helper.date(),
+            subject: helper.subject()
         }
     }
 }
@@ -132,7 +124,6 @@ impl MailService for MailHandler {
         state: Self::Metadata,
         query: Query,
     ) -> BoxFuture<Result<QuerySearchConversations, jsonrpc_core::Error>> {
-
         debug!("query_search_conversations: {:?} {:?}", state, query);
 
         Box::pin(async move {
@@ -164,7 +155,7 @@ impl MailService for MailHandler {
             }
             let mut conversations = vec![];
 
-            let mut threads = threads.unwrap();
+            let threads = threads.unwrap();
 
             for (i, thread) in threads.enumerate() {
                 // skip messages until we reach offset
@@ -185,7 +176,7 @@ impl MailService for MailHandler {
                 }
             }
 
-            Ok(QuerySearchConversations{
+            Ok(QuerySearchConversations {
                 conversations,
                 total: count.unwrap(),
             })
@@ -211,7 +202,6 @@ impl MailService for MailHandler {
                 return Err(jsonrpc_core::Error::internal_error());
             }
 
-
             // msg.map(|msg| {
             //     msg.
             // });
@@ -229,17 +219,62 @@ impl MailService for MailHandler {
         Box::pin(async move { Ok(None) })
     }
 
-    fn message_replies(&self, state: Self::Metadata, message_id: String) -> BoxFuture<Result<Vec<Message>, jsonrpc_core::Error>> {
+    fn message_replies(
+        &self,
+        state: Self::Metadata,
+        message_id: String,
+    ) -> BoxFuture<Result<Vec<Message>, jsonrpc_core::Error>> {
         Box::pin(async move { Ok(vec![]) })
     }
 
-    fn conversation_toplevel_messages(&self, state: Self::Metadata, conversation_id: String) -> BoxFuture<Result<Vec<Message>, jsonrpc_core::Error>> {
+    fn conversation_toplevel_messages(
+        &self,
+        state: Self::Metadata,
+        conversation_id: String,
+    ) -> BoxFuture<Result<Vec<Message>, jsonrpc_core::Error>> {
         Box::pin(async move { Ok(vec![]) })
     }
 
+    fn conversation_messages(
+        &self,
+        state: Self::Metadata,
+        conversation_id: String,
+    ) -> BoxFuture<Result<Vec<Message>, jsonrpc_core::Error>> {
+        // limit/offset needed?
+        debug!("conversation_messages: {:?} {:?}", state, conversation_id);
 
-    fn conversation_messages(&self, state: Self::Metadata, conversation_id: String) -> BoxFuture<Result<Vec<Message>, jsonrpc_core::Error>> {
-        Box::pin(async move { Ok(vec![]) })
+        Box::pin(async move {
+            let db = state.open_database(notmuch::DatabaseMode::ReadOnly).await;
+
+            if db.is_err() {
+                // TODO
+                return Err(jsonrpc_core::Error::internal_error());
+            }
+
+            let thread = db.unwrap().find_thread_by_id(&conversation_id);
+
+            if thread.is_err() {
+                // TODO
+                return Err(jsonrpc_core::Error::internal_error());
+            }
+
+            let thread = thread.unwrap();
+
+            if thread.is_none() {
+                // TODO
+                return Err(jsonrpc_core::Error::internal_error());
+            }
+
+            let messages = thread.unwrap().messages();
+
+            let mut msgs = vec![];
+
+            for message in messages {
+                msgs.push(message.into());
+            }
+
+            Ok(msgs)
+        })
     }
 
     fn conversation_get(
@@ -249,6 +284,4 @@ impl MailService for MailHandler {
     ) -> BoxFuture<Result<Option<Conversation>, jsonrpc_core::Error>> {
         Box::pin(async move { Ok(None) })
     }
-
-
 }

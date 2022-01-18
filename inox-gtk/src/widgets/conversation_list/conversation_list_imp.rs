@@ -127,7 +127,7 @@ impl ConversationList {
                 let selection = model.selection_in_range(position, n_items);
                 let (mut selection_iter, _) = gtk::BitsetIter::init_first(&selection).unwrap();
 
-                let mut conversation_ids = vec![];
+                let mut conversations = vec![];
 
                 while selection_iter.is_valid() {
                     let selection_val = selection_iter.value();
@@ -136,26 +136,26 @@ impl ConversationList {
                         .unwrap()
                         .downcast::<ConversationObject>()
                         .unwrap();
-                    conversation_ids.push(conversation_object.id.clone());
+                    conversations.push(conversation_object.data().clone());
                     selection_iter.next();
                 }
 
-                match conversation_ids.len() {
+                match conversations.len() {
                     0 => {
                         sender
                             .send(Action::SelectConversation(None))
                             .expect("Failed to send SelectConversation action");
                     }
                     1 => {
-                        debug!("Selected conversation {:?}", conversation_ids[0].clone());
+                        debug!("Selected conversation {:?}", conversations[0].clone());
 
                         sender
-                            .send(Action::SelectConversation(Some(conversation_ids[0].clone())))
+                            .send(Action::SelectConversation(Some(conversations[0].clone())))
                             .expect("Failed to send SelectConversation action");
                     }
                     _ => {
                         sender
-                            .send(Action::SelectConversations(conversation_ids))
+                            .send(Action::SelectConversations(conversations))
                             .expect("Failed to send SelectConversations action");
                     }
                 };

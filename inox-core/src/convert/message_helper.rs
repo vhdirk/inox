@@ -1,10 +1,12 @@
+use crate::models::Contact;
+use gmime::traits::ContentDispositionExt;
 use gmime::InternetAddressExt;
 use gmime::InternetAddressListExt;
-use gmime::traits::ContentDispositionExt;
 
 use chrono::Utc;
 use gmime::traits::ContentTypeExt;
 use gmime::traits::StreamFilterExt;
+use log::*;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::iter::Iterator;
@@ -14,7 +16,6 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 use substring::Substring;
-use log::*;
 
 use chrono::{DateTime, NaiveDateTime};
 
@@ -27,8 +28,8 @@ use gmime::traits::{
 use gmime::MessageExtManual;
 use notmuch;
 
+use crate::mime::MultipartSubtype;
 use crate::util::{EmptyOrWhitespace, ReduceWhiteSpace};
-use crate::mime::{MultipartSubtype};
 
 const MAX_PREVIEW_BYTES: usize = 128;
 const UTF8_CHARSET: &str = "UTF-8";
@@ -36,7 +37,6 @@ const UTF8_CHARSET: &str = "UTF-8";
 // TODO: get from settings
 const TAG_UNREAD: &str = "unread";
 const TAG_ATTACHMENT: &str = "attachment";
-
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TextFormat {
@@ -50,6 +50,14 @@ pub struct MessageHelper {
     gmime_message: gmime::Message,
 }
 
+impl From<gmime::InternetAddress> for Contact {
+    fn from(addr: gmime::InternetAddress) -> Contact {
+        Contact {
+            email_address: addr.name().unwrap().into(), // TODO //addr.address().to_string(),
+            name: addr.name().map(|n| n.into()),
+        }
+    }
+}
 
 impl MessageHelper {
     pub fn new(message: &notmuch::Message) -> Result<Self, glib::Error> {
@@ -76,7 +84,10 @@ impl MessageHelper {
     }
 
     pub fn has_tag(&self, tag: &str) -> bool {
-        self.notmuch_message.tags().collect::<Vec<String>>().contains(&tag.to_string())
+        self.notmuch_message
+            .tags()
+            .collect::<Vec<String>>()
+            .contains(&tag.to_string())
     }
 
     pub fn is_unread(&self) -> bool {
@@ -87,12 +98,69 @@ impl MessageHelper {
         self.has_tag(TAG_ATTACHMENT)
     }
 
+    pub fn internet_address_list_to_contacts(
+        &self,
+        addr_list: &Option<gmime::InternetAddressList>,
+    ) -> Vec<Contact> {
+        if addr_list.is_none() {
+            return vec![];
+        }
+
+        let addr_list = addr_list.as_ref().unwrap();
+
+        let mut contacts = vec![];
+
+        let count = addr_list.length();
+        for i in 0..count {
+            let addr = addr_list.address(i).unwrap();
+            contacts.push(addr.into());
+        }
+
+        contacts
+    }
+
+    pub fn from_contacts(&self) -> Vec<Contact> {
+        let from = self.gmime_message.from();
+        self.internet_address_list_to_contacts(&from)
+    }
+
+    pub fn to_contacts(&self) -> Vec<Contact> {
+        let to = self.gmime_message.to();
+        self.internet_address_list_to_contacts(&to)
+    }
+
+    pub fn cc_contacts(&self) -> Vec<Contact> {
+        let cc = self.gmime_message.cc();
+        self.internet_address_list_to_contacts(&cc)
+    }
+
+    pub fn bcc_contacts(&self) -> Vec<Contact> {
+        let bcc = self.gmime_message.bcc();
+        self.internet_address_list_to_contacts(&bcc)
+    }
+
+    pub fn reply_to_contacts(&self) -> Vec<Contact> {
+        let reply_to = self.gmime_message.reply_to();
+        self.internet_address_list_to_contacts(&reply_to)
+    }
+
+    pub fn subject(&self) -> Option<String> {
+        self.gmime_message.subject().map(|s| s.to_string())
+    }
+
+    pub fn date(&self) -> DateTime<Utc> {
+        DateTime::<Utc>::from_utc(
+            NaiveDateTime::from_timestamp(self.notmuch_message.date(), 0),
+            Utc,
+        )
+    }
+
     /**
      * Generates a preview from the email's message body.
      *
      * If there is no body, the empty string will be returned.
      */
-    pub fn preview(&self) -> String {
+    pub fn preview(&self) -> Option<String> {
         // try {
         let mut body = self.plain_body(false);
         let mut text_format = TextFormat::Plain;
@@ -102,19 +170,19 @@ impl MessageHelper {
         }
 
         if body.is_none() {
-            return "".to_string();
+            return None;
         }
 
         let ptext = self.to_preview_text(&body.unwrap(), text_format);
 
-        if ptext.len() > MAX_PREVIEW_BYTES {
+        Some(if ptext.len() > MAX_PREVIEW_BYTES {
             format!("{}{}", ptext.substring(0, MAX_PREVIEW_BYTES), "…")
         } else {
             ptext
-        }
+        })
     }
 
-    // TODO: should return error when no html body present
+    // TODO: should return error when no plain body present
     pub fn plain_body(&self, convert_to_html: bool) -> Option<String> {
         self.construct_body_from_mime_parts(
             &self.gmime_message.mime_part().unwrap(),
@@ -132,12 +200,6 @@ impl MessageHelper {
             "html",
             false,
         )
-    }
-
-    pub fn date(&self) -> DateTime<Utc> {
-        let date = self.notmuch_message.date();
-        // TODO: verify this is UTC!
-        DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(date, 0), Utc)
     }
 
     fn has_body_parts(&self, node: &gmime::Object, text_subtype: &str) -> bool {

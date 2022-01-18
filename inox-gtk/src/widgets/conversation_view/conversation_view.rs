@@ -1,3 +1,4 @@
+use inox_core::models::Message;
 use inox_core::models::Conversation;
 use gio::prelude::*;
 use glib::clone;
@@ -49,22 +50,22 @@ impl ConversationView {
         let imp = imp::ConversationView::from_instance(self);
     }
 
-    pub fn load_conversation(&self, conversation: &Conversation) {
+    pub fn load_messages(&self, conversation: &Conversation, messages: Vec<Message>) {
         let imp = imp::ConversationView::from_instance(self);
         // self.show_loading();
 
-        // let message_list = MessageList::new(thread, imp.sender.get().unwrap().clone());
+        let message_list = MessageList::new(&messages, imp.sender.get().unwrap().clone());
 
-        // // insert the new view
-        // imp.set_message_list(&message_list);
+        // insert the new view
+        imp.set_message_list(&message_list);
 
-        // imp.set_visible_child(&imp.thread_page.get());
+        imp.set_visible_child(&imp.conversation_page.get());
 
         // let model = imp::create_liststore();
         // let selection_model = SingleSelection::new(Some(&model));
 
-        // for thread in threads {
-        //     model.append(&Thread::new(thread));
+        // for conversation in conversations {
+        //     model.append(&conversation::new(conversation));
         // }
 
         // imp.column_view.set_model(Some(&selection_model));

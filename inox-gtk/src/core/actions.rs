@@ -1,3 +1,4 @@
+use inox_core::models::Conversation;
 use inox_core::models::query::Query;
 
 #[derive(Debug)]
@@ -5,8 +6,8 @@ pub enum Action {
     SelectTag(Option<String>),
     Search(String),
     Query(Query),
-    SelectConversation(Option<String>),
-    SelectConversations(Vec<String>),
+    SelectConversation(Option<Conversation>),
+    SelectConversations(Vec<Conversation>),
 
     // Reload,
     // ViewShowLibrary,
